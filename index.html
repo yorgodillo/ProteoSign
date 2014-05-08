@@ -16,7 +16,7 @@
 				<p id="scrollingtext" class="scrolling_p"></p>
 			</div>
 			<div class="main_div main_section" id="s1div">
-				<p><strong>ProteoSign</strong> is an on-line tool for protein <strong>differential expression (or abundance) analysis</strong> designed with the end-proteomics user in mind.</p>
+				<p><strong>ProteoSign</strong> is an online service for protein <strong>differential expression (or abundance) analysis</strong> designed with the end-proteomics user in mind.</p>
 				<p>Borrowing from the experience of the microarray field, ProteoSign software utilizes the well-established <a href="http://bioinf.wehi.edu.au/limma/" target="_blank"><strong>Linear Models For Microarray Data (LIMMA)</strong></a> methodology for assessing statistical significance in protein abundance differences between two or more proteome states.</p>
 				<p>ProteoSign aims to fully automate the process of statistically evaluating differential expression in mass spectrometry-based bottom-up (shotgun) quantitative proteomics data by requiring <strong>minimal user interaction time</strong> and generating <strong>publication-quality data plots.</strong></p>
 				<br><hr class="style-one"><br>
@@ -57,7 +57,7 @@
 					<table style="border-spacing: 5px 5px;">
 						<tr>
 							<td>&#8212 Quantitation by Proteome Discoverer&#8482</td>
-							<td><span class="tooltip">?<span><img class="callout" src="../images/callout_black.gif" />Leave <em>blank</em> for MaxQuant</span></span></td>
+							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />Leave <em>blank</em> for MaxQuant</span></span></td>
 							<td><input name="exppddata" type="checkbox"/></td>
 							<td></td>
 							<td></td>
@@ -81,7 +81,7 @@
 						</tr>
 						<tr>
 							<td>&#8212 Nubmer of biological replicates</td>
-							<td><span class="tooltip">?<span><img class="callout" src="../images/callout_black.gif" />Must be at least <strong>2</strong></span></span></td>
+							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />Must be at least <strong>2</strong></span></span></td>
 							<td><input data-required="true" name="expbioreps" type="text" onkeypress="inputChCheck(event,'^[0-9]+$',2)" placeholder="Criteria apply"/></td>
 							<td></td>
 							<td></td>
@@ -89,7 +89,7 @@
 						</tr>
 						<tr>
 							<td>&#8212 Nubmer of technical replicates</td>
-							<td><span class="tooltip">?<span><img class="callout" src="../images/callout_black.gif" />Must be at least <strong>2</strong></span></span></td>
+							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />Must be at least <strong>2</strong></span></span></td>
 							<td><input data-required="true" name="exptechreps" type="text" onkeypress="inputChCheck(event,'^[0-9]+$',2)" placeholder="Criteria apply"/></td>
 							<td></td>
 							<td></td>
@@ -97,7 +97,7 @@
 						</tr>
 						<tr>
 							<td>&#8212 Species label #1</td>
-							<td><span class="tooltip">?<span><img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.</span></span></td>
+							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.</span></span></td>
 							<td><select data-required="true" id="explbl1name_" name="explbl1name" type="text" placeholder="Name"></select></td>
 							<td><input data-required="true" id="explbl1definition" name="explbl1def" type="text" placeholder="Definition" readonly class='hidden'/></td>
 							<td><button type="button" class="main inline" id="btnAddLabel">+</button></td>
