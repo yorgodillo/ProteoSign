@@ -59,9 +59,7 @@ rect(breaks[-nB], 0, breaks[-1], y, col="cyan", ...)
 }
 
 # FROM: http://www-personal.umich.edu/~ladamic/presentations/Rtutorial/Rtutorial.R
-panel.lmline = function (x, y, col = par("col"), bg = NA, pch = par("pch"), 
-    cex = 1, col.smooth = "red", ...) 
-{
+panel.lmline = function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 1, col.smooth = "red", ...){
     points(x, y, pch = pch, col = col, bg = bg, cex = cex)
     ok <- is.finite(x) & is.finite(y)
     if (any(ok)) 
