@@ -1805,7 +1805,7 @@ perform_analysis<-function(){
     do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }
   #setwd(limma_output)
-  #write.table(protein_groups,file=paste(outputFigsPrefix,"_features.txt",sep=""),row.names=F,sep="\t")
+  write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   #setwd("..")
   
   expdesign<-c()
