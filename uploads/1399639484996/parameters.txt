@@ -1,0 +1,13 @@
+Proteome Discoverer data?	No
+Experiment ID?	test
+Time point?	2h
+#Modification	oxM	Oxidation
+Protein (as opposed to peptide) quantitation?	Yes
+Enable quantitation filtering?	No
+If the above two are enabled, protein-level (as opposed to peptide-level) filtering?	No
+If filtering is enabled, based on which label?	H
+Number of biological replicates?	3
+Number of technical replicates?	3
+Label-free experiment?	No
+Label	L	
+Label	H	

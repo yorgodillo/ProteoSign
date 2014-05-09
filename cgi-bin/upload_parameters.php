@@ -18,7 +18,7 @@
 	$the_parameters["REPLACE8"] = $_POST["expbioreps"];
 	$the_parameters["REPLACE9"] = $_POST["exptechreps"];
 	$the_parameters["REPLACE10"] = $_POST["labelfree"];
-	if(isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
+	if($_POST["explbl00"] == "Yes" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "Label\t" . $_POST["explbl0"] . "\t";
 	}
 	$lbl_i = 1;

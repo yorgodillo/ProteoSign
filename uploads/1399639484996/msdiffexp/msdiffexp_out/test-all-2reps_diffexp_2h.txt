@@ -1,0 +1,42 @@
+Protein	avg log2 H/L	P-value adjusted H/L	b1t1 Ratio counts	b1t2 Ratio counts	b1t3 Ratio counts	b2t1 Ratio counts	b2t2 Ratio counts	b2t3 Ratio counts	b3t1 Ratio counts	b3t2 Ratio counts	b3t3 Ratio counts	Ratio counts total
+BAG family molecular chaperone regulator 3 [BAG3 ...] [O95817 ...]	1.22554032135109	0.016612	3	1	1	2	2	1	3	2	1	16
+Coiled-coil domain-containing protein 50 [CCDC50 ...] [Q8IVM0-2 ...]	-1.34579747566671	0.013563	2	1	1	1	0	0	0	2	2	9
+Cyclin-dependent kinase inhibitor 1 [CDKN1A ...] [P38936 ...]	2.05868813849595	0.001907	2	1	1	3	3	3	2	1	1	17
+E3 SUMO-protein ligase EGR2 [EGR2 ...] [P11161 ...]	3.52875588312041	0	11	8	9	17	19	19	13	12	8	116
+Early growth response protein 1 [EGR1 ...] [P18146 ...]	2.01565455888558	0.000226	11	10	8	12	15	14	13	15	15	113
+Filamin-A [FLNA ...] [P21333 ...]	-1.33196023355891	0.005203	12	17	9	11	10	13	14	16	14	116
+Galectin-1 [LGALS1 ...] [P09382 ...]	-1.18021839493854	0.025908	1	1	0	1	1	2	1	2	1	10
+Galectin-3 [LGALS3 ...] [P17931 ...]	-2.07373978330677	0.012581	2	5	4	3	4	6	3	1	3	31
+Granulins [GRN ...] [P28799 ...]	-1.96629544218936	0.001866	1	1	0	2	2	4	2	3	3	18
+Granulysin [GNLY ...] [B4E3H9 ...]	-2.08613603279761	0.001401	1	1	2	2	1	0	3	2	1	13
+Heterogeneous nuclear ribonucleoprotein A1 [HNRNPA1 ...] [P09651 ...]	-2.79482027297079	2e-06	2	3	3	4	3	2	2	2	2	23
+Interferon regulatory factor 4 [IRF4 ...] [H0Y5H1 ...]	1.60386988289003	8.8e-05	1	1	1	1	1	1	1	1	1	9
+Krueppel-like factor 10 [KLF10 ...] [Q13118 ...]	1.88012888366689	0.000454	1	1	1	2	2	1	2	1	1	12
+Krueppel-like factor 13 [KLF13 ...] [Q9Y2Y9 ...]	-1.37761430346251	0.012581	2	2	2	3	1	1	1	2	2	16
+LIM domain-containing protein 2 [LIMD2 ...] [Q9BT23 ...]	-1.92302567915293	1e-04	0	1	1	1	1	1	1	1	1	8
+Lymphocyte-specific protein 1 [LSP1 ...] [P33241 ...]	-1.14448972149694	0.009509	9	10	9	8	8	11	6	9	9	79
+Myosin-9 [MYH9 ...] [P35579 ...]	-0.728245955295315	0.024666	14	11	12	22	16	24	15	15	12	141
+Neutrophil defensin 1 [DEFA1 ...] [P59665 ...]	-2.28880340227914	0.007376	1	2	2	1	4	3	1	0	1	15
+NF-kappa-B inhibitor zeta [NFKBIZ ...] [Q9BYH8 ...]	1.53046598417053	0.006537	5	5	8	8	5	9	6	4	5	55
+Phosphatidylinositol 4-phosphate 3-kinase C2 domain-containing subunit alpha [PIK3C2A ...] [O00443 ...]	-1.87804749534502	2e-06	1	2	1	3	1	2	0	2	1	13
+Plasma cell-induced resident endoplasmic reticulum protein [PACAP ...] [Q8WU39 ...]	-1.06791072544335	0.020823	1	1	2	1	1	1	1	0	1	9
+Poly(rC)-binding protein 1 [PCBP1 ...] [Q15365 ...]	-1.25054766584613	0.04691	5	4	4	6	5	7	5	1	4	41
+Polyadenylate-binding protein 1 [PABPC1 ...] [P11940 ...]	1.62928966511763	0.000151	19	16	20	25	26	28	20	16	20	190
+Probable ATP-dependent RNA helicase DDX5 [DDX5 ...] [P17844 ...]	1.53068044267455	0.0035	8	5	9	9	11	9	6	6	7	70
+Profilin-1 [PFN1 ...] [P07737 ...]	-1.5333112417736	0.005203	7	7	7	12	18	13	6	8	10	88
+Proteasomal ubiquitin receptor ADRM1 [ADRM1 ...] [Q16186 ...]	-0.583842179899083	0.040045	1	1	1	1	1	1	1	1	1	9
+Protein C10 [C12orf57 ...] [Q99622 ...]	1.30658691701626	0.005203	2	2	3	5	3	5	2	3	3	28
+Protein fosB [FOSB ...] [P53539 ...]	3.80876155515655	0	1	2	2	5	6	4	1	1	1	23
+Protein phosphatase 1 regulatory subunit 14B [PPP1R14B ...] [Q96C90 ...]	-2.04680028592738	0.001254	0	1	0	1	0	2	2	1	1	8
+Serine/arginine-rich splicing factor 7 [SRSF7 ...] [Q16629 ...]	1.46587299459045	0.013563	1	2	1	2	1	2	1	1	1	12
+Syntenin-1 [SDCBP ...] [O00560 ...]	2.46878269991691	4e-06	2	2	1	5	3	3	3	2	2	23
+T-cell activation Rho GTPase-activating protein [TAGAP ...] [Q8N103 ...]	3.488865121174	1e-06	4	6	6	3	4	6	6	2	3	40
+TATA-binding protein-associated factor 2N [TAF15 ...] [Q92804 ...]	3.18027343453911	0.045519	1	3	1	1	4	3	0	2	1	16
+Thioredoxin [TXN ...] [P10599 ...]	-1.87059171015012	0.016612	4	3	5	4	3	1	2	2	3	27
+TNFAIP3-interacting protein 1 [TNIP1 ...] [Q15025 ...]	-2.15816220658398	0.001401	3	3	2	4	4	2	3	2	4	27
+Transcription factor AP-1 [JUN ...] [P05412 ...]	1.47441911552448	0.000523	11	11	9	11	12	13	11	9	11	98
+Transcription factor jun-B [JUNB ...] [P17275 ...]	2.03681737169827	0.002021	8	7	9	9	10	15	10	13	11	92
+Transcription factor MafF [MAFF ...] [Q9ULX9 ...]	1.69128730606618	0.01213	0	1	1	3	6	2	2	1	1	17
+Tristetraprolin [ZFP36 ...] [P26651 ...]	2.80318707695521	7.9e-05	9	7	10	7	5	9	7	8	3	65
+Zinc finger CCCH-type antiviral protein 1 [ZC3HAV1 ...] [C9J6P4 ...]	1.09283819758939	0.019615	1	1	1	1	1	2	0	1	0	8
+Zinc finger protein 36, C3H1 type-like 1 [ZFP36L1 ...] [Q07352 ...]	1.76376460611298	0.011229	2	4	2	3	2	3	0	2	4	22
