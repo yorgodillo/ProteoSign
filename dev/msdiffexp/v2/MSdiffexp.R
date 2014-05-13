@@ -1180,7 +1180,6 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepE
   if(length(grep("Quan.Info",colnames(evidence)))>0 & length(grep("Quan.Usage",colnames(evidence)))>0){
     evidence<-evidence[evidence$Quan.Info=="Unique" & evidence$Quan.Usage=="Used",]
   }
-	
   
   #In case of label-free data, add columns of intensities for each condition like with labeled data
   if(LabelFree){
@@ -1789,7 +1788,7 @@ perform_analysis<-function(){
   close(evidence_fname_cleaned)
   tmpdata<-gsub("\"", "", readLines(pgroups_fname))
   pgroups_fname_cleaned<-file(pgroups_fname, open="w")
-  writeLines(tmpdata, con=pgroups_fname_cleaned)
+  writeLines(mpdata, con=pgroups_fname_cleaned)
   close(pgroups_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
@@ -1804,9 +1803,10 @@ perform_analysis<-function(){
     protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point)
     do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }
-  #setwd(limma_output)
-  #write.table(protein_groups,file=paste(outputFigsPrefix,"_features.txt",sep=""),row.names=F,sep="\t")
-  #setwd("..")
+  
+  setwd(limma_output)
+  write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
+  setwd("..")
   
   expdesign<-c()
   for(cond_i in conditions.labels){

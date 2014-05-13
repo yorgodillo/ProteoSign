@@ -1,4 +1,0 @@
-""	"Medium-Light"	"Heavy-Light"	"Heavy-Medium"
-"Light"	-1	-1	0
-"Medium"	1	0	-1
-"Heavy"	0	1	1

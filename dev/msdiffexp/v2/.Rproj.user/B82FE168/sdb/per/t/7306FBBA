@@ -1,0 +1,16 @@
+{
+    "contents" : "ratios.hist.colour<-\"cyan\"\nreps.scatter.lmline.colour<-\"red\"\nnRequiredLeastBioreps<-2\nGUI<-F\nparamssetfromGUI<-F\nkeepEvidenceIDs<-F\nexportFormat<-\"pdf\"\nrep_order<-NA\nmqValidation<-F\nworking_directory<-getwd()\npgroups_fname<-\"quancat_2h_PD_psms.txt\"\nevidence_fname<-\"quancat_2h_PD_psms.txt\"\noutputFigsPrefix<-\"msdiffexp_test\"\nfilterL_lbl<-\"Light\"\nfilterL_lvl<-F\nPDdata<-T\ntime.point<-\"2h\"\nbioreps<-3\ntechreps<-3\nProteinQuantitation<-T\nfilterL<-F\naddLabel(\"Light\",c(\"\"))\naddLabel(\"Medium\",c(\"2H(4)\",\"13C(6)\"))\naddLabel(\"Heavy\",c(\"13C(6)15N(2)\",\"13C(6)15N(4)\"))\n",
+    "created" : 1399981449050.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1708702252",
+    "id" : "7306FBBA",
+    "lastKnownWriteTime" : 1399982460,
+    "path" : "~/GitHub/ProteoSign/dev/msdiffexp/v2/quancat_2h_PD_psms_definitions.R",
+    "project_path" : "quancat_2h_PD_psms_definitions.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

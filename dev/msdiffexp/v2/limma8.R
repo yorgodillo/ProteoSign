@@ -1091,13 +1091,13 @@ grouping<-T
 #PD
 PDdata<-T
 time.point<-"2h"
-outputFigsPrefix<-"QuaNCAT-rev_IV_2h_PD"
-evidence_fname<-"QuanCAT v3 IV 2h_psms_PD.txt"
+outputFigsPrefix<-"limma8_test"
+evidence_fname<-"quancat_2h_PD_psms.txt"
 grouping = T;
 if(grouping){
-	protein_groups<-read.pgroups_v2_PD_doGroupIDs("QuanCAT v3 IV 2h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
+	protein_groups<-read.pgroups_v2_PD_doGroupIDs("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
 }else{
-	protein_groups<-read.pgroups_v2_PD("QuanCAT v3 IV 2h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
+	protein_groups<-read.pgroups_v2_PD("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
 }
 write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
 do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,outputFigsPrefix=outputFigsPrefix,grouping=grouping)
@@ -1109,9 +1109,9 @@ outputFigsPrefix<-"test"
 #evidence_fname<-"QuanCAT v3 IV 4h_psms_PD.txt"
 evidence_fname<-"quancat_2h_PD_psms.txt"
 if(grouping){
-	protein_groups<-read.pgroups_v2_PD_doGroupIDs("dummy.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
+	protein_groups<-read.pgroups_v2_PD_doGroupIDs("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
 }else{
-	protein_groups<-read.pgroups_v2_PD("dummy.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
+	protein_groups<-read.pgroups_v2_PD("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
 }
 write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
 do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,rep_order=c(2,1,3),outputFigsPrefix=outputFigsPrefix,grouping=grouping)

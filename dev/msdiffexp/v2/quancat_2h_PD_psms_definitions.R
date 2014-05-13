@@ -7,10 +7,10 @@ keepEvidenceIDs<-F
 exportFormat<-"pdf"
 rep_order<-NA
 mqValidation<-F
-working_directory<-"C:/Users/Efstathiou G/Documents/website/dev/msdiffexp/v2"
+working_directory<-getwd()
 pgroups_fname<-"quancat_2h_PD_psms.txt"
 evidence_fname<-"quancat_2h_PD_psms.txt"
-outputFigsPrefix<-"test"
+outputFigsPrefix<-"msdiffexp_test"
 filterL_lbl<-"Light"
 filterL_lvl<-F
 PDdata<-T
