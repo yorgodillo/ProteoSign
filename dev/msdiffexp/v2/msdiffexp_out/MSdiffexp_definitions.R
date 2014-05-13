@@ -1,0 +1,25 @@
+ratios.hist.colour<-"cyan"
+reps.scatter.lmline.colour<-"red"
+nRequiredLeastBioreps<-2
+GUI<-F
+paramssetfromGUI<-F
+keepEvidenceIDs<-F
+exportFormat<-"pdf"
+rep_order<-NA
+mqValidation<-F
+working_directory<-"C:/Users/Efstathiou G/Documents/ProteoSign/uploads/1399642971524/msdiffexp_wd"
+pgroups_fname<-"msdiffexp_protein.txt"
+evidence_fname<-"msdiffexp_peptide.txt"
+outputFigsPrefix<-"test"
+filterL_lbl<-"Heavy"
+filterL_lvl<-F
+bioreps<-3
+LabelFree<-F
+PDdata<-T
+time.point<-"2h"
+techreps<-3
+ProteinQuantitation<-T
+filterL<-F
+addLabel("Light",c(""))
+addLabel("Medium",c("13C(6)","2H(4)"))
+addLabel("Heavy",c("13C(6)15N(2)","13C(6)15N(4)"))

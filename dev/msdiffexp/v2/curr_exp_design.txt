@@ -1,0 +1,7 @@
+Sample	Category
+ATS_RNase.b1t1	ATS_RNase
+ATS_RNase.b1t2	ATS_RNase
+ATS_RNase.b1t3	ATS_RNase
+ATC_RNase.b1t1	ATC_RNase
+ATC_RNase.b1t2	ATC_RNase
+ATC_RNase.b1t3	ATC_RNase

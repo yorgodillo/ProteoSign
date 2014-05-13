@@ -1,0 +1,71 @@
+Bioconductor version 2.13 (BiocInstaller 1.12.0), ?biocLite for help
+Loading required package: limma
+Loading required package: statmod
+Loading required package: ggplot2
+Loading required package: reshape
+Loading required package: plyr
+
+Attaching package: 'reshape'
+
+The following objects are masked from 'package:plyr':
+
+    rename, round_any
+
+Loading required package: tcltk
+Loading required package: gtools
+     +--  Removing double quotes from input data ...  [ 2014-05-09 16:43:27 ]
+     +--  Reading input data ...  [ 2014-05-09 16:43:28 ]
+        +--  Reading data file ...  [ 2014-05-09 16:43:28 ]
+        +--  Generating Protein IDs ...  [ 2014-05-09 16:43:32 ]
+read.pgroups_v2_PD: Identified proteins: 1190 (2h)
+        +--  Counting number of peptides per protein per label ...  [ 2014-05-09 16:43:33 ]
+        +--  Calculating the respective percentages ...  [ 2014-05-09 16:43:34 ]
+        +--  Performing peptide-level filtering of single-channel quantitations ...  [ 2014-05-09 16:43:35 ]
+        +--  Calculating protein intesity per label and per replicate ...  [ 2014-05-09 16:43:35 ]
+        +--  Re-arranging data and assigning column names ...  [ 2014-05-09 16:43:39 ]
+Using Spectrum.File, Protein.IDs, Evidence.IDs as id variables
+read.pgroups_v2_PD: Quantifiable proteins: 944 (2h)
+Using Spectrum.File, Protein.IDs, Evidence.IDs as id variables
+     +--  Performing the analysis ...  [ 2014-05-09 16:43:51 ]
+        +--  Filtering data based on desired reproducibility level...  [ 2014-05-09 16:43:51 ]
+        +--  Formatting data for the statistical analysis ...  [ 2014-05-09 16:43:51 ]
+        +--  Performing the statistical analysis ...  [ 2014-05-09 16:43:51 ]
+           +--  Preparing limma input data frame ...  [ 2014-05-09 16:43:51 ]
+           +--  Saving limma input frame ...  [ 2014-05-09 16:43:51 ]
+           +--  Performing quantile normalisation ...  [ 2014-05-09 16:43:51 ]
+           +--  Constructing the design matrix ...  [ 2014-05-09 16:43:51 ]
+           +--  Fitting the model ...  [ 2014-05-09 16:43:51 ]
+           +--  Constructing the contrast matrix ...  [ 2014-05-09 16:43:52 ]
+           +--  Performing hypothesis testing ...  [ 2014-05-09 16:43:52 ]
+           +--  Saving analysis results to file ...  [ 2014-05-09 16:43:52 ]
+           +--  Generating analysis plots ...  [ 2014-05-09 16:43:52 ]
+              +--  Preparing data ...  [ 2014-05-09 16:43:52 ]
+              +--  Filtering data based on P-value(s) ...  [ 2014-05-09 16:43:52 ]
+              +--  Calculating data frame-row statistics ...  [ 2014-05-09 16:43:52 ]
+              +--  Performing final formatting operations ...  [ 2014-05-09 16:43:52 ]
+              +--  Plotting time ...  [ 2014-05-09 16:43:52 ]
+              +--  Generating plots for combination # 1  ...  [ 2014-05-09 16:43:52 ]
+                 +--  Making volcano plot ...  [ 2014-05-09 16:43:52 ]
+                 +--  Making value-ordered plot ...  [ 2014-05-09 16:43:52 ]
+                 +--  Making MA plot ...  [ 2014-05-09 16:43:53 ]
+                 +--  Making reproducibility plot ...  [ 2014-05-09 16:43:53 ]
+              +--  Generating plots for combination # 2  ...  [ 2014-05-09 16:43:53 ]
+                 +--  Making volcano plot ...  [ 2014-05-09 16:43:53 ]
+                 +--  Making value-ordered plot ...  [ 2014-05-09 16:43:53 ]
+                 +--  Making MA plot ...  [ 2014-05-09 16:43:54 ]
+                 +--  Making reproducibility plot ...  [ 2014-05-09 16:43:54 ]
+              +--  Generating plots for combination # 3  ...  [ 2014-05-09 16:43:54 ]
+                 +--  Making volcano plot ...  [ 2014-05-09 16:43:54 ]
+                 +--  Making value-ordered plot ...  [ 2014-05-09 16:43:54 ]
+                 +--  Making MA plot ...  [ 2014-05-09 16:43:55 ]
+                 +--  Making reproducibility plot ...  [ 2014-05-09 16:43:55 ]
+              +--  Saving plots results to files ...  [ 2014-05-09 16:43:55 ]
+do_results_plots: Quantified proteins (>2 peptides/3 injection(s) in at least 2 replicates): 397 (2h)
+do_results_plots: Differentially expressed for Medium vs Light : 236
+do_results_plots: Differentially expressed for Heavy vs Light : 258
+do_results_plots: Differentially expressed for Heavy vs Medium : 64
+do_results_plots: Differentially expressed in at least one combination of conditions: 287
+     +--  Data analysis finished.  [ 2014-05-09 16:43:55 ]
+> proc.time()
+   user  system elapsed 
+  30.18    0.37   31.15 

@@ -1,0 +1,24 @@
+ratios.hist.colour<-"cyan"
+reps.scatter.lmline.colour<-"red"
+nRequiredLeastBioreps<-2
+GUI<-F
+paramssetfromGUI<-F
+keepEvidenceIDs<-F
+exportFormat<-"pdf"
+rep_order<-NA
+mqValidation<-F
+working_directory<-"C:/Users/Efstathiou G/Documents/website/dev/msdiffexp/v2"
+pgroups_fname<-"quancat_2h_PD_psms.txt"
+evidence_fname<-"quancat_2h_PD_psms.txt"
+outputFigsPrefix<-"test"
+filterL_lbl<-"Light"
+filterL_lvl<-F
+PDdata<-T
+time.point<-"2h"
+bioreps<-3
+techreps<-3
+ProteinQuantitation<-T
+filterL<-F
+addLabel("Light",c(""))
+addLabel("Medium",c("2H(4)","13C(6)"))
+addLabel("Heavy",c("13C(6)15N(2)","13C(6)15N(4)"))
