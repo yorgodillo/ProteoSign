@@ -7,7 +7,7 @@
 		height: 99%;
 		width: 99%;
 		font-family: Arial, Tahoma, Helvetica, Sans-Serif;
-		font-size:100%;
+		font-size: 100%;
 	}
 
 	body{
@@ -605,7 +605,6 @@
 		border: 2px solid #ddd;
 		float: left;
 		position: fixed;
-		width: 40%;
 		top: 40%;
 		left: 25%;
 		z-index: 99999;

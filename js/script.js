@@ -460,6 +460,7 @@ var postFile = function(idx,file) {
 
 var bind_explbldefinition_focus = function(explbldefinition){
 	$(explbldefinition).on("focus",function(){
+		$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s3expparamsDlgLabels").width()/2)});
 		$('body').append('<div id="mask"></div>');
 		$("#s3expparamsDlgLabels").fadeIn(300);
 		$('#mask').fadeIn(300);

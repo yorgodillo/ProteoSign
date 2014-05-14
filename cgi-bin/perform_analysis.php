@@ -28,6 +28,7 @@
 	if(!$server_response['dispatcher_success']){
 		$server_response['msg'] = "The dispatcher returned error(s).";
 		$server_response['dump'] = $server_response['dispatcher_dump'];
+		error_log($server_response['dispatcher_dump']);
 		goto end;
 	}
 	// Determine success of R run by search for 'error' occurrences in msdiffexp_log.txt
