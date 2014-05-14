@@ -59,7 +59,9 @@ rect(breaks[-nB], 0, breaks[-1], y, col="cyan", ...)
 }
 
 # FROM: http://www-personal.umich.edu/~ladamic/presentations/Rtutorial/Rtutorial.R
-panel.lmline = function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 1, col.smooth = "red", ...){
+panel.lmline = function (x, y, col = par("col"), bg = NA, pch = par("pch"), 
+    cex = 1, col.smooth = "red", ...) 
+{
     points(x, y, pch = pch, col = col, bg = bg, cex = cex)
     ok <- is.finite(x) & is.finite(y)
     if (any(ok)) 
@@ -201,7 +203,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 	results$N<-apply(results[,colnames(tmp)],1,function(x)(nsamples*2)-length(which(is.na(x))))
 
 	results<-results[!is.na(results$p.value.adj),]
-	ndiffexp<-nrow(results[results$p.value.adj<=0.05,])
+	ndiffexp<-nrow(results[results$p.value.adj<0.05,])
 	#limma volcano
 	#volcanoplot(fit2, highlight=as.character(ndiffexp))
 	#title(main="Log odds vs fold change STIMULATED-CTRL", sub="Significant proteins highlighted")
@@ -236,14 +238,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 	# customized colorblind-friendly palette from http://wiki.stdout.org/rcookbook/Graphs/Colors%20(ggplot2)/
 	cbPalette <- c("#999999", "#D55E00", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#CC79A7")
 
-	p<-ggplot(data=results, aes(x=log2.avg.H.M, y=-log10(p.value.adj), colour=p.value.adj<=0.05)) +
+	p<-ggplot(data=results, aes(x=log2.avg.H.M, y=-log10(p.value.adj), colour=p.value.adj<0.05)) +
 	  geom_point(alpha=0.7, size=1.75) +
 	  theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
 	  xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
 	  xlab("average log2 H/M") + ylab("-log10 p-value") + ggtitle("P-value vs Fold change") +
 	  geom_hline(aes(yintercept=-log10(0.05)), colour="#990000", linetype="dashed") +
 	  geom_text(size=2.5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000")# +
-	  # geom_text(data=results[results$p.value.adj<=0.05 & abs(results$log2.avg.H.M)>2.9,],size=2.5, hjust=-0.2, vjust=0.2, aes(x=log2.avg.H.M, y=-log10(p.value.adj), label=ID), colour="black")
+	  # geom_text(data=results[results$p.value.adj<0.05 & abs(results$log2.avg.H.M)>2.9,],size=2.5, hjust=-0.2, vjust=0.2, aes(x=log2.avg.H.M, y=-log10(p.value.adj), label=ID), colour="black")
 	print(p)
 
 	if(exportFormat == "emf"){
@@ -255,13 +257,13 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 		pdf(file=paste(outputFigsPrefix,"_value-ordered-log-ratio_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
 	}
 
-	p<-ggplot(data=results, aes(x=nID, y=log2.avg.H.M, colour=p.value.adj<=0.05)) +
+	p<-ggplot(data=results, aes(x=nID, y=log2.avg.H.M, colour=p.value.adj<0.05)) +
 	  geom_point(alpha=0.7, size=1.5) +
 	  geom_errorbar(aes(ymin=log2.avg.H.M-log2.sd.H.M, ymax=log2.avg.H.M+log2.sd.H.M), width=1.5) +
 	  theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
 	  ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
 	  xlab("Protein ID") + ylab("average log2 H/M") + ggtitle("Value-ordered fold change")# +
-	  #geom_text(data=results[results$p.value.adj<=0.05 & abs(results$log2.avg.H.M)>2.9,],size=2, hjust=-0.2, vjust=0.2, aes(x=nID, y=log2.avg.H.M, label=ID), colour="black")
+	  #geom_text(data=results[results$p.value.adj<0.05 & abs(results$log2.avg.H.M)>2.9,],size=2, hjust=-0.2, vjust=0.2, aes(x=nID, y=log2.avg.H.M, label=ID), colour="black")
 	print(p)
 
 	if(exportFormat == "emf"){
@@ -273,12 +275,12 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 		pdf(file=paste(outputFigsPrefix,"_MA_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
 	}
 
-	p<-ggplot(data=results, aes(x=log2.avg.I, y=log2.avg.H.M, colour=p.value.adj<=0.05)) +
+	p<-ggplot(data=results, aes(x=log2.avg.I, y=log2.avg.H.M, colour=p.value.adj<0.05)) +
 	  geom_point(alpha=0.7, size=1.75) +
 	  theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
 	  ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
 	  xlab("M (average log2 Intensity)") + ylab("A (average log2 H/M)") + ggtitle("MA plot")# +
-	  #geom_text(data=results[results$p.value.adj<=0.05 & abs(results$log2.avg.H.M)>2.9,],size=2, hjust=-0.2, vjust=0.2, aes(x=log2.avg.I, y=log2.avg.H.M, label=ID), colour="black")
+	  #geom_text(data=results[results$p.value.adj<0.05 & abs(results$log2.avg.H.M)>2.9,],size=2, hjust=-0.2, vjust=0.2, aes(x=log2.avg.I, y=log2.avg.H.M, label=ID), colour="black")
 	print(p)
 
 	if(exportFormat == "emf"){
@@ -313,7 +315,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 	write.table(results,file=paste(outputFigsPrefix,"_results_",time.point,".txt",sep=""),sep="\t",col.names=NA)
 	print(paste("Quantified proteins: ",nrow(results),", Differentially expressed: ",ndiffexp,sep=""))
 
-	#diffexp<-results[results$p.value.adj <= 0.05,c("p.value.adj","log2.avg.H.M","log2.sd.H.M","log2.N.H.M","log2.avg.I")]
+	#diffexp<-results[results$p.value.adj < 0.05,c("p.value.adj","log2.avg.H.M","log2.sd.H.M","log2.N.H.M","log2.avg.I")]
 	diffexp<-results[,c("p.value.adj","log2.avg.H.M","log2.sd.H.M","log2.N.H.M","log2.avg.I")]
 	diffexp$Protein<-rownames(diffexp)
 	colnames(diffexp)<-c("P-value","avg log2 H/M","std log2 H/M","N log2 H/M","avg log2 I","Protein.IDs")
@@ -321,7 +323,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 	tmp_protein_groups<-protein_groups
 	diffexp<-merge(diffexp,tmp_protein_groups[,c("Protein.IDs",sort(colnames(tmp_protein_groups)[grep("Ratio.H.M.count.",colnames(tmp_protein_groups))]))],by="Protein.IDs",all.x=T)
 	diffexp$Ratio.H.M.count.total<-rowSums(diffexp[,colnames(diffexp)[grep("Ratio.H.M.count.",colnames(diffexp))]],na.rm=T)
-	write.table(diffexp[diffexp$"P-value"<= 0.05,],file=paste(outputFigsPrefix,"_diffexp_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
+	write.table(diffexp[diffexp$"P-value"< 0.05,],file=paste(outputFigsPrefix,"_diffexp_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
 	write.table(diffexp,file=paste(outputFigsPrefix,"_limmaout_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
 
 	return(results)
@@ -353,7 +355,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_stru
 
 	if(!file.exists("limma output")){dir.create("limma output")}	
 	setwd("limma output")
-	write.table(working_pgroups,file=paste(outputFigsPrefix,"_limma-input_proteinGroups.txt",sep=""),sep="\t",row.names = TRUE)
+	write.table(working_pgroups,file=paste(outputFigsPrefix,"_limma-input_proteinGroups.txt",sep=""),sep="\t",row.names = FALSE)
 
 	if(exportFormat == "pdf"){
 		pdf(file=paste(outputFigsPrefix,"_limma-graphs_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
@@ -1091,13 +1093,13 @@ grouping<-T
 #PD
 PDdata<-T
 time.point<-"2h"
-outputFigsPrefix<-"limma8_test"
-evidence_fname<-"quancat_2h_PD_psms.txt"
+outputFigsPrefix<-"QuaNCAT-rev_IV_2h_PD"
+evidence_fname<-"QuanCAT v3 IV 2h_psms_PD.txt"
 grouping = T;
 if(grouping){
-	protein_groups<-read.pgroups_v2_PD_doGroupIDs("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
+	protein_groups<-read.pgroups_v2_PD_doGroupIDs("QuanCAT v3 IV 2h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
 }else{
-	protein_groups<-read.pgroups_v2_PD("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
+	protein_groups<-read.pgroups_v2_PD("QuanCAT v3 IV 2h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T)
 }
 write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
 do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,outputFigsPrefix=outputFigsPrefix,grouping=grouping)
@@ -1105,13 +1107,12 @@ do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_
 #PD
 PDdata<-T
 time.point<-"4h"
-outputFigsPrefix<-"test"
-#evidence_fname<-"QuanCAT v3 IV 4h_psms_PD.txt"
-evidence_fname<-"quancat_2h_PD_psms.txt"
+outputFigsPrefix<-"QuaNCAT-rev_IV_4h_PD"
+evidence_fname<-"QuanCAT v3 IV 4h_psms_PD.txt"
 if(grouping){
-	protein_groups<-read.pgroups_v2_PD_doGroupIDs("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
+	protein_groups<-read.pgroups_v2_PD_doGroupIDs("QuanCAT v3 IV 4h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
 }else{
-	protein_groups<-read.pgroups_v2_PD("",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
+	protein_groups<-read.pgroups_v2_PD("QuanCAT v3 IV 4h_proteingroups_PD.txt",evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=c(2,1,3))
 }
 write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
 do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,rep_order=c(2,1,3),outputFigsPrefix=outputFigsPrefix,grouping=grouping)
