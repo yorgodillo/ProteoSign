@@ -104,7 +104,7 @@ sub doit {
 'time.*point','time.point',
 'protein.*quantitation','ProteinQuantitation',
 'quantitation.*filtering','filterL',
-'protein.*filtering','filterL_lvl',
+'peptide.*filtering','filterL_lvl',
 'filtering.*label','filterL_lbl',
 'biological.*replicates','bioreps',
 'technical.*replicates','techreps',
@@ -130,7 +130,7 @@ sub doit {
 'time.point','Time point',
 'ProteinQuantitation','Quantitation level (Protein/Peptide)',
 'filterL','Quantitation filtering (Yes/No)',
-'filterL_lvl','Quantitation filtering level (Protein/Peptide)',
+'filterL_lvl','Quantitation filtering level (Peptide/Protein)',
 'filterL_lbl','Quantitation filtering label/modification',
 'bioreps','Number of biological replicates',
 'techreps','Number of technical replicates',
@@ -354,7 +354,7 @@ evidence_fname<-"' . $data_fname . '_peptide.txt"
 	 unless ( $zipret == AZ_OK ) {
 	     die "[ERROR!] msdiffexp_dsipatcher: Compression of " . $data_fname . "_wd failed (#" . $zipret . ").\n";
 	 }
-	 remove_tree($data_fname . "_wd");
+	 remove_tree($working_dir_name);
 	print "DONE\n";
 	 
   my $fullpathto_results = cwd() . "/" . $data_fname . ".zip";  
