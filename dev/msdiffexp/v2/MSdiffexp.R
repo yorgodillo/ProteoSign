@@ -1788,7 +1788,7 @@ perform_analysis<-function(){
   close(evidence_fname_cleaned)
   tmpdata<-gsub("\"", "", readLines(pgroups_fname))
   pgroups_fname_cleaned<-file(pgroups_fname, open="w")
-  writeLines(mpdata, con=pgroups_fname_cleaned)
+  writeLines(tmpdata, con=pgroups_fname_cleaned)
   close(pgroups_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
