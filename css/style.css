@@ -450,16 +450,28 @@
 	.tooltip:hover {
 		text-decoration: none;
 		cursor: default;
-	} 
-	.tooltip span {
+	}
+	
+	.tooltip span, .tooltip div
+	{
 		z-index: 10;
 		display: none;
 		padding: 7px 13px;
-		margin-top: 35px;
-	}
-	.tooltip:hover span{
-		display: inline;
-		position: absolute; 
+		margin-top: 1.3em;
+		font-family: 'Segoe UI';	
+		border-radius: 2px;
+		-moz-border-radius: 2px;
+		-webkit-border-radius: 2px;
+		-moz-box-shadow: 0px 0px 8px 4px #666;
+		-webkit-box-shadow: 0px 0px 8px 4px #666;
+		box-shadow: 0px 0px 8px 4px #666;
+		opacity: 0.85;
+		max-width: 30em;
+	}	
+
+	.tooltip:hover span, .tooltip:hover div{
+		display: block;
+		position: absolute;
 		border: 2px solid #FFF;
 		color: #EEE;
 		background-color: #000;
@@ -470,18 +482,7 @@
 		position: absolute;
 		border: 0;
 		top: -14px;
-	}
-
-	.tooltip span
-	{
-		border-radius: 2px;
-		-moz-border-radius: 2px;
-		-webkit-border-radius: 2px;
-		-moz-box-shadow: 0px 0px 8px 4px #666;
-		-webkit-box-shadow: 0px 0px 8px 4px #666;
-		box-shadow: 0px 0px 8px 4px #666;
-		opacity: 0.85;
-		max-width: 30em;
+		margin-left: 1em;
 	}
 	
 	/* CSS3 clock spinner from http://codepen.io/TaniaLD/pen/oKxep */

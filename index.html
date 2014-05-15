@@ -27,16 +27,17 @@
 			</div>
 			<div class="main_div main_section hidden" id="s2div">
 				<h2>Step 1</h2>
-				<p style="color: 0">Upload your dataset and click <em>Next</em>.</p>
+				<p style="color: 0">Please read below first. When ready, upload your dataset and click <em>Next</em>.</p>
 				<p>
 				<dl style="font-family: 'Courier New'; font-size: 90%; padding-left: 5%;">
 					<dt>Input file support:</dt>
-					<dd>&#8212 <a href="http://www.google.com/search?q=Thermo%20Proteome%20Discoverer&btnI" target="_blank">Proteome Discoverer&#8482</a> (PD) v1.4+ <em>multi-consensus PSMs</em> file (produced via a multi-report).</dd>
+					<dd>&#8212 <a href="http://www.google.com/search?q=Thermo%20Proteome%20Discoverer&btnI" target="_blank">Proteome Discoverer&#8482</a> (PD) v1.4+ PSM file.<span class="tooltip" style="position: relative">?<div style="left: -25em; min-width: 50em;"><img class="callout" src="images/callout_black.gif" style="margin-left: 24.3em"/>The peptide spectrum match (PSM) file, comprising the necessary information required for protein quantitation, has be produced manually through the PD desktop application through the File->Export menu.<p>The file must be created from within a PD report which combines the information from all MS analyses (i.e. replicates, conditions etc). Such a PD report is sometimes required to be created based on separate reports and is referred to as a multi-consensus report.</p><p>Before exporting the information, one <strong>must</strong> edit the report's <em>Quantification&nbsp;Method</em> by configuring the <em>Ratio&nbsp;Calculation</em> parameters as shown below.</p><img src="images/pdquantmeth.png" style="display: block; margin: 0 auto; width: 80%;"/></div></span></dd>
 					<dd>&#8212 <a href="http://www.google.com/search?q=Max%Planck%MaxQuant&btnI" target="_blank">MaxQuant</a> (MQ) v1.3.0.5+ 'proteinGroups' and 'evidence' files.</dd>
-					<dt>Experiment support:</dt>
-					<dd>&#8212 Data processed with PD: Label-free, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=15385600" target="_blank">iTRAQ</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12713048" target="_blank">TMT</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12118079" target="_blank">SILAC</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=19053139" target="_blank">pulsed SILAC</a>.</dd>
+					<dt><br>Experiment support:</dt>
+					<dd>&#8212 Data processed with PD: Label-free, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=15385600" target="_blank">iTRAQ</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12713048" target="_blank">TMT</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12118079" target="_blank">SILAC</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=19053139" target="_blank">pulsed SILAC</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=19300442" target="_blank">dimethyl</a>.</dd>
 					<dd>&#8212 Data processed with MQ: <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12118079" target="_blank">SILAC</a>.</dd>
 				</dl>
+				<br>
 				</p>
 				<!-- Actual file chooser button, hidden (it can't be avoided) -->
 				<input type="file" id="__s2btnupld" style="display: none" multiple/>

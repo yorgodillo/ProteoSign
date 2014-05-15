@@ -633,6 +633,7 @@ $(document).ready(function() {
 	$(".tooltip").hover(function(){
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});
 		$(".callout").css({"left":$(".tooltip span").width()/2});
+		//$(".callout").css({"top":$(this).position.top});
 	});
 	//
 	postClientServerClientInfo();
