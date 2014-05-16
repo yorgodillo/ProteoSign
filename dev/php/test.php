@@ -3,9 +3,9 @@
 	// MaxQuant
 	//$tmp = get_labels($argv[1],'/^Ratio ([^\s]+)\/([^\s]+)/',null,null);
 	// PD
-	//$tmp = get_labels($argv[1],'/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:Label:)?(.+?)\)(;|$)/');
+	$tmp = get_labels($argv[1],'/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:[^:]+?:)?(.+?)\)(;|$)/');
 	// PD label-free
-	$tmp = get_labels($argv[1],null,'/Spectrum File/',null);
+	//$tmp = get_labels($argv[1],null,'/Spectrum File/',null);
 	// MaxQuant label-free
 	//$tmp = get_labels($argv[1],null,'/Raw file/',null);
 	$labels_names = $tmp[0];

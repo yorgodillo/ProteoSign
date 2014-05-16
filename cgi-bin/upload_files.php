@@ -2,7 +2,7 @@
 	require 'get_labels.php';
 	//"get_labels" function arguments for different file formats
 	$get_labels_aguments_sets = array(
-	   array('/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:Label:)?(.+?)\)(;|$)/'),	//Proteome Discoverer
+	   array('/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:[^:]+?:)?(.+?)\)(;|$)/'),	//Proteome Discoverer
 	   array('/^Ratio ([^\s]+)\/([^\s]+)/',null,null),	//MaxQuant
 	   array(null,'/Spectrum File/',null),	// PD label-free
 	   array(null,'/Raw file/',null)	//MaxQuant label-free
@@ -20,6 +20,7 @@
 	$server_response['msg'] = "";
 	$server_response['peptide_labels'] = [];
 	$server_response['peptide_labels_names'] = [];
+	$server_response['skipped_labels'] = [];
 	if (isset ($name)) {
 		if (!empty($name)) {
 			$location = '../uploads/' . $_POST["session_id"];
@@ -46,10 +47,13 @@
 					$tmp = get_labels($location . '/' . $name,$argset[0],$argset[1],$argset[2]);
 					if(count($tmp[0]) > 0 || $get_labels_aguments_sets_labelfree_flag[$i]){
 						if(count($tmp[1]) > 0 ){
+							error_log("# of label defs (set $i): " . count($tmp[1]));
 							$okdefs = 0;
 							foreach($tmp[1] as $lbldef){
 								if(preg_match('/[\s,;\:]/',$lbldef) == 0){
 									$okdefs++;
+								}else{
+									array_push($server_response['skipped_labels'], $lbldef); 
 								}
 							}
 							if($okdefs == count($tmp[1])){

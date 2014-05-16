@@ -1664,11 +1664,9 @@ addLabel<-function(lblname, lbl.Modifications){
       rest_idx<-which(lbl.Modifications[-unmod_idx] != "")
       if(length(rest_idx) > 0){
         lbl.Modifications<-c(lbl.Modifications[unmod_idx],paste(lbl.Modifications[-unmod_idx],"\\)",sep=""))
-        lbl.Modifications<-c(lbl.Modifications[unmod_idx],paste("Label:",lbl.Modifications[-unmod_idx],sep=""))    
       }
     }else{
       lbl.Modifications<-paste(lbl.Modifications,"\\)",sep="")
-      lbl.Modifications<-paste("Label:",lbl.Modifications,sep="")  
     }
   }else{
     labeltxt <- "condition";
@@ -1758,7 +1756,7 @@ clearMods<-function(){
   nMods<<-length(conditions.Mods)
 }
 
-unlabeled_peptide_regex<-"^Label:$"
+unlabeled_peptide_regex<-"^$"
 clearLabels()
 clearMods()
 paramssetfromGUI<-F
@@ -1781,25 +1779,21 @@ perform_analysis<-function(){
     quantitated_items_lbl<<-"Peptide"
   }
   if(!file.exists(limma_output)){dir.create(limma_output)}
-  levellog("Removing double quotes from input data ...")
+  levellog("Removing double quotes from input data file #1 ...")
   tmpdata<-gsub("\"", "", readLines(evidence_fname))
   evidence_fname_cleaned<-file(evidence_fname, open="w")
   writeLines(tmpdata, con=evidence_fname_cleaned)
   close(evidence_fname_cleaned)
-  tmpdata<-gsub("\"", "", readLines(pgroups_fname))
-  pgroups_fname_cleaned<-file(pgroups_fname, open="w")
-  writeLines(tmpdata, con=pgroups_fname_cleaned)
-  close(pgroups_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
-    #If label definitions are the same, it will be interpreted that the information is not stored in the "modifications" column of the PD PSMs file, which occurs when the labelling is at the MS/MS level.
-    #Thus, if the above condition is true, we have multiplexion at the MS/MS level (e.g. iTRAQ, TMTs etc) and the "Label:" part of the regular expression has to be removed from the labels definitions
-    if(length(which(conditions.labels.Modifications[[1]]==conditions.labels.Modifications)) == length(conditions.labels.Modifications)){
-      conditions.labels.Modifications<-lapply(conditions.labels.Modifications, function(x){sub("Label:","",x)})
-    }  
     protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=rep_order)
     do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,outputFigsPrefix=outputFigsPrefix,rep_order=rep_order)
   }else{
+    levellog("Removing double quotes from input data file #2 ...")
+    tmpdata<-gsub("\"", "", readLines(pgroups_fname))
+    pgroups_fname_cleaned<-file(pgroups_fname, open="w")
+    writeLines(tmpdata, con=pgroups_fname_cleaned)
+    close(pgroups_fname_cleaned)    
     protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point)
     do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }

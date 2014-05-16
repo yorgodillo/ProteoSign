@@ -289,6 +289,7 @@ var peptideLabelsNamesFromFile = [];
 var peptideLabelsFromFileCombs = [];
 var nFormLabels = 1;
 var nToUpload;
+var debug_ajax_data;
 
 // Return false if at least one required parameter (existence of data-required attr) is not set (empty text field)
 // Mark invalid parameters with a red border color (currently tested on input fields)
@@ -379,6 +380,7 @@ var postFile = function(idx,file) {
 			
 		},
         success: function(data, textStatus, jqXHR){
+			debug_ajax_data = data;
 			//remove progress bar
 			$(progresstditm).empty();
 			//If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
@@ -619,11 +621,16 @@ $(document).ready(function() {
 		}
 	});	
 	// TextField validation
-	$("#s3expparams input[name='expbioreps'],#s3expparams input[name='exptechreps']").on("focusout",function(){
-		if($(this).val() != "" && $(this).val()<2){
+	$("#s3expparams input[name='expbioreps']").on("focusout",function(){
+		if($(this).val() != "" && $("#s3expparams input[name='exptechreps']").val() !="" && (Number($(this).val()) + Number($("#s3expparams input[name='exptechreps']").val()) < 3)){
 			$(this).focus().select();
 		}
 	});
+	$("#s3expparams input[name='exptechreps']").on("focusout",function(){
+		if($(this).val() != "" && $("#s3expparams input[name='expbioreps']").val() !="" && (Number($(this).val()) + Number($("#s3expparams input[name='expbioreps']").val()) < 3)){
+			$(this).focus().select();
+		}
+	});	
 	// Needed after form validation (because some required fields might have been highlighted)
 	$("#s3expparams input[data-required]").on("focusout",function(){
 		resetCssStyles(this);
@@ -633,7 +640,6 @@ $(document).ready(function() {
 	$(".tooltip").hover(function(){
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});
 		$(".callout").css({"left":$(".tooltip span").width()/2});
-		//$(".callout").css({"top":$(this).position.top});
 	});
 	//
 	postClientServerClientInfo();
