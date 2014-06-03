@@ -54,7 +54,7 @@
 	if($server_response['success']){
 		//$server_response['results_url'] = $upload_dir . "/msdiffexp.zip";
 		// NOT LOCALHOST DEPLOYMENT VERSION
-		$server_response['results_url'] = str_replace($document_root, '', $upload_dir . "/msdiffexp.zip");
+		$server_response['results_url'] = str_replace($_SERVER['DOCUMENT_ROOT'];, '', $upload_dir . "/msdiffexp.zip");
 		//
 		$server_response['results_preview'] = [];
 		$dirs = glob($upload_dir . "/*.png");
@@ -63,7 +63,7 @@
 		//
 		// NOT LOCALHOST DEPLOYMENT VERSION
 		foreach($dirs as $dir_i){
-			$server_response['results_preview'][] = str_replace($document_root, '', $dir_i);
+			$server_response['results_preview'][] = str_replace($_SERVER['DOCUMENT_ROOT'];, '', $dir_i);
 		}
 		//
 	}
