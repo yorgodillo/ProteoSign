@@ -21,9 +21,10 @@
 	$server_response['peptide_labels'] = [];
 	$server_response['peptide_labels_names'] = [];
 	$server_response['skipped_labels'] = [];
+	$document_root = $_SERVER['DOCUMENT_ROOT'];
 	if (isset ($name)) {
 		if (!empty($name)) {
-			$location = $_SERVER['DOCUMENT_ROOT'] . '/uploads/' . $_POST["session_id"];
+			$location = $document_root . '/uploads/' . $_POST["session_id"];
 			if (!file_exists($location) && !is_dir($location)) {
 				if(!mkdir($location, 0777, true)){
 					$server_response['msg'] = "The directory $location could not be created ('mkdir' returned FALSE).";

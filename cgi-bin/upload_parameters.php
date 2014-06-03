@@ -4,7 +4,8 @@
 	$server_response['msg'] = "";
 	
 	$session_folder = $_POST["session_id"];
-	$upload_dir = $_SERVER['DOCUMENT_ROOT'] . "/uploads/" . $session_folder;
+	$document_root = $_SERVER['DOCUMENT_ROOT'];
+	$upload_dir = $document_root . "/uploads/" . $session_folder;
 	$upload_parameter_file = $upload_dir . "/parameters.txt";
 	$parameters_template = "parameters_template.txt";
 
