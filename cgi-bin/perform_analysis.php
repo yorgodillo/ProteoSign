@@ -9,7 +9,7 @@
 	$server_response['dump'] = "";
 	
 	$session_folder = $_POST["session_id"];
-	$upload_dir = "../uploads/" . $session_folder;
+	$upload_dir = $_SERVER['DOCUMENT_ROOT'] . "/uploads/" . $session_folder;
 	// clean files from possible previous run
 	$pngs = glob($upload_dir . "/*.png");
 	foreach($pngs as $png){
@@ -52,7 +52,19 @@
 	$server_response['success'] = $server_response['dispatcher_success'] && $server_response['R_success'];
 	if($server_response['success']){
 		$server_response['results_url'] = $upload_dir . "/msdiffexp.zip";
-		$server_response['results_preview'] = glob($upload_dir . "/*.png");
+		/* NOT LOCALHOST DEPLOYMENT VERSION
+		$server_response['results_url'] = str_replace($_SERVER['DOCUMENT_ROOT'], '', $upload_dir . "/msdiffexp.zip")
+		*/
+		$server_response['results_preview'] = [];
+		$dirs = glob($upload_dir . "/*.png");
+		// LOCALHOST DEPLOYMENT VERSION ONLY
+		$server_response['results_preview'] = $dirs;
+		//
+		/* NOT LOCALHOST DEPLOYMENT VERSION
+		foreach($dirs as $dir_i){
+			$server_response['results_preview'][] = str_replace($_SERVER['DOCUMENT_ROOT'], '', $dir_i);
+		}
+		*/
 	}
 end:
 	error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);

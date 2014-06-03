@@ -23,7 +23,7 @@
 	$server_response['skipped_labels'] = [];
 	if (isset ($name)) {
 		if (!empty($name)) {
-			$location = '../uploads/' . $_POST["session_id"];
+			$location = $_SERVER['DOCUMENT_ROOT'] . '/uploads/' . $_POST["session_id"];
 			if (!file_exists($location) && !is_dir($location)) {
 				if(!mkdir($location, 0777, true)){
 					$server_response['msg'] = "The directory $location could not be created ('mkdir' returned FALSE).";
@@ -47,7 +47,7 @@
 					$tmp = get_labels($location . '/' . $name,$argset[0],$argset[1],$argset[2]);
 					if(count($tmp[0]) > 0 || $get_labels_aguments_sets_labelfree_flag[$i]){
 						if(count($tmp[1]) > 0 ){
-							error_log("# of label defs (set $i): " . count($tmp[1]));
+							//error_log("# of label defs (set $i): " . count($tmp[1]));
 							$okdefs = 0;
 							foreach($tmp[1] as $lbldef){
 								if(preg_match('/[\s,;\:]/',$lbldef) == 0){

@@ -4,7 +4,7 @@
 	$server_response['msg'] = "";
 	
 	$session_folder = $_POST["session_id"];
-	$upload_dir = "../uploads/" . $session_folder;
+	$upload_dir = $_SERVER['DOCUMENT_ROOT'] . "/uploads/" . $session_folder;
 	$upload_parameter_file = $upload_dir . "/parameters.txt";
 	$parameters_template = "parameters_template.txt";
 
@@ -43,7 +43,7 @@
 		$canwrite = fwrite($ff, $parameters_file_contents);
 		if(!$canwrite){
 			$server_response['msg'] = "The file $upload_parameter_file could not be written ('fwrite' returned FALSE)";
-			error_log($parameters_file_contents);
+			//error_log($parameters_file_contents);
 		}
 		if($canwrite && !fclose($ff)){
 			$server_response['msg'] = "The file $upload_parameter_file could not be closed ('fclose' returned FALSE)";
