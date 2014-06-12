@@ -11,11 +11,12 @@ use strict;
   STDOUT->autoflush(1); # turn-off STDOUT buffering
 
   # Windows path
-  local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\R\\R-3.0.3\\bin\\x64";
-  local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\ImageMagick-6.8.8-Q16";
+  if($^O =~ /MSWin/){
+	local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\R\\R-3.0.3\\bin\\x64";
+	local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\ImageMagick-6.8.8-Q16";
+	}
   
   my $datetime_f = DateTime::Format::Strptime->new( pattern => '%Y%m%d_%H%M%S' );  
-  my $buffer_size = 1000*2 ; # 2 Kb/s
   
   if($#ARGV < 0){
     print "USAGE: perl proteosign_dispatcher <Parameters FILE> [<PSMs FILE> [<Protein FILE>]]\n";
