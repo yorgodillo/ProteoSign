@@ -481,6 +481,9 @@ var bind_explbldefinition_focus = function(explbldefinition){
 }
 
 var addFormLabel = function(){
+	if(!$("#explbl"+nFormLabels+"definition").hasClass("hidden") && $("#explbl"+nFormLabels+"definition").val().length == 0){
+		return;
+	}
 	nFormLabels++;
 	var last_tr_of_table = $("#btnAddLabel").closest("table").children().first().children().last();
 	if(peptideLabelsNamesFromFile.length > 0){
