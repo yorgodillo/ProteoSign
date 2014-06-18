@@ -27,7 +27,7 @@
 			</div>
 			<div class="main_div main_section hidden" id="s2div">
 				<h2>Step 1</h2>
-				<p style="color: 0">Please read below first. When ready, upload your dataset and click <em>Next</em>.</p>
+				<p style="color: 0">Please read below first. When ready, upload your dataset and click <em>Next</em>. Alternatively, you could <a href="#" onclick="onChooseFromTestDatasets();"><u>choose</u></a> from available test datasets.</p>
 				<p>
 				<dl style="font-family: 'Courier New'; font-size: 90%; padding-left: 5%;">
 					<dt>Input file support:</dt>
@@ -42,7 +42,7 @@
 				<!-- Actual file chooser button, hidden (it can't be avoided) -->
 				<input type="file" id="__s2btnupld" style="display: none" multiple/>
 				<p>
-					<button class="main upload" type="file" id="s2btnupld"/>Select file(s)</button>
+					<button class="main upload" type="file" id="s2btnupld"/>Upload file(s)</button>
 				</p>
 				<!-- File uploaders will be rendered below when user selects file(s) -->
 				<div class="sectionForm" id="s2uluploaders" style="height: 20%">
@@ -177,7 +177,7 @@
 			<div class="main_div main_footer">
 				<p>
 					<em>Reference:</em><br>
-					<a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=ProteoSign%3A+An+end-user+on-line+service+offering+automated+protein+differential+expression+analysis+given+pre-processed+quantitative+proteomics+datasets." target="_blank"><strong>Efstathiou G., Trudgian D. C., Thomas B., Pavlopoulos G., Iliopoulos I. and Acuto O.<br>ProteoSign: An end-user on-line service offering automated protein differential expression analysis given pre-processed quantitative proteomics datasets.</strong><br></a>
+					<a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=ProteoSign%3A+An+end-user+on-line+service+offering+automated+protein+differential+expression+analysis+given+pre-processed+quantitative+proteomics+datasets." target="_blank"><strong>Efstathiou G., Trudgian D. C., Thomas B., Pavlopoulos G., Papanikolaou N., Acuto O. and Iliopoulos I.<br>ProteoSign: An end-user on-line service offering automated protein differential expression analysis given pre-processed quantitative proteomics datasets.</strong><br></a>
 				<p>
 				<span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
 				<span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
@@ -196,6 +196,18 @@
 				<button type="button" class="main inline" style="width: 4.2em; margin-left: 1em" id="dlglabelsBtnCancel">Cancel</button>
 			</div>			
 		</div>
+		
+		<div class="expparamsDlg" id="s1TestDatasets">
+			<div style="text-align: center">
+				<span style="font-size: 80%">Select a dataset.</span>
+				<select id="s1TestDatasetsSelection" style="min-width:90%">
+				</select>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="width: 4.2em" id="dlgTestDatasetsBtnOK">OK</button>
+				<button type="button" class="main inline" style="width: 4.2em; margin-left: 1em" id="dlgTestDatasetsBtnCancel">Cancel</button>
+			</div>			
+		</div>		
 
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/script.js"></script>

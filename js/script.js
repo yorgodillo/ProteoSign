@@ -477,8 +477,34 @@ var bind_explbldefinition_focus = function(explbldefinition){
 				$(lbl).val(selection.join(","));
 			}
 		});
+		$("#dlglabelsBtnCancel").on("click",function(){
+			$(".expparamsDlg").fadeOut(300 , function() {
+				$('#mask').remove();  
+			});
+		});
 	});			
 }
+
+var onChooseFromTestDatasets = function(){
+		$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s1TestDatasets").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#s1TestDatasets").fadeIn(300);
+		$('#mask').fadeIn(300);
+		var lbl = $(this);
+		$("#dlgTestDatasetsBtnOK").unbind();
+		$("#dlgTestDatasetsBtnOK").on("click",function(){
+			$(".expparamsDlg").fadeOut(300 , function() {
+				$('#mask').remove();  
+			});
+			// TODO: prepare next stage ...
+			$("#s2btnf").prop('disabled', false);
+		});
+		$("#dlgTestDatasetsBtnCancel").on("click",function(){
+			$(".expparamsDlg").fadeOut(300 , function() {
+				$('#mask').remove();  
+			});
+		});
+	}	
 
 var addFormLabel = function(){
 	if(!$("#explbl"+nFormLabels+"definition").hasClass("hidden") && $("#explbl"+nFormLabels+"definition").val().length == 0){
@@ -644,6 +670,9 @@ $(document).ready(function() {
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});
 		$(".callout").css({"left":$(".tooltip span").width()/2});
 	});
+	// TEST DATA INIT
+	$("#s1TestDatasetsSelection").append("<option value='ds1'>pulsed SILAC 3-plex (3 biological x 3 technical replicates)</option>");
+	$("#s1TestDatasetsSelection").append("<option value='ds2'>dimethyl 2-plex (3 biological replicates)</option>");	
 	//
 	postClientServerClientInfo();
 });
