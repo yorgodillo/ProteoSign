@@ -6,3 +6,5 @@ dev/msdiffexp/v2/limma output
 dev/msdiffexp/v2/msdiffexp_out
 uploads/*
 test data/*
+test data/Dimethyl_DIC_merged_psms.txt
+test data/Dimethyl_DIM_merged_psms.txt
