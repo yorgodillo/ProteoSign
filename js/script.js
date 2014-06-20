@@ -272,6 +272,9 @@ var executeStage = function(stageIndex){
 				ret = false;
 			}
 			break;
+		case 4:
+			 sessionid = new Date().getTime();
+			break;
 		default:
 	}
 	return ret;
@@ -330,9 +333,6 @@ var uploadFiles = function(uploadingFiles){
 	$("#explbl0name_").empty();
 	$("#s3advparams select[name='expquantfiltlbl']").empty();
 	$("#quantsoftdetectedspan").empty();
-	while(nFormLabels > 1){
-		removeFormLabel();
-	}	
 	if(!$("#explbl1definition").hasClass("hidden")){
 		$("#explbl1definition").addClass("hidden");
 	}
@@ -440,6 +440,9 @@ var postFile = function(idx,file) {
 					if(peptideLabelsFromFile.length > 0){
 						$("#explbl1definition").removeClass("hidden");
 					}
+					while(nFormLabels > 1){
+						removeFormLabel();
+					}					
 					$("#s2btnf").prop('disabled', false);
 				}
 			}else{
@@ -593,8 +596,12 @@ $(document).ready(function() {
 		$.each(uploadingFiles,function(idx, file_i){
 			$("#s2uluploaders table").append("<tr><td>" + file_i.name + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
 		});
-		//Start uploading ...
-		uploadFiles(uploadingFiles);
+		if(uploadingFiles.length > 0){
+			//Start uploading ...
+			uploadFiles(uploadingFiles);
+		}else{
+			$("#s2btnf").prop('disabled', true);
+		}
 	});
 	//Toggle visibility of table with advanced params
 	$("#s3showhideadvparams").on("click",function(){

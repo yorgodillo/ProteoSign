@@ -5,4 +5,4 @@ dev/msdiffexp/v2/.Rproj.user
 dev/msdiffexp/v2/limma output
 dev/msdiffexp/v2/msdiffexp_out
 uploads/*
-!uploads/test
+test data/*

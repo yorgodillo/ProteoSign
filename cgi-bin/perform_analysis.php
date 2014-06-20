@@ -3,7 +3,7 @@
 	$server_response['success'] = false;
 	$server_response['msg'] = "";
 	$server_response['dispatcher_success'] = false;
-	$server_response['dispatcher_dump'] = "";
+	$server_response['dispatcher_dump'] = [];
 	$server_response['R_success'] = false;
 	$server_response['R_dump'] = "";
 	$server_response['dump'] = "";
@@ -22,14 +22,13 @@
 		unlink($upload_dir . "/msdiffexp.zip");
 	}
 	// Run analysis
-	exec("perl proteosign_dispatcher.pl $upload_dir/parameters.txt", $server_response['dispatcher_dump']);
+	exec("perl proteosign_dispatcher.pl \"$upload_dir/parameters.txt\" 2>&1", $server_response['dispatcher_dump']);
 	// Determine success of dispatcher run by counting the number of "DONE" + newline character
 	$server_response['dispatcher_success'] = (count($server_response['dispatcher_dump']) == 6);
 	$server_response['dispatcher_dump'] = implode("\n", $server_response['dispatcher_dump']);
 	if(!$server_response['dispatcher_success']){
 		$server_response['msg'] = "The dispatcher returned error(s).";
 		$server_response['dump'] = $server_response['dispatcher_dump'];
-		error_log($server_response['dispatcher_dump']);
 		goto end;
 	}
 	// Determine success of R run by search for 'error' occurrences in msdiffexp_log.txt
@@ -54,7 +53,7 @@
 	if($server_response['success']){
 		//$server_response['results_url'] = $upload_dir . "/msdiffexp.zip";
 		// NOT LOCALHOST DEPLOYMENT VERSION
-		$server_response['results_url'] = str_replace($_SERVER['DOCUMENT_ROOT'];, '', $upload_dir . "/msdiffexp.zip");
+		$server_response['results_url'] = str_replace($_SERVER['DOCUMENT_ROOT'], '', $upload_dir . "/msdiffexp.zip");
 		//
 		$server_response['results_preview'] = [];
 		$dirs = glob($upload_dir . "/*.png");
@@ -63,12 +62,15 @@
 		//
 		// NOT LOCALHOST DEPLOYMENT VERSION
 		foreach($dirs as $dir_i){
-			$server_response['results_preview'][] = str_replace($_SERVER['DOCUMENT_ROOT'];, '', $dir_i);
+			$server_response['results_preview'][] = str_replace($_SERVER['DOCUMENT_ROOT'], '', $dir_i);
 		}
 		//
 	}
 end:
 	error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+	if(!$server_response['success']){
+		error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
+	}
 	//Send info back to the client
 	//error_log(json_encode($server_response));
 	header('Content-type: application/json');

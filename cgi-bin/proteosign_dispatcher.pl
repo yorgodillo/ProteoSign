@@ -8,12 +8,17 @@ use strict;
   use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
   use File::Path qw(make_path remove_tree);
   use DateTime::Format::Strptime qw( );
+  use File::Which;
+  use File::Which qw(which where);
   STDOUT->autoflush(1); # turn-off STDOUT buffering
 
   # Windows path
   if($^O =~ /MSWin/){
-	local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\R\\R-3.0.3\\bin\\x64";
-	local $ENV{PATH} = "$ENV{PATH};C:\\Program Files\\ImageMagick-6.8.8-Q16";
+	my ($base,$IM_path,$R_path,$type);
+	($base,$IM_path,$type) = fileparse(which('mogrify.exe'));
+	($base,$R_path,$type) = fileparse(which('R.exe'));
+	local $ENV{PATH} = "$ENV{PATH};$R_path";
+	local $ENV{PATH} = "$ENV{PATH};$IM_path";
 	}
   
   my $datetime_f = DateTime::Format::Strptime->new( pattern => '%Y%m%d_%H%M%S' );  
@@ -34,20 +39,19 @@ use strict;
     }
     closedir(DIR);	
   }
-  
+
   &doit(join(',',splice(@ARGV))) ;
   
   exit;
 
 sub doit {
   my ( $files  ) = @_ ;
-
   my @files = split(/,/,$files);
   my $i = 0;
   my $input_path = "";
   my $tmp;
   for($i=0; $i<@files; $i++){
-	if (! -s $files[$i]) { die "[LOG] proteosign_dispatcher: ERROR! Can't find (or empty) file " .  $files[$i] . "\n" ;}
+	if (! -s $files[$i]) { die "[LOG] proteosign_dispatcher: ERROR! Can't find(or empty) file " .  $files[$i] . "\n" ;}
 	($files[$i], $input_path, $tmp) = fileparse(File::Spec->rel2abs( $files[$i] ));
   }
 
