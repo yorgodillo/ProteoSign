@@ -8,3 +8,4 @@ uploads/*
 test data/*
 test data/Dimethyl_DIC_merged_psms.txt
 test data/Dimethyl_DIM_merged_psms.txt
+!test data/testdatadb
