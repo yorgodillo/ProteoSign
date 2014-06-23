@@ -9,11 +9,15 @@
 	);
 	
 	$get_labels_aguments_sets_labelfree_flag = [false, false, true, true];
+	$server_side_file = ($_POST["server_side"] === "true");
 	
-	$name = $_FILES['thefile']['name'];
-	$cleanprev = ($_POST['cleanprev'] === 'true');
-	$tmp_name = $_FILES['thefile']['tmp_name'];
-	$error = $_FILES['thefile']['error'];
+	if($server_side_file){
+		$name = $_POST['thefile'];
+		$tmp_name = $_POST['thefile'];
+	}else{
+		$name = $_FILES['thefile']['name'];
+		$tmp_name = $_FILES['thefile']['tmp_name'];
+	}
 	$server_response = [];
 	//Overall success, will be checked by client.
 	$server_response['success'] = false;
@@ -31,17 +35,13 @@
 					goto end;
 				}
 			}
-			// clean data (and parameter, it's ok) files from possible previous run
-			//error_log("cleanprev: $cleanprev file: $name");
-			if($cleanprev){
-				$txts = glob($location . "/*.txt");
-				foreach($txts as $txt){
-					if(is_file($txt)){
-						unlink($txt);
-					}
-				}
+			$file_copied_successfully = false;
+			if($server_side_file){
+				$file_copied_successfully = copy($_SERVER['DOCUMENT_ROOT'] . "/test data/" . $tmp_name, $location . '/' . $name);
+			}else{
+				$file_copied_successfully = move_uploaded_file($tmp_name, $location . '/' . $name);
 			}
-			if (move_uploaded_file($tmp_name, $location . '/' . $name)){
+			if ($file_copied_successfully){
 				// Keep calling "get_labels" till you get some labels (validity criteria for labelled experiments: 1: # of label names > 0. 2: if # of label definitions > 0 then label definitions cannot contain white-space characters)
 				for($i=0; $i<count($get_labels_aguments_sets); $i++){
 					$argset = $get_labels_aguments_sets[$i];
