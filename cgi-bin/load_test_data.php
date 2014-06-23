@@ -8,7 +8,6 @@
 	
 	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/test data/";
 	$descriptions_requested = ($_POST["descriptions_requested"] === "true");
-	$dataset_requested = $_POST["dataset_info_requested"];
 	
 	$server_response = [];
 	$server_response['success'] = false;
@@ -26,7 +25,7 @@
     if($descriptions_requested){
 		$qres = $db->query('select desc from dataset');
 	}else{
-		$qres = $db->query('select selector,value from dataset inner join param_value on dataset.id=param_value.dataset_id inner join param on param_value.param_id=param.id where dataset.desc="' . $dataset_requested . '"');
+		$qres = $db->query('select selector,value from dataset inner join param_value on dataset.id=param_value.dataset_id inner join param on param_value.param_id=param.id where dataset.desc="' .  $_POST["dataset_info_requested"] . '"');
 	}
 	
 	if(!$qres){
@@ -43,7 +42,7 @@
 	$qres->finalize();
 	
 	if(!$descriptions_requested){
-		$qres = $db->query('select file from dataset inner join dataset_files on dataset.id=dataset_files.dataset_id inner join files on dataset_files.file_id = files.id where dataset.desc="' . $dataset_requested . '"');
+		$qres = $db->query('select file from dataset inner join dataset_files on dataset.id=dataset_files.dataset_id inner join files on dataset_files.file_id = files.id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
 		if(!$qres){
 			$server_response['msg'] = "Failed to query the database: " . $sqlite->lastErrorMsg();
 			goto end;		

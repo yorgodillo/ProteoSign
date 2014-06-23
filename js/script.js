@@ -320,7 +320,7 @@ var validateParameters = function(params) {
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
-var uploadFiles = function(uploadingFiles){
+var uploadFiles = function(uploadingFiles,serverSide){
 	// reset "counters"/states
 	unsuccessfullyUploadedFiles = {};
 	uploadEfforts = {};
@@ -342,7 +342,7 @@ var uploadFiles = function(uploadingFiles){
 	// fire AJAX calls
 	$.each(uploadingFiles, function(idx, file_i)
 	{
-		postFile(idx,file_i);
+		postFile(idx,file_i,serverSide);
 	});
 }
 
@@ -355,11 +355,11 @@ var uploadFinished = function(success,idx,file){
 }
 
 // jQuery AJAX POST for uploading a single file
-var postFile = function(idx,file) {
+var postFile = function(idx,file,serverSide) {
 	var thedata = new FormData();
 	thedata.append('thefile', file);
-	thedata.append('cleanprev', idx == (nToUpload-1));
 	thedata.append('session_id', sessionid);
+	thedata.append('server_side', serverSide);
 	var progresstditm =  $("#s2uluploaders table tr:nth-child("+(idx+1)+") td").get(1);
     $.ajax({
         url: cgi_bin_path + 'upload_files.php',  //Server script to receive file
@@ -377,7 +377,9 @@ var postFile = function(idx,file) {
         },
         //Ajax events
         beforeSend: function(jqXHR, settings){
-			
+			if(serverSide){
+				helper_setItemAttr("#uploadfile" + idx,{value: 0,max: 100});
+			}
 		},
         success: function(data, textStatus, jqXHR){
 			debug_ajax_data = data;
@@ -499,8 +501,7 @@ var onChooseFromTestDatasets = function(){
 			$(".expparamsDlg").fadeOut(300 , function() {
 				$('#mask').remove();  
 			});
-			// TODO: prepare next stage ...
-			$("#s2btnf").prop('disabled', false);
+			postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
 		});
 		$("#dlgTestDatasetsBtnCancel").on("click",function(){
 			$(".expparamsDlg").fadeOut(300 , function() {
@@ -566,6 +567,92 @@ var removeFormLabel = function(){
 	}
 }
 
+var postTestDatasetInfo = function(dataset_desc) {
+	var thedata = new FormData();
+	thedata.append('session_id', sessionid);
+	thedata.append('descriptions_requested', false);
+	thedata.append('dataset_info_requested', dataset_desc);
+    $.ajax({
+        url: cgi_bin_path + 'load_test_data.php',
+        type: 'POST',
+        // Form data
+        data: thedata,
+        //Options to tell jQuery not to worry about content-type.
+		processData: false,
+        cache: false,
+		contentType: false,
+        success: function(data, textStatus, jqXHR){
+			//if there was a server-side error alert.
+			if(!data.success){
+				alert("ERROR on SERVER: " + data.msg);
+			}else{
+				$("#s2uluploaders > table").empty();
+				var uploadingFiles = data.queryres.file;
+				$.each(uploadingFiles,function(idx, file_i){
+					$("#s2uluploaders table").append("<tr><td>" + file_i + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
+				});
+				if(uploadingFiles.length > 0){
+					//Start uploading ...
+					uploadFiles(uploadingFiles, true);
+					var i = 1;
+					$.each(data.queryres.selector, function(idx, param_selector)
+					{
+						console.log(param_selector + " = " + data.queryres.value[idx])
+						switch($(param_selector).attr('type')){
+							case "checkbox":
+								// Here the 0/1 is transmitted false/true
+								var theval = (data.queryres.value[idx] == "0" ? false : true);
+								$(param_selector).prop("checked",theval);
+								break;
+							default:
+								$(param_selector).val(data.queryres.value[idx]);
+								break;
+						}						
+					});
+				}else{
+					$("#s2btnf").prop('disabled', true);
+				}		
+			}
+		},
+        error: function(jqXHR, textStatus, errorThrown){
+			alert("An AJAX error occurred: "+errorThrown);
+		}  		
+    });
+	
+}
+
+var postTestDatasetsInfo = function() {
+	var thedata = new FormData();
+	thedata.append('session_id', sessionid);
+	thedata.append('descriptions_requested', true);
+    $.ajax({
+        url: cgi_bin_path + 'load_test_data.php',
+        type: 'POST',
+        // Form data
+        data: thedata,
+        //Options to tell jQuery not to worry about content-type.
+		processData: false,
+        cache: false,
+		contentType: false,
+        success: function(data, textStatus, jqXHR){
+			//if there was a server-side error alert.
+			if(!data.success){
+				alert("ERROR on SERVER: " + data.msg);
+			}else{
+				var i = 1;
+				$.each(data.queryres.desc, function(idx, dataset_desc)
+				{
+					$("#s1TestDatasetsSelection").append("<option value='"+(i++)+"'>"+dataset_desc+"</option>");
+				});				
+			}
+		},
+        error: function(jqXHR, textStatus, errorThrown){
+			alert("An AJAX error occurred: "+errorThrown);
+		}  		
+    });
+}
+
+
 $(document).ready(function() {
 	var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
 	var backward_buttons = getItems("button.main", /s[0-9]+btnb/);
@@ -598,7 +685,7 @@ $(document).ready(function() {
 		});
 		if(uploadingFiles.length > 0){
 			//Start uploading ...
-			uploadFiles(uploadingFiles);
+			uploadFiles(uploadingFiles, false);
 		}else{
 			$("#s2btnf").prop('disabled', true);
 		}
@@ -678,8 +765,7 @@ $(document).ready(function() {
 		$(".callout").css({"left":$(".tooltip span").width()/2});
 	});
 	// TEST DATA INIT
-	$("#s1TestDatasetsSelection").append("<option value='ds1'>pulsed SILAC 3-plex (3 biological x 3 technical replicates)</option>");
-	$("#s1TestDatasetsSelection").append("<option value='ds2'>dimethyl 2-plex (3 biological replicates)</option>");	
+	postTestDatasetsInfo();
 	//
 	postClientServerClientInfo();
 });
