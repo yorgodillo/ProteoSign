@@ -320,7 +320,7 @@ var validateParameters = function(params) {
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
-var uploadFiles = function(uploadingFiles,serverSide){
+var uploadFiles = function(uploadingFiles,serverSide, postSuccess){
 	// reset "counters"/states
 	unsuccessfullyUploadedFiles = {};
 	uploadEfforts = {};
@@ -342,7 +342,7 @@ var uploadFiles = function(uploadingFiles,serverSide){
 	// fire AJAX calls
 	$.each(uploadingFiles, function(idx, file_i)
 	{
-		postFile(idx,file_i,serverSide);
+		postFile(idx,file_i,serverSide, postSuccess);
 	});
 }
 
@@ -355,7 +355,7 @@ var uploadFinished = function(success,idx,file){
 }
 
 // jQuery AJAX POST for uploading a single file
-var postFile = function(idx,file,serverSide) {
+var postFile = function(idx, file, serverSide, postSuccess) {
 	var thedata = new FormData();
 	thedata.append('thefile', file);
 	thedata.append('session_id', sessionid);
@@ -446,6 +446,9 @@ var postFile = function(idx,file,serverSide) {
 						removeFormLabel();
 					}					
 					$("#s2btnf").prop('disabled', false);
+					if(typeof(postSuccess) == "function"){
+						postSuccess();
+					}
 				}
 			}else{
 				$(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
@@ -593,21 +596,31 @@ var postTestDatasetInfo = function(dataset_desc) {
 				});
 				if(uploadingFiles.length > 0){
 					//Start uploading ...
-					uploadFiles(uploadingFiles, true);
-					var i = 1;
-					$.each(data.queryres.selector, function(idx, param_selector)
-					{
-						console.log(param_selector + " = " + data.queryres.value[idx])
-						switch($(param_selector).attr('type')){
-							case "checkbox":
-								// Here the 0/1 is transmitted false/true
-								var theval = (data.queryres.value[idx] == "0" ? false : true);
-								$(param_selector).prop("checked",theval);
-								break;
-							default:
-								$(param_selector).val(data.queryres.value[idx]);
-								break;
-						}						
+					uploadFiles(uploadingFiles, true, function(){
+						$("#s2btnf").triggerHandler("click");
+						$("#s3showhideadvparams").trigger("click");
+						$("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
+						$.each(data.queryres.selector, function(idx, param_selector)
+						{
+							console.log(param_selector + " = " + data.queryres.value[idx]);
+							switch($(param_selector).attr('type')){
+								case "checkbox":
+									// Here the 0/1 is transmitted false/true
+									var theval = (data.queryres.value[idx] == "0" ? false : true);
+									if($(param_selector).prop("checked") != theval){
+										$(param_selector).trigger("click");
+									}
+									break;
+								default:
+									m = param_selector.match(/^#explbl[1-9]+[0-9]*name_$/);
+									if(m != null && !$(param_selector).is(':visible')){
+										addFormLabel();
+									}
+									$(param_selector).val(data.queryres.value[idx]);
+									break;
+							}						
+						});
+						$("#s3expparams").animate({ scrollTop: 0 }, "slow");					
 					});
 				}else{
 					$("#s2btnf").prop('disabled', true);
@@ -685,7 +698,7 @@ $(document).ready(function() {
 		});
 		if(uploadingFiles.length > 0){
 			//Start uploading ...
-			uploadFiles(uploadingFiles, false);
+			uploadFiles(uploadingFiles, false, null);
 		}else{
 			$("#s2btnf").prop('disabled', true);
 		}
