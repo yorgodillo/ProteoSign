@@ -320,7 +320,7 @@ var validateParameters = function(params) {
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
-var uploadFiles = function(uploadingFiles,serverSide, postSuccess){
+var uploadFiles = function(uploadingFiles, serverSide, postSuccess){
 	// reset "counters"/states
 	unsuccessfullyUploadedFiles = {};
 	uploadEfforts = {};
@@ -446,12 +446,12 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 						removeFormLabel();
 					}					
 					$("#s2btnf").prop('disabled', false);
-					if(typeof(postSuccess) == "function"){
-						postSuccess();
-					}
 				}
 			}else{
 				$(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
+			}
+			if(typeof(postSuccess) == "function"){
+				postSuccess();
 			}
 		},
         error: function(jqXHR, textStatus, errorThrown){
@@ -596,13 +596,18 @@ var postTestDatasetInfo = function(dataset_desc) {
 				});
 				if(uploadingFiles.length > 0){
 					//Start uploading ...
+					nUploaded = 0;
 					uploadFiles(uploadingFiles, true, function(){
+						console.log("Called!");
+						if(++nUploaded < uploadingFiles.length){
+							return;
+						}
 						$("#s2btnf").triggerHandler("click");
 						$("#s3showhideadvparams").trigger("click");
 						$("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
 						$.each(data.queryres.selector, function(idx, param_selector)
 						{
-							console.log(param_selector + " = " + data.queryres.value[idx]);
+							//console.log(param_selector + " = " + data.queryres.value[idx]);
 							switch($(param_selector).attr('type')){
 								case "checkbox":
 									// Here the 0/1 is transmitted false/true
