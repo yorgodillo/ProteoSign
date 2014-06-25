@@ -727,7 +727,6 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
 	cat("#######\n");
 	cat(paste(colnames(pgroups),"\n"))  
   if(ProteinQuantitation){
-	# TODO: BUG
     colnames(pgroups)[grep("^Ratio.[^\\.]+\\.[^\\.]+\\.count\\.",colnames(pgroups))]<-sub("^Ratio.([^\\.]+)\\.([^\\.]+)\\.count\\.(.+)$","\\3.\\1.\\2.Ratio.counts",colnames(pgroups)[grep("^Ratio.[^\\.]+\\.[^\\.]+\\.count\\.",colnames(pgroups))])
     for(i in 1:length(conditions.labels)){
       colnames(pgroups)[grep("^Intensity\\.",colnames(pgroups))]<-sub(paste("^Intensity\\.(",mq_labels_names[i],")\\.",sep=""),paste("Intensity.",conditions.labels[i],".",sep=""),colnames(pgroups)[grep("^Intensity\\.",colnames(pgroups))])

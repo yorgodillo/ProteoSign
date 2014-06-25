@@ -1,4 +1,4 @@
-var sessionid = new Date().getTime();
+var sessionid;
 var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
@@ -12,6 +12,10 @@ Object.size = function(obj) {
     }
     return size;
 };
+
+File.prototype.toString = function getFileName() {
+  return this.name;
+}
 
 var inputChCheck = function(e,repatt,maxCharacters){
 	var re = new RegExp(repatt);
@@ -273,7 +277,7 @@ var executeStage = function(stageIndex){
 			}
 			break;
 		case 4:
-			 sessionid = new Date().getTime();
+			 resetState();
 			break;
 		default:
 	}
@@ -319,9 +323,8 @@ var validateParameters = function(params) {
 	return nInvalid == 0;
 }
 
-// "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
-var uploadFiles = function(uploadingFiles, serverSide, postSuccess){
-	// reset "counters"/states
+// reset "counters"/states
+var resetState = function(){
 	unsuccessfullyUploadedFiles = {};
 	uploadEfforts = {};
 	peptideLabelsFromFile = [];
@@ -336,9 +339,20 @@ var uploadFiles = function(uploadingFiles, serverSide, postSuccess){
 	if(!$("#explbl1definition").hasClass("hidden")){
 		$("#explbl1definition").addClass("hidden");
 	}
-	//
+	//remove progress bar(s)
+	$("#s2uluploaders > table").empty();
+	nUploaded = 0;
+	sessionid = new Date().getTime();
+}
+
+// "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
+var uploadFiles = function(uploadingFiles, serverSide, postSuccess){
+	resetState();
 	nToUpload = uploadingFiles.length;
 	$("#s2btnf").prop('disabled', true);
+	$.each(uploadingFiles,function(idx, file_i){
+		$("#s2uluploaders table").append("<tr><td>" + file_i.toString() + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
+	});
 	// fire AJAX calls
 	$.each(uploadingFiles, function(idx, file_i)
 	{
@@ -347,7 +361,7 @@ var uploadFiles = function(uploadingFiles, serverSide, postSuccess){
 }
 
 // Called by respective AJAX event handlers (see postFile function below)
-var uploadFinished = function(success,idx,file){
+var uploadFinished = function(success, idx, file){
 	uploadEfforts[idx] = file;
 	if(!success){
 		unsuccessfullyUploadedFiles[idx] = file;
@@ -383,8 +397,6 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 		},
         success: function(data, textStatus, jqXHR){
 			debug_ajax_data = data;
-			//remove progress bar
-			$(progresstditm).empty();
 			//If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
 			uploadFinished(data.success, idx, file);
 			//if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
@@ -589,16 +601,10 @@ var postTestDatasetInfo = function(dataset_desc) {
 			if(!data.success){
 				alert("ERROR on SERVER: " + data.msg);
 			}else{
-				$("#s2uluploaders > table").empty();
-				var uploadingFiles = data.queryres.file;
-				$.each(uploadingFiles,function(idx, file_i){
-					$("#s2uluploaders table").append("<tr><td>" + file_i + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
-				});
-				if(uploadingFiles.length > 0){
+				uploadingFiles = data.queryres.file;
+				if(data.queryres.file.length > 0){
 					//Start uploading ...
-					nUploaded = 0;
-					uploadFiles(uploadingFiles, true, function(){
-						console.log("Called!");
+					uploadFiles(data.queryres.file, true, function(){
 						if(++nUploaded < uploadingFiles.length){
 							return;
 						}
@@ -697,13 +703,9 @@ $(document).ready(function() {
 	$("#__s2btnupld").change(function(){
 		var fnames = "";
 		$("#s2uluploaders > table").empty();
-		var uploadingFiles = this.files;
-		$.each(uploadingFiles,function(idx, file_i){
-			$("#s2uluploaders table").append("<tr><td>" + file_i.name + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
-		});
-		if(uploadingFiles.length > 0){
+		if(this.files.length > 0){
 			//Start uploading ...
-			uploadFiles(uploadingFiles, false, null);
+			uploadFiles(this.files, false, null);
 		}else{
 			$("#s2btnf").prop('disabled', true);
 		}
