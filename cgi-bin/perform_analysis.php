@@ -29,7 +29,6 @@
 	if(!$server_response['dispatcher_success']){
 		$server_response['msg'] = "The dispatcher returned error(s).";
 		$server_response['dump'] = $server_response['dispatcher_dump'];
-		goto end;
 	}
 	// Determine success of R run by search for 'error' occurrences in msdiffexp_log.txt
 	$R_logfile = file_get_contents("$upload_dir/msdiffexp_log.txt");
@@ -43,8 +42,6 @@
 			$server_response['R_success'] = true;
 		}
 		unlink("$upload_dir/msdiffexp_log.txt");
-	}else{
-		$server_response['msg'] = "The file $upload_dir/msdiffexp_log.txt could not be read ('file_get_contents' returned FALSE)";
 	}
 	
 	
