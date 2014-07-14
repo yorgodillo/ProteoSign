@@ -4,7 +4,7 @@
 	$server_response['msg'] = "";
 	
 	$session_folder = $_POST["session_id"];
-	$document_root = $_SERVER['DOCUMENT_ROOT'];
+	$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/";
 	$upload_dir = $document_root . "/uploads/" . $session_folder;
 	$upload_parameter_file = $upload_dir . "/parameters.txt";
 	$parameters_template = "parameters_template.txt";

@@ -9,7 +9,7 @@
 	$server_response['dump'] = "";
 	
 	$session_folder = $_POST["session_id"];
-	$document_root = $_SERVER['DOCUMENT_ROOT'];
+	$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/";
 	$upload_dir = $document_root . "/uploads/" . $session_folder;
 	// clean files from possible previous run
 	$pngs = glob($upload_dir . "/*.png");
