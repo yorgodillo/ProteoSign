@@ -18,6 +18,9 @@ File.prototype.toString = function getFileName() {
 }
 
 var inputChCheck = function(e,repatt,maxCharacters){
+	var theEvent = e || window.event;
+	var key = theEvent.keyCode || theEvent.which;
+	if(key===8){return;}
 	var re = new RegExp(repatt);
 	var srcelem = e.target || e.srcElement;
 	var txt = srcelem.value + String.fromCharCode(e.which);
@@ -136,7 +139,19 @@ var resetCssStyles = function(selector){
 // Self-explanatory
 var setItemAttrColor = function(selector,attr,hexcolor){
 	var cssstr = $(selector).css(attr);
-	$(selector).css(attr,cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+	if(cssstr.length == 0){ // FireFox (!)
+		cssstr = $(selector).css(attr + "-top-color");
+		$(selector).css(attr + "-top-color",cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+		cssstr = $(selector).css(attr + "-right-color");
+		$(selector).css(attr + "-right-color",cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+		cssstr = $(selector).css(attr + "-bottom-color");
+		$(selector).css(attr + "-bottom-color",cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+		cssstr = $(selector).css(attr + "-left-color");
+		$(selector).css(attr + "-left-color",cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+	}else{
+		alert(cssstr);
+		$(selector).css(attr,cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g,hexcolor));
+	}
 }
 
 // Clear areas where results information appears.
