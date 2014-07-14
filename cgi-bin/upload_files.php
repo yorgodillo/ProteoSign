@@ -37,7 +37,7 @@
 			}
 			$file_copied_successfully = false;
 			if($server_side_file){
-				$file_copied_successfully = copy($_SERVER['DOCUMENT_ROOT'] . "/test data/" . $tmp_name, $location . '/' . $name);
+				$file_copied_successfully = copy($document_root . "/test data/" . $tmp_name, $location . '/' . $name);
 			}else{
 				$file_copied_successfully = move_uploaded_file($tmp_name, $location . '/' . $name);
 			}
