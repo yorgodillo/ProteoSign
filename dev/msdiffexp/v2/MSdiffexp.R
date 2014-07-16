@@ -1,5 +1,3 @@
-# Based on a Progenesis LC-MS Limma Analysis script
-
 # Load the limma library so we can use it
 # Can be installed by running following commands in R
 #
