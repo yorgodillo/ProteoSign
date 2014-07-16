@@ -425,10 +425,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     diffexp<-merge(diffexp,protein_groups[c("Peptide.IDs","Protein.IDs")],by.x=c("Peptide"),by.y=c("Peptide.IDs"),all.x=T)
     colnames(diffexp)[grep("^Protein\\.IDs$",colnames(diffexp))]<-"Protein"
   }
-  dec <- ","
-  if(grepl("(English|Thai)",Sys.getlocale())){
-    dec <- "."
-  }
+  dec <- "."
   write.table(diffexp[signTruth,],dec=dec,file=paste(outputFigsPrefix,"_diffexp_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
   
   diffexp<-merge(diffexp,results[,-grep("^(avg log2|P-value adjusted)",colnames(results))],by.x=c(quantitated_items_lbl),by.y=c("ID"),all.x=T)
