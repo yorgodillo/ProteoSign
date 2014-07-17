@@ -1019,7 +1019,7 @@ do_generate_Venn3_data_quant_filter_2reps_PD<-function(pgroups,time.point,eviden
 	setwd("..")
 }
 
-#More stringent quant filter, require quantitation in at least 2 replicates if bioreps>1 or in at least 2 injections if bioreps=1
+#More stringent quant filter, require quantitation in at least 2 replicates if bioreps>1 or in at least 3 injections if bioreps=1
 pgroups_filter_2reps_v2<-function(pgroups,reps){	#reps is dummy here
   #write.table(pgroups,file="proteinGroups_beforeFiltering.txt",sep="\t",row.names=F);
   n_bioreps<-length(which(!duplicated(rep_structure)))/nConditions
