@@ -57,8 +57,41 @@
 					<button type="button" class="main" id="s2btnf" disabled>Next</button>
 				</div>
 			</div>
-			<div class="main_div main_section hidden" id="s3div">
+			
+			<div class="main_div main_section hidden" id="s22div">
 				<h2>Step 2</h2>
+				<p style="color: #000000">Please define the experimental design by grouping (drag and drop) the raw files below into the appropriate category.</p>
+				<div style="text-align: center; height: 60%; overflow-y:scroll;">
+					<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="float: left;">
+						<tbody>
+							<tr>
+								<th>Raw files</th>
+							</tr>
+						</tbody>
+					</table>
+					<table class="rawfiles_tbl" id="rawfiles_tbl_techreps" style="float: left;">
+						<tbody>
+							<tr>
+								<th>Technical replicate(s)</th>
+							</tr>
+						</tbody>
+					</table>
+					<table class="rawfiles_tbl" id="rawfiles_tbl_fractions" style="float: left;">
+						<tbody>
+							<tr>
+								<th>Analytical fraction(s)</th>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="buttonbar">
+					<button type="button" class="main" id="s22btnb">Back</button>
+					<button type="button" class="main" id="s22btnf" disabled>Next</button>
+				</div>
+			</div>
+			
+			<div class="main_div main_section hidden" id="s3div">
+				<h2>Step 3</h2>
 				<p style="color: #000000">Define the experimental parameters and click <em>Submit</em>.</p>
 				<div class="sectionForm" id="s3expparams">
 					<table style="border-spacing: 5px 5px;">
@@ -151,7 +184,7 @@
 				</div>
 			</div>
 			<div class="main_div main_section hidden" id="s4div">
-				<h2>Step 3</h2>
+				<h2>Step 4</h2>
 				<p id="results_p" style="color: #000000"></p>
 				<br>
 				<hr class="style-one">

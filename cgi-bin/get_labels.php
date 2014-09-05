@@ -1,5 +1,4 @@
 <?php
-	assert_options(ASSERT_ACTIVE, 1);
 	function get_labels($data_file,$labelmatch_re,$labeldefcol_re,$labeldef_re){
 		$labels = [];
 		$labels_defs = [];

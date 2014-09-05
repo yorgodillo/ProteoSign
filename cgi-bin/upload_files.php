@@ -1,5 +1,6 @@
 <?php
 	require 'get_labels.php';
+	require 'get_rawfiles_names.php';
 	//"get_labels" function arguments for different file formats
 	$get_labels_aguments_sets = array(
 	   array('/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:[^:]+?:)?(.+?)\)(;|$)/'),	//Proteome Discoverer
@@ -25,6 +26,7 @@
 	$server_response['peptide_labels'] = [];
 	$server_response['peptide_labels_names'] = [];
 	$server_response['skipped_labels'] = [];
+	$server_response['raw_filesnames'] = [];
 	$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign";
 	if (isset ($name)) {
 		if (!empty($name)) {
@@ -68,8 +70,13 @@
 				$server_response['peptide_labels_names'] =  $tmp[0];
 				$server_response['peptide_labels'] = $tmp[1];
 				$server_response['success'] = true;
+				$server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name,'/file/i');
+				if(count($server_response['raw_filesnames']) == 0){
+					$server_response['msg'] = "Could not retrieve replicate information (raw files names) from data file(s).";
+					$server_response['success'] = false;
+				}
 			}else{
-				$server_response['msg'] = " The file $name could not be moved ('move_uploaded_file' returned FALSE).";
+				$server_response['msg'] = "The file $name could not be moved ('move_uploaded_file' returned FALSE).";
 			}
 		} else {
 			$server_response['msg'] = "The variable 'name' was empty (empty() returned TRUE).";

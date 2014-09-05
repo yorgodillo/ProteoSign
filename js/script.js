@@ -3,6 +3,48 @@ var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
 
+//modified from http://stackoverflow.com/questions/17964108/select-multiple-html-table-rows-with-ctrlclick-and-shiftclick
+var lastSelectedRow;
+var trs;
+
+function RowClick(currenttr, lock) {
+	if (window.event.ctrlKey) {
+        toggleRow(currenttr);
+    }
+    if (window.event.button === 0) {
+        if (!window.event.ctrlKey && !window.event.shiftKey) {
+            clearAll();
+            toggleRow(currenttr);
+        }
+    
+        if (window.event.shiftKey) {
+            selectRowsBetweenIndexes([lastSelectedRow.parentNode.rowIndex, currenttr.parentNode.rowIndex])
+        }
+    }
+}
+
+function toggleRow(row) {
+    row.className = row.className == 'rawfiles_tbl_td_selected' ? 'rawfiles_tbl_td_not_selected' : 'rawfiles_tbl_td_selected';
+    lastSelectedRow = row;
+}
+
+function selectRowsBetweenIndexes(indexes) {
+    indexes.sort(function(a, b) {
+        return a - b;
+    });
+
+    for (var i = indexes[0]; i <= indexes[1]; i++) {
+        trs[i-1].className = 'rawfiles_tbl_td_selected';
+    }
+}
+
+function clearAll() {
+    for (var i = 0; i < trs.length; i++) {
+        trs[i].className = 'rawfiles_tbl_td_not_selected';
+    }
+}
+//
+
 // for counting the number of elements in an associative array
 // from: http://stackoverflow.com/questions/5223/length-of-javascript-object-ie-associative-array
 Object.size = function(obj) {
@@ -471,8 +513,15 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 					}
 					while(nFormLabels > 1){
 						removeFormLabel();
-					}					
+					}
+					// Load rawdata files names
+					$.each(data.raw_filesnames, function(idx, filename_i){
+						$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td draggable="true" onmousedown="RowClick(this,false);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
+					});					
+					trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
 					$("#s2btnf").prop('disabled', false);
+				}else{
+					console.log("WARNING: Unexpected program flow-path!");
 				}
 			}else{
 				$(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
@@ -691,7 +740,6 @@ var postTestDatasetsInfo = function() {
     });
 }
 
-
 $(document).ready(function() {
 	var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
 	var backward_buttons = getItems("button.main", /s[0-9]+btnb/);
@@ -793,7 +841,41 @@ $(document).ready(function() {
 	$("#s3expparams input[data-required]").on("focusout",function(){
 		resetCssStyles(this);
 	});
-
+	// Display chopped long raw file name on a tooltip
+	$('.rawfiles_tbl').delegate('td','mouseenter', function(){
+		var $this = $(this);
+		if(this.offsetWidth < this.scrollWidth && !$this.attr('title')){
+			$this.attr('title', $this.text());
+		}
+	});
+	// DnD
+	$('.rawfiles_tbl').delegate('td','dragstart', function(e){
+		$(this).css('opacity', '0.4'); 
+	});
+	$('.rawfiles_tbl').delegate('td','dragover', function(e){
+		if (e.preventDefault) {
+			e.preventDefault();
+		}
+		e.dataTransfer.dropEffect = 'move';
+		return false;
+	});
+	$('.rawfiles_tbl').delegate('td','dragenter', function(e){
+		
+	});
+	$('.rawfiles_tbl').delegate('td','dragleave', function(e){
+		
+	});
+	$('.rawfiles_tbl').delegate('td','drop', function(e){
+		if (e.stopPropagation) {
+			e.stopPropagation(); // stops the browser from redirecting.
+		}
+	});
+	$('.rawfiles_tbl').delegate('td','dragend', function(e){
+		if (e.stopPropagation) {
+			e.stopPropagation(); // stops the browser from redirecting.
+		}
+		$(this).css('opacity', '1.0'); 
+	});
 	// CSS
 	$(".tooltip").hover(function(){
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});
@@ -804,7 +886,6 @@ $(document).ready(function() {
 	//
 	postClientServerClientInfo();
 });
-
 
 	
 
