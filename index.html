@@ -60,8 +60,10 @@
 			
 			<div class="main_div main_section hidden" id="s22div">
 				<h2>Step 2</h2>
-				<p style="color: #000000">Please define the experimental design by grouping (drag and drop) the raw files below into the appropriate category.</p>
-				<div style="text-align: center; height: 60%; overflow-y:scroll;">
+				<p style="color: #000000">Please define the experimental design by assigning to each raw file the appropriate location coordinate in the experimental structure. 
+					<p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Ctrl</em> key and click to select individual items. Hold down the <em>Shift</em> and click to select a range of items. To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank. To assign fractions, specify both the biological and the technical replicate.</p>
+				</p>
+				<div style="text-align: center; height: 50%; overflow-y:scroll;">
 					<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="float: left;">
 						<tbody>
 							<tr>
@@ -69,19 +71,20 @@
 							</tr>
 						</tbody>
 					</table>
-					<table class="rawfiles_tbl" id="rawfiles_tbl_techreps" style="float: left;">
-						<tbody>
-							<tr>
-								<th>Technical replicate(s)</th>
-							</tr>
-						</tbody>
-					</table>
-					<table class="rawfiles_tbl" id="rawfiles_tbl_fractions" style="float: left;">
-						<tbody>
-							<tr>
-								<th>Analytical fraction(s)</th>
-							</tr>
-						</tbody>
+					<table class="expstructcoord_tbl" id="expstructcoord" style="float: left;">
+						<tr>
+							<td colspan="2">Experimental structure coordinates</td>
+						</tr>
+						<tr>
+							<td colspan="2"><input id="expstructcoord_biorep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
+						</tr>
+						<tr>
+							<td colspan="2"><input id="expstructcoord_techrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
+						</tr>
+						<tr>
+							<td><button type="button" class="main inline" id="btnAssignExpStructCoord">Assign</button></td>
+							<td><button type="button" class="main inline" id="btnResetExpStructCoord" disabled>Reset</button></td>
+						</tr>					
 					</table>
 				</div>
 				<div class="buttonbar">

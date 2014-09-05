@@ -240,7 +240,6 @@ var postFireUpAnalysisAndWait = function(){
 					$("#server_feedback").append("<br><br><span style='font-family: Georgia; font-size: 95%; text-align: left; display: inline-block; width: 90%'><p>Please ensure that input parameters (such as number of replicates, number of biological conditions/labels etc) are correctly defined and input data format is valid. The statistical analysis routine relies heavily on the validity of the input parameters, i.e. minor deviations from the correct parameter values may bring the analysis to a halt.</p><p>If the above does not apply, then the statistical analysis may have failed due to numerical problems (e.g. there were too many missing values/data points).</p><p> If you feel that none of the above is the case, please click <a href='mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid+"' target='_blank'><u>here</u></a> to notify via e-mail (do not delete the session id in the subject) the ProteoSign team for investigation of your analysis issue.</p></span>")
 					//$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
 					//$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
-					debugger;
 				}
 			}		
 		},
@@ -515,10 +514,8 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 						removeFormLabel();
 					}
 					// Load rawdata files names
-					$.each(data.raw_filesnames, function(idx, filename_i){
-						$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td draggable="true" onmousedown="RowClick(this,false);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
-					});					
-					trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
+					rawfiles = data.raw_filesnames;
+					reset_reps();
 					$("#s2btnf").prop('disabled', false);
 				}else{
 					console.log("WARNING: Unexpected program flow-path!");
@@ -740,6 +737,24 @@ var postTestDatasetsInfo = function() {
     });
 }
 
+var bioreps;
+var techreps;
+var fractions;
+var rawfiles;
+var rawfiles_structure;
+
+var reset_reps = function(){
+	bioreps = 0;
+	techreps = 0;
+	fractions = 0;
+	rawfiles_structure = [];
+	$('#rawfiles_tbl_allfiles td').remove();
+	$.each(rawfiles, function(idx, filename_i){
+		$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td onmousedown="RowClick(this,false);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
+	});					
+	trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
+}
+
 $(document).ready(function() {
 	var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
 	var backward_buttons = getItems("button.main", /s[0-9]+btnb/);
@@ -848,34 +863,55 @@ $(document).ready(function() {
 			$this.attr('title', $this.text());
 		}
 	});
-	// DnD
-	$('.rawfiles_tbl').delegate('td','dragstart', function(e){
-		$(this).css('opacity', '0.4'); 
-	});
-	$('.rawfiles_tbl').delegate('td','dragover', function(e){
-		if (e.preventDefault) {
-			e.preventDefault();
+	//
+	
+	$('#btnAssignExpStructCoord').on("click",function(){
+		var items = $('.rawfiles_tbl').find('.rawfiles_tbl_td_selected');
+		var def_biorep = Number($('#expstructcoord_biorep').val());
+		var def_techrep = Number($('#expstructcoord_techrep').val());
+		var curr_biorep = def_biorep;
+		var curr_techrep = def_techrep;
+		var curr_fraction = 0;
+		var i;
+		debugger;
+		for(i = 0; i < items.length; i++){
+			var curr_str = $(items[i]).html();
+			if(curr_str.match(/\|/) == null){
+			
+				if(def_biorep > 0){ // i.e. non-blank
+					if(def_techrep == 0){ // blank
+						if(items.length > 1){
+							// techreps, from 1 to items.length
+							curr_techrep++;
+						}else{
+							// specified biorep
+						}					
+					}else{
+						if(items.length > 1){
+							// fractions, from 1 to items.length
+							curr_fraction++;
+						}else{
+							// specified biorep
+						}
+					}
+				}else{
+					if(def_techrep == 0){ // blank
+						// bioreps, from 1 to items.length
+						curr_biorep++;
+					}else{
+						// error, a biorep must be specified
+					}
+				}						
+				rawfiles_structure.push({rawfile: $(this).html(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
+				curr_str = curr_biorep+','+curr_techrep+','+curr_fraction+' | '+curr_str;
+				$(items[i]).html(curr_str);
+			}
 		}
-		e.dataTransfer.dropEffect = 'move';
-		return false;
+	});	
+	$('#btnResetExpStructCoord').on("click",function(){
+		reset_reps();
 	});
-	$('.rawfiles_tbl').delegate('td','dragenter', function(e){
-		
-	});
-	$('.rawfiles_tbl').delegate('td','dragleave', function(e){
-		
-	});
-	$('.rawfiles_tbl').delegate('td','drop', function(e){
-		if (e.stopPropagation) {
-			e.stopPropagation(); // stops the browser from redirecting.
-		}
-	});
-	$('.rawfiles_tbl').delegate('td','dragend', function(e){
-		if (e.stopPropagation) {
-			e.stopPropagation(); // stops the browser from redirecting.
-		}
-		$(this).css('opacity', '1.0'); 
-	});
+	
 	// CSS
 	$(".tooltip").hover(function(){
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});

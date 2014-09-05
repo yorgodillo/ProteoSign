@@ -632,7 +632,7 @@
 		margin:20px;
 		border:#ccc 1px solid;
 		min-width: 200px;
-		max-width: 200px;
+		max-width: 400px;
 		
 		-moz-border-radius:3px;
 		-webkit-border-radius:3px;
@@ -678,7 +678,7 @@
 	
 	.rawfiles_tbl_td_not_selected {
 		padding: 4px;
-		max-width: 200px;
+		max-width: 400px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -690,7 +690,25 @@
 		background: #fafafa;
 		background: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#fafafa));
 		background: -moz-linear-gradient(top,  #fbfbfb,  #fafafa);
+		cursor: default;
 	}
+	
+	.rawfiles_tbl_td_selected {
+		padding: 4px;
+		max-width: 400px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		text-align: left;
+		border-top: 1px solid #ffffff;
+		border-bottom:1px solid #e0e0e0;
+		border-left: 1px solid #e0e0e0;
+
+		background: #B0C4DE;
+		background: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#B0C4DE));
+		background: -moz-linear-gradient(top,  #fbfbfb,  #B0C4DE);
+		cursor: default;
+	}	
 	
 	.rawfiles_tbl tr.even td {
 		background: #f6f6f6;
@@ -719,33 +737,22 @@
 		background: -moz-linear-gradient(top,  #f2f2f2,  #f0f0f0);	
 	}
 	*/
-
-	.rawfiles_tbl_td_selected {
+	
+	.expstructcoord_tbl {
 		padding: 4px;
-		max-width: 200px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-align: left;
-		border-top: 1px solid #ffffff;
-		border-bottom:1px solid #e0e0e0;
-		border-left: 1px solid #e0e0e0;
+		text-shadow: 1px 1px 0px #fff;
+		background:#eaebec;
+		margin:20px;
+		border:#ccc 1px solid;
+		
+		-moz-border-radius:3px;
+		-webkit-border-radius:3px;
+		border-radius:3px;
 
-		background: #B0C4DE;
-		background: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#B0C4DE));
-		background: -moz-linear-gradient(top,  #fbfbfb,  #B0C4DE);
-		cursor: move;
-	}
-
-	/* DnD support from http://www.html5rocks.com/en/tutorials/dnd/basics/*/
-	[draggable] {
-	  -moz-user-select: none;
-	  -khtml-user-select: none;
-	  -webkit-user-select: none;
-	  user-select: none;
-	  /* Required to make elements draggable in old WebKit */
-	  -khtml-user-drag: element;
-	  -webkit-user-drag: element;
-	}
-	
-	
+		-moz-box-shadow: 0 1px 2px #d1d1d1;
+		-webkit-box-shadow: 0 1px 2px #d1d1d1;
+		box-shadow: 0 1px 2px #d1d1d1;
+		
+		-moz-user-select: -moz-none;
+		-webkit-user-select: none;	
+	}	
