@@ -618,8 +618,6 @@
 		-webkit-border-radius: 3px;
 	}
 
-<<<<<<< Updated upstream
-=======
 	/* from http://johnsardine.com/freebies/dl-html-css/simple-little-tab/ */
 	.rawfiles_tbl a:active,
 	.rawfiles_tbl a:hover {
@@ -738,7 +736,6 @@
 		background: -moz-linear-gradient(top,  #fbfbfb,  #B0C4DE);
 		cursor: move;
 	}
->>>>>>> Stashed changes
 
 	/* DnD support from http://www.html5rocks.com/en/tutorials/dnd/basics/*/
 	[draggable] {
