@@ -64,26 +64,26 @@
 					<p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Ctrl</em> key and click to select individual items. Hold down the <em>Shift</em> and click to select a range of items. To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank. To assign fractions, specify both the biological and the technical replicate.</p>
 				</p>
 				<div style="text-align: center; height: 50%; overflow-y:scroll;">
-					<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="float: left;">
+					<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="display: inline-block; vertical-align:top;">
 						<tbody>
 							<tr>
 								<th>Raw files</th>
 							</tr>
 						</tbody>
 					</table>
-					<table class="expstructcoord_tbl" id="expstructcoord" style="float: left;">
+					<table class="expstructcoord_tbl" id="expstructcoord" style="display: inline-block; vertical-align:top;">
 						<tr>
-							<td colspan="2">Experimental structure coordinates</td>
+							<td colspan="2" style="padding: 15px 5px 6px 5px;">Experimental structure coordinate</td>
 						</tr>
 						<tr>
-							<td colspan="2"><input id="expstructcoord_biorep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
+							<td colspan="2" style="padding: 5px 0 0 0;"><input id="expstructcoord_biorep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
 						</tr>
 						<tr>
-							<td colspan="2"><input id="expstructcoord_techrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
+							<td colspan="2" style="padding: 5px 0 10px 0;"><input id="expstructcoord_techrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event,'^[0-9]+$',2)"/></td>
 						</tr>
 						<tr>
-							<td><button type="button" class="main inline" id="btnAssignExpStructCoord">Assign</button></td>
-							<td><button type="button" class="main inline" id="btnResetExpStructCoord" disabled>Reset</button></td>
+							<td><button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnAssignExpStructCoord">Assign</button></td>
+							<td><button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnResetExpStructCoord" disabled>Reset</button></td>
 						</tr>					
 					</table>
 				</div>
@@ -107,7 +107,7 @@
 							<td></td>
 						</tr>
 						<tr>
-							<td>&#8212 Experiment ID/name</td>
+							<td>&#8212 Experiment ID</td>
 							<td></td>
 							<td><input data-required="true" name="expid" type="text" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20)" placeholder="Character rules apply"/></td>
 							<td></td>
@@ -115,15 +115,16 @@
 							<td></td>
 						</tr>
 						<tr>
-							<td>&#8212 Time point</td>
+							<td>&#8212 Experiment description </td>
 							<td></td>
-							<td><input data-required="true" name="exptpoint" type="text" onkeypress="inputChCheck(event,'^[0-9\\.]+[hmsdwy]?$',6)" placeholder="Character rules apply"/></td>
+							<td><input data-required="true" name="exptpoint" type="text" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20)" placeholder="Character rules apply"/></td>
 							<td></td>
 							<td></td>
 							<td></td>
 						</tr>
+						<!--
 						<tr>
-							<td>&#8212 Nubmer of biological replicates</td>
+							<td>&#8212 Number of biological replicates</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />The sum of biological and technical replicates must be at least <strong>3</strong>.</span></span></td>
 							<td><input data-required="true" name="expbioreps" type="text" onkeypress="inputChCheck(event,'^[0-9]+$',2)" placeholder="Criteria apply"/></td>
 							<td></td>
@@ -131,13 +132,14 @@
 							<td></td>
 						</tr>
 						<tr>
-							<td>&#8212 Nubmer of technical replicates</td>
+							<td>&#8212 Number of technical replicates</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />The sum of biological and technical replicates must be at least <strong>3</strong>.</span></span></td>
-							<td><input data-required="true" name="exptechreps" type="text" onkeypress="inputChCheck(event,'^[0-9]+$',2)" placeholder="Criteria apply"/></td>
+							<td><input data-required="true" name="exptechreps" type="text" onkeypress="inputChCheck(event,'^[0-9,]+$',9)" placeholder="Criteria apply"/></td>
 							<td></td>
 							<td></td>
 							<td></td>
 						</tr>
+						-->
 						<tr>
 							<td>&#8212 Species label #1</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.</span></span></td>

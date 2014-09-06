@@ -111,8 +111,6 @@ sub doit {
 'quantitation.*filtering','filterL',
 'peptide.*filtering','filterL_lvl',
 'filtering.*label','filterL_lbl',
-'biological.*replicates','bioreps',
-'technical.*replicates','techreps',
 'Label.free experiment','LabelFree',
 'label','addLabel( ,c(	))',
 'modification','addMod( ,c(	))');
@@ -124,8 +122,6 @@ sub doit {
 'filterL','',
 'filterL_lvl','',
 'filterL_lbl','',
-'bioreps','',
-'techreps','',
 'LabelFree','',
 'label','',	# Gia ta matia tou kosmou (not used, exists for code consitency)
 'modification','');	# Gia ta matia tou kosmou (not used, exists for code consitency)
@@ -137,8 +133,6 @@ sub doit {
 'filterL','Quantitation filtering (Yes/No)',
 'filterL_lvl','Quantitation filtering level (Peptide/Protein)',
 'filterL_lbl','Quantitation filtering label/modification',
-'bioreps','Number of biological replicates',
-'techreps','Number of technical replicates',
 'LabelFree','Label-free experiment (Yes/No)');
 
   my @found_params = ();
@@ -267,6 +261,7 @@ mqValidation<-F
 working_directory<-"' . $input_path . '/' . $working_dir_name . '"
 pgroups_fname<-"' . $data_fname . '_protein.txt"
 evidence_fname<-"' . $data_fname . '_peptide.txt"
+experimental_structure_file<-"exp_struct.txt"
 ';
  
  #write params

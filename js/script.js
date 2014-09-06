@@ -294,8 +294,8 @@ var postParameters = function(params) {
 		}
 		//console.log($(param_i).attr('name')+" = "+theval);
 	});
-	//final parameter
 	thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'Yes' : 'No'));
+	thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
     $.ajax({
         url: cgi_bin_path + 'upload_parameters.php',  //Server script to receive parameters
         type: 'POST',
@@ -322,7 +322,7 @@ var executeStage = function(stageIndex){
 	switch(stageIndex){
 		case 1:
 			break;
-		case 2:
+		case 3:
 			var parameterObjs = $("#s3expparams input,#s3expparams select");
 			if(validateParameters(parameterObjs)){
 				postParameters(parameterObjs);
@@ -332,7 +332,7 @@ var executeStage = function(stageIndex){
 				ret = false;
 			}
 			break;
-		case 4:
+		case 5:
 			 resetState();
 			break;
 		default:
@@ -514,7 +514,10 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 						removeFormLabel();
 					}
 					// Load rawdata files names
-					rawfiles = data.raw_filesnames;
+					rawfiles = [];
+					for(var f_i in data.raw_filesnames){
+						rawfiles.push(data.raw_filesnames[f_i]);
+					}
 					reset_reps();
 					$("#s2btnf").prop('disabled', false);
 				}else{
@@ -742,17 +745,27 @@ var techreps;
 var fractions;
 var rawfiles;
 var rawfiles_structure;
+var rep_counts;
 
 var reset_reps = function(){
 	bioreps = 0;
 	techreps = 0;
 	fractions = 0;
 	rawfiles_structure = [];
-	$('#rawfiles_tbl_allfiles td').remove();
+	rep_counts = {biorep: []};
+	$('#rawfiles_tbl_allfiles td').parent().remove();
 	$.each(rawfiles, function(idx, filename_i){
 		$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td onmousedown="RowClick(this,false);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
 	});					
 	trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
+}
+
+var gen_expdesign = function(struct){
+	var ret = "";
+	for(var i=0; i<struct.length; i++){
+		ret = ret + struct[i].rawfile + "\t" + struct[i].biorep + "\t" + struct[i].techrep + "\t" + struct[i].fraction + "\n";
+	}
+	return ret;
 }
 
 $(document).ready(function() {
@@ -872,44 +885,87 @@ $(document).ready(function() {
 		var curr_biorep = def_biorep;
 		var curr_techrep = def_techrep;
 		var curr_fraction = 0;
-		var i;
-		debugger;
-		for(i = 0; i < items.length; i++){
+		var rep_offset = 1;
+		if(def_biorep > 0 && def_biorep > (bioreps+1)){	// return if user tries to assign biorep X without having defined biorep X-1
+			return;
+		}
+		if(def_techrep > 0 && def_techrep > (techreps+1)){	// same as above but for techreps
+			return;
+		}
+		$("#btnResetExpStructCoord").prop('disabled', false);
+		for(var i = 0; i < items.length; i++){
 			var curr_str = $(items[i]).html();
 			if(curr_str.match(/\|/) == null){
-			
 				if(def_biorep > 0){ // i.e. non-blank
 					if(def_techrep == 0){ // blank
-						if(items.length > 1){
-							// techreps, from 1 to items.length
-							curr_techrep++;
+						//techreps, from current count to items.length
+						if(def_biorep in rep_counts["biorep"]){
+							curr_techrep = (rep_counts["biorep"][def_biorep].techrep.length - 1) + rep_offset++;
 						}else{
-							// specified biorep
-						}					
+							curr_techrep = rep_offset++;
+						}
 					}else{
-						if(items.length > 1){
-							// fractions, from 1 to items.length
-							curr_fraction++;
+						// fractions, from current count to items.length
+						if(def_biorep in rep_counts["biorep"] && def_techrep in rep_counts["biorep"][def_biorep].techrep){
+							curr_fraction = (rep_counts["biorep"][def_biorep].techrep[def_techrep].fraction.length - 1) + rep_offset++;
 						}else{
-							// specified biorep
+							curr_fraction = rep_offset++;
 						}
 					}
 				}else{
 					if(def_techrep == 0){ // blank
-						// bioreps, from 1 to items.length
-						curr_biorep++;
+						// bioreps, from current count to items.length
+						curr_biorep = rep_counts["biorep"].length + rep_offset++;
 					}else{
 						// error, a biorep must be specified
+						if(rawfiles_structure.length == 0){
+							$("#btnResetExpStructCoord").prop('disabled', true);
+						}
+						return;
 					}
-				}						
-				rawfiles_structure.push({rawfile: $(this).html(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
-				curr_str = curr_biorep+','+curr_techrep+','+curr_fraction+' | '+curr_str;
+				}
+				rawfiles_structure.push({rawfile: curr_str, biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
+				curr_str = (curr_biorep == 0 ? '-' : curr_biorep)+','+(curr_techrep == 0 ? '-' : curr_techrep)+','+(curr_fraction == 0 ? '-' : curr_fraction)+' | '+curr_str;
 				$(items[i]).html(curr_str);
 			}
+		}
+		
+		for(var i=0; i<rawfiles_structure.length; i++){
+			var rep = "biorep";
+			var max_level = 0;
+			if(rawfiles_structure[i][rep] != 0){
+				if(! (rawfiles_structure[i][rep] in rep_counts[rep])){
+					rep_counts[rep][rawfiles_structure[i][rep]] = {techrep: []};
+					bioreps++;
+				}
+			}
+			rep = "techrep";
+			if(rawfiles_structure[i][rep] != 0){
+				if(! (rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep])){
+					rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep][rawfiles_structure[i][rep]] = {fraction: []};
+					techreps++;
+				}
+				max_level = 1;
+			}
+			rep = "fraction";
+			if(rawfiles_structure[i][rep] != 0){
+				if(! (rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"])){
+					rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"][rawfiles_structure[i][rep]] = 1;
+					fractions++;
+				}
+				max_level = 2;
+			}
+		}
+		//console.log(rep_counts);
+		//console.log([bioreps, techreps, fractions]);
+		if(rawfiles_structure.length == rawfiles.length){	//if all files have been assigned something
+			$("#s22btnf").prop('disabled', false);
+			console.log(gen_expdesign(rawfiles_structure));
 		}
 	});	
 	$('#btnResetExpStructCoord').on("click",function(){
 		reset_reps();
+		$("#btnResetExpStructCoord").prop('disabled', true);
 	});
 	
 	// CSS

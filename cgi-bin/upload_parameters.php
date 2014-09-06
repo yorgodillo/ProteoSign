@@ -7,6 +7,7 @@
 	$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign";
 	$upload_dir = $document_root . "/uploads/" . $session_folder;
 	$upload_parameter_file = $upload_dir . "/parameters.txt";
+	$upload_experimental_structure_file = $upload_dir . "/exp_struct.txt";
 	$parameters_template = "parameters_template.txt";
 
 	$the_parameters["REPLACE1"] = $_POST["exppddata"];
@@ -16,9 +17,7 @@
 	$the_parameters["REPLACE5"] = $_POST["expquantfilt"];
 	$the_parameters["REPLACE6"] = $_POST["expquantfiltprot"];
 	$the_parameters["REPLACE7"] = $_POST["expquantfiltlbl"];
-	$the_parameters["REPLACE8"] = $_POST["expbioreps"];
-	$the_parameters["REPLACE9"] = $_POST["exptechreps"];
-	$the_parameters["REPLACE10"] = $_POST["labelfree"];
+	$the_parameters["REPLACE8"] = $_POST["labelfree"];
 	if($_POST["explbl00"] == "Yes" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "Label\t" . $_POST["explbl0"] . "\t";
 	}
@@ -44,7 +43,6 @@
 		$canwrite = fwrite($ff, $parameters_file_contents);
 		if(!$canwrite){
 			$server_response['msg'] = "The file $upload_parameter_file could not be written ('fwrite' returned FALSE)";
-			//error_log($parameters_file_contents);
 		}
 		if($canwrite && !fclose($ff)){
 			$server_response['msg'] = "The file $upload_parameter_file could not be closed ('fclose' returned FALSE)";
@@ -55,6 +53,22 @@
 		$server_response['msg'] = "The file $upload_parameter_file could not be opened ('fopen' returned FALSE)";
 	}
 	
+	if($server_response['success']){
+		$server_response['success'] = false;
+		if($ff = fopen($upload_experimental_structure_file, 'w')){
+			$canwrite = fwrite($ff, $_POST["exp_struct"]);
+			if(!$canwrite){
+				$server_response['msg'] = "The file $upload_experimental_structure_file could not be written ('fwrite' returned FALSE)";
+			}
+			if($canwrite && !fclose($ff)){
+				$server_response['msg'] = "The file $upload_experimental_structure_file could not be closed ('fclose' returned FALSE)";
+			}else{
+				$server_response['success'] = true;
+			}
+		}else{
+			$server_response['msg'] = "The file $upload_experimental_structure_file could not be opened ('fopen' returned FALSE)";
+		}	
+	}
 end:
 	error_log("upload_parameters.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	//Send info back to the client
