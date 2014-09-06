@@ -892,6 +892,13 @@ $(document).ready(function() {
 		if(def_techrep > 0 && def_techrep > (techreps+1)){	// same as above but for techreps
 			return;
 		}
+		if(def_biorep > 0){
+			if(def_techrep > 0){
+				$('#expstructcoord_techrep').val(def_techrep+1);
+			}else{
+				$('#expstructcoord_biorep').val(def_biorep+1);
+			}
+		}
 		$("#btnResetExpStructCoord").prop('disabled', false);
 		for(var i = 0; i < items.length; i++){
 			var curr_str = $(items[i]).html();
@@ -960,7 +967,6 @@ $(document).ready(function() {
 		//console.log([bioreps, techreps, fractions]);
 		if(rawfiles_structure.length == rawfiles.length){	//if all files have been assigned something
 			$("#s22btnf").prop('disabled', false);
-			console.log(gen_expdesign(rawfiles_structure));
 		}
 	});	
 	$('#btnResetExpStructCoord').on("click",function(){

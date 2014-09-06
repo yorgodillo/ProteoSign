@@ -485,6 +485,11 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_stru
 
 	row.names(norm.median.intensities) <- row.names(sample.key)
 
+	blocking_var<-rep_structure$biorep
+	for(i in 2:n_bioreps){
+	  blocking_var<-c(blocking_var, (i-1)*nConditions+rep_structure$biorep)
+	}  
+  
 	# Setup design matrix
 	# This specifies the design of the experiment for limma, replicating
 	# the info in the sample key, but representing it in a matrix format
@@ -492,16 +497,18 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_stru
 	design <- model.matrix(~0 + factor(sample.key$Category))
 	colnames(design) <- levels(sample.key$Category)
 	write.table(design,file=paste(outputFigsPrefix,"_limma-design-matrix_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
-	write.table(rep_structure,file=paste(outputFigsPrefix,"_limma-blocking-variable_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
+	write.table(blocking_var,file=paste(outputFigsPrefix,"_limma-blocking-variable_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
 	fit<-""
 	
+
+  
 	levellog("Fitting the model ...")
   if(n_bioreps > 1 & n_techreps > 1){
 		# technical replication specification
-		corfit <- duplicateCorrelation(t(norm.median.intensities), design=design, block = rep_structure, trim = duplicateCorrelation_trim)
+		corfit <- duplicateCorrelation(t(norm.median.intensities), design=design, block = blocking_var, trim = duplicateCorrelation_trim)
 		# Fit the limma model to the data
 		# Pass the protein names/peptide sequences to limma as the genes option
-		fit <- lmFit(t(norm.median.intensities), design, genes=prot.names, block = rep_structure, cor = corfit$consensus)
+		fit <- lmFit(t(norm.median.intensities), design, genes=prot.names, block = blocking_var, cor = corfit$consensus)
 	}else{
 		fit <- lmFit(t(norm.median.intensities), design, genes=prot.names)
 	}
@@ -749,6 +756,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepE
   melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
   
   # For the label-free case: multiplex conditions so we have the same data format downstream, i.e. as with labelled experiments
+  #TODO: fix rep_desc
   if(LabelFree){
     tmp_rep_desc<-c()
     for(i in 1:nConditions){
@@ -765,7 +773,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepE
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    levels(melted_subtotals$Spectrum.File)<-rep_desc
+    levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
   }
   
   if(ProteinQuantitation){
@@ -939,7 +947,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   }
   
 	melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
-	levels(melted_subtotals$Spectrum.File)<-rep_desc
+	levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
   
 	if(ProteinQuantitation){
 	  pgroups_uniqueSequences<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) x))
@@ -993,6 +1001,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
     tmp<-pgroups[,grep("Ratio\\.counts$",colnames(pgroups))[tmp_idxs]]
     pgroups<-pgroups[,-grep("Ratio\\.counts$",colnames(pgroups))]
     pgroups<-cbind(pgroups,tmp)
+    #TODO: fix rep_desc
     colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]<-paste(rep_desc,".Ratio.counts",sep="")
     colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-sub("^Intensity\\.([^\\.]+)\\..*","Intensity.\\1.",colnames(pgroups)[grep("^Intensity",colnames(pgroups))])
     colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-paste(colnames(pgroups)[grep("^Intensity",colnames(pgroups))],rep_desc,sep="")
@@ -1114,6 +1123,7 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,rep_structure,filt
   
   melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
   
+  #TODO: fix rep_desc
   if(LabelFree){
     tmp_rep_desc<-c()
     for(i in 1:nConditions){
@@ -1130,7 +1140,7 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,rep_structure,filt
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    levels(melted_subtotals$Spectrum.File)<-rep_desc
+    levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
   }
   
   if(ProteinQuantitation){
@@ -1266,9 +1276,15 @@ pgroups_filter_2reps_v2<-function(pgroups,reps){	#reps is dummy here
 	ratioRepTruth<-c()
 	pgroups[,reps_cols]<-apply(pgroups[,reps_cols], 2,function(x){replace(x, is.na(x), 0)})
 	
+	tmp_order<-regmatches(colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))],regexpr("b[0-9][^\\.]+",colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]))
+	tmp_orderdf<-data.frame(rep_desc=tmp_order)
+	tmp_orderdf$rindex<-as.numeric(rownames(tmp_orderdf))
+  indexmap<-merge(rep_structure,tmp_orderdf)
+  
 	i<-1
-  for(rep_cols_i in i_bioreps){
-		curr_techreps_cols<-reps_cols[rep_cols_i:(rep_cols_i+techreps[i]-1)]
+  for(i in 1:n_bioreps){
+  #for(rep_cols_i in i_bioreps){
+		curr_techreps_cols<-reps_cols[indexmap[indexmap$biorep==i,]$rindex]
 		#ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
 		if(n_techreps>1){
         		ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
@@ -1528,29 +1544,26 @@ perform_analysis<-function(){
   levellog("",change=1)
   setwd(working_directory)
   # v3
-  # if techreps is not a vector
-  if(length(techreps) != bioreps){
-    techreps<<-rep(techreps,bioreps)
-  }
-  if(!is.na(rep_order)){
-    techreps<<-techreps[rep_order]
-  }  
+  rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
+  rep_structure<-exp_struct[order(exp_struct[,2],exp_struct[,3],exp_struct[,4]),]
+  rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
+  techreps<<-ddply(exp_struct,c("biorep"), function(x){return(length(which(x$techrep != 0)))})$V1  
   
   # rep_structure<<-rep(1:(bioreps*nConditions),each=techreps)
   # The next allows different number of techreps per biorep, given that techreps is now a vector. This is the major feature of v3 (above, the old version of the statement)
-  rep_structure<<-rep(1:(bioreps*nConditions),times=rep(techreps,times=nConditions))
+  #rep_structure<<-rep(1:(bioreps*nConditions),times=rep(techreps,times=nConditions))
   
-  not_rep_dup<-which(!duplicated(rep_structure))
-  n_bioreps<<-bioreps
+  #not_rep_dup<-which(!duplicated(rep_structure))
+  n_bioreps<<-length(unique(rep_structure$biorep))
   n_techreps<<-min(techreps)
-  i_bioreps<<-not_rep_dup[1:n_bioreps]
+  #i_bioreps<<-not_rep_dup[1:n_bioreps]
   
-  tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
-  tmp2<-c()
-  for(brep_i in paste('b',1:n_bioreps,sep='')){
-    tmp2<-c(tmp2,paste('t',1:length(which(brep_i==tmp)),sep=''))
-  }
-  rep_desc<<-paste(tmp,tmp2,sep='')
+  #tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
+  #tmp2<-c()
+  #for(brep_i in paste('b',1:n_bioreps,sep='')){
+  #  tmp2<-c(tmp2,paste('t',1:length(which(brep_i==tmp)),sep=''))
+  #}
+  #rep_desc<<-paste(tmp,tmp2,sep='')
   
   if(ProteinQuantitation){
     quantitated_items_lbl<<-"Protein"

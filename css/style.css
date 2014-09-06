@@ -646,6 +646,7 @@
 	
 	
 	.rawfiles_tbl th {
+		min-width: 200px;
 		padding: 5px 0 6px 0;
 		border-top: 1px solid #fafafa;
 		border-bottom: 1px solid #e0e0e0;
@@ -677,6 +678,7 @@
 	
 	.rawfiles_tbl_td_not_selected {
 		padding: 4px;
+		min-width: 200px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -693,6 +695,7 @@
 	
 	.rawfiles_tbl_td_selected {
 		padding: 4px;
+		min-width: 200px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
