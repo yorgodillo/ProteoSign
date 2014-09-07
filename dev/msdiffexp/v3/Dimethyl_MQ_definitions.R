@@ -12,14 +12,12 @@ pgroups_fname<-"Dimethyl_MQ_proteinGroups.txt"
 evidence_fname<-"Dimethyl_MQ_evidence.txt"
 outputFigsPrefix<-"msdiffexp_test"
 filterL_lbl<-"L"
-bioreps<-3
 filterL_lvl<-F
 LabelFree<-F
 PDdata<-F
 time.point<-"2h"
-techreps<-c(18,22,23)
 ProteinQuantitation<-T
 filterL<-F
 addLabel("L",c(""))
 addLabel("H",c(""))
-
+experimental_structure_file<-"exp_struct.txt"

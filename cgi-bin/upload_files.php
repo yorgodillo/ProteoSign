@@ -72,9 +72,11 @@
 				$server_response['success'] = true;
 				$server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name,'/file/i');
 				if(count($server_response['raw_filesnames']) == 0){
-					$server_response['msg'] = "Could not retrieve replicate information (raw files names) from data file(s).";
-					$server_response['success'] = false;
+					error_log("Could not retrieve replicate information (raw files names) from data file " . $name);
 				}
+				//else{
+					//error_log("Retrieved replicate information (raw files names) from data file " . $name . ": " . print_r($server_response['raw_filesnames'], true));
+				//}
 			}else{
 				$server_response['msg'] = "The file $name could not be moved ('move_uploaded_file' returned FALSE).";
 			}
@@ -86,7 +88,7 @@
 	}
 
 end:
-	error_log("upload_files.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+	error_log("upload_files.php [" . $_POST["session_id"] . " " . $name .  " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	//Send info back to the client
 	header('Content-type: application/json');
 	echo json_encode($server_response);

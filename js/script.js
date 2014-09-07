@@ -458,6 +458,15 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 			//if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
 			if(data.success){
 				$(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
+				var tmp_rawfiles = [];
+				for(var f_i in data.raw_filesnames){
+					tmp_rawfiles.push(data.raw_filesnames[f_i]);
+				}
+				// If we have info regarding rawdata files names, save it					
+				if(tmp_rawfiles.length > 0){
+					rawfiles = tmp_rawfiles;
+					reset_reps();
+				}
 				// If we have info regarding peptide labels and such info has not been available in previous upload
 				if(peptideLabelsNamesFromFile.length == 0 && (data.peptide_labels_names.length > 0 || data.peptide_labels.length > 0)){
 					peptideLabelsFromFile = data.peptide_labels.sort();
@@ -513,15 +522,7 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 					while(nFormLabels > 1){
 						removeFormLabel();
 					}
-					// Load rawdata files names
-					rawfiles = [];
-					for(var f_i in data.raw_filesnames){
-						rawfiles.push(data.raw_filesnames[f_i]);
-					}
-					reset_reps();
 					$("#s2btnf").prop('disabled', false);
-				}else{
-					console.log("WARNING: Unexpected program flow-path!");
 				}
 			}else{
 				$(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
