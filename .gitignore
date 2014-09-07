@@ -28,3 +28,6 @@ dev/msdiffexp/v3/*psms.txt
 test data/Dimethyl_DIC_merged_psms.txt
 test data/Dimethyl_DIM_merged_psms.txt
 !test data/testdatadb
+dev/msdiffexp/v3/Dimethyl_MQ_proteinGroups.txt
+dev/php/Dimethyl_MQ_evidence.txt
+dev/php/PD_psms.txt
