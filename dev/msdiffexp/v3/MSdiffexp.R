@@ -773,7 +773,8 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepE
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
+    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+    levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc    
   }
   
   if(ProteinQuantitation){
@@ -947,7 +948,8 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   }
   
 	melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
-	levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
+  tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+	levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc
   
 	if(ProteinQuantitation){
 	  pgroups_uniqueSequences<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) x))
@@ -957,6 +959,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   
 	pgroups_uniqueSequences[,paste(quantitated_items_lbl,".IDs",sep="")]<-row.names(pgroups_uniqueSequences)
 
+  # At this point we merge unique sequences counts with already calculated for us peptide intensities and counts of intensities ratios (available in the proteinGroups.txt->pgroups variable), contrary to the PD case where we have to do these calculations on our own
   if(ProteinQuantitation){
 	  if(keepEvidenceIDs){
 	  	pgroups<-merge(pgroups_uniqueSequences, pgroups[,c("Protein.IDs",sort(colnames(pgroups)[grep("Ratio\\..*\\.count.b",colnames(pgroups))]),sort(colnames(pgroups)[grep("Intensity\\..*\\.b",colnames(pgroups))]),"Evidence.IDs")],by="Protein.IDs",all.x=T)
@@ -991,20 +994,24 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   }
   
   if(ProteinQuantitation){
-    non_pooled_techreps<-length(grep("Ratio\\.counts$",colnames(pgroups)))
-    tmp_idxs<-1:sum(techreps)
-    if(non_pooled_techreps < sum(techreps)){
-      # Here it means that our techreps are not really techreps but pooled fractions
-      # TODO: add support for replicated fractionated experiments!
-      tmp_idxs<-1:non_pooled_techreps
-    }
-    tmp<-pgroups[,grep("Ratio\\.counts$",colnames(pgroups))[tmp_idxs]]
-    pgroups<-pgroups[,-grep("Ratio\\.counts$",colnames(pgroups))]
-    pgroups<-cbind(pgroups,tmp)
-    #TODO: fix rep_desc
-    colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]<-paste(rep_desc,".Ratio.counts",sep="")
+    tmp_map<-unique(merge(evidence,data.frame(Raw.file=rep_structure$raw_file,biorep=rep_structure$biorep,techrep=rep_structure$techrep))[,c("biorep","techrep","Experiment")])
+    tmp_map$rep_desc<-paste("b",tmp_map$biorep,"t",tmp_map$techrep,sep="")
+    tmp_str<-colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]
+    tmp<-regexpr("^[^\\.]+",tmp_str)
+    tmp_matches<-regmatches(tmp_str,tmp)
+    tmp_merged<-merge(data.frame(Experiment=tmp_matches, row_order=1:length(tmp_matches)),tmp_map)
+    rep_desc<-paste(tmp_merged[order(tmp_merged$row_order),]$rep_desc,".Ratio.counts",sep="")
+    colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]<-rep_desc
+    
+    tmp_str<-colnames(pgroups)[grep("^Intensity",colnames(pgroups))]
+    tmp<-regexpr("[^\\.]+$",tmp_str)
+    tmp_matches<-regmatches(tmp_str,tmp)
+    tmp_merged<-merge(data.frame(Experiment=tmp_matches, row_order=1:length(tmp_matches)),tmp_map)
+    
     colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-sub("^Intensity\\.([^\\.]+)\\..*","Intensity.\\1.",colnames(pgroups)[grep("^Intensity",colnames(pgroups))])
-    colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-paste(colnames(pgroups)[grep("^Intensity",colnames(pgroups))],rep_desc,sep="")
+    colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-paste(colnames(pgroups)[grep("^Intensity",colnames(pgroups))],tmp_merged[order(tmp_merged$row_order),]$rep_desc,sep="")
+    
+    
   }
   row.names(pgroups)<-pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
   
@@ -1140,7 +1147,8 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,rep_structure,filt
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    levels(melted_subtotals$Spectrum.File)<-merge(rep_structure,data.frame(raw_file=levels(melted_subtotals$Spectrum.File)))$rep_desc
+    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+    levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc    
   }
   
   if(ProteinQuantitation){
@@ -1205,7 +1213,7 @@ id_Venn3_pgroups<-function(pgroups){
   venn_data<-c()
   for(brep_i in 1:n_bioreps){
     if(n_techreps>1){
-      b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("b",brep_i,sep=""),colnames(pgroups))]],na.rm=T)>0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
+      b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("^b",brep_i,sep=""),colnames(pgroups))]],na.rm=T)>0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
       b_i$rep<-as.character(brep_i)
       venn_data<-rbind(venn_data,b_i)
     }else{
@@ -1248,7 +1256,7 @@ quant_Venn3_pgroups<-function(pgroups){
 # Like the above, apart from the quant filter.
 # Quantified proteins using this function will be considered only those with a total Ratio.H.M.count > 2 for at least two replicates
 #TODO: generalize for any replicate structure for the identified proteins, as it now assumes 3 biological x 3 technical replicates (nested)
-do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,outputFigsPrefix=""){
+do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,rep_structure,outputFigsPrefix=""){
 	setwd(limma_output)
 	#venn_data<-quant_Venn3_pgroups(pgroups[pgroups$time.point == time.point,])
 	venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,],time.point))
@@ -1276,10 +1284,18 @@ pgroups_filter_2reps_v2<-function(pgroups,reps){	#reps is dummy here
 	ratioRepTruth<-c()
 	pgroups[,reps_cols]<-apply(pgroups[,reps_cols], 2,function(x){replace(x, is.na(x), 0)})
 	
-	tmp_order<-regmatches(colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))],regexpr("b[0-9][^\\.]+",colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]))
+	tmp_order<-regmatches(colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))],regexpr("^b[0-9][^\\.]+",colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]))
 	tmp_orderdf<-data.frame(rep_desc=tmp_order)
-	tmp_orderdf$rindex<-as.numeric(rownames(tmp_orderdf))
-  indexmap<-merge(rep_structure,tmp_orderdf)
+	tmp_orderdf$rindex<-1:nrow(tmp_orderdf)
+  
+	# if the following is true, then it means we have fractions and we no longer need them, so rep_structure has to be redefined
+	if(nrow(tmp_orderdf) < nrow(rep_structure)){
+	  colnames(rep_structure)[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
+	  rep_structure$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
+	  rep_structure<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
+	}
+  indexmap<-merge(tmp_orderdf,rep_structure)
+	indexmap<-indexmap[order(indexmap$rindex),]
   
 	i<-1
   for(i in 1:n_bioreps){
@@ -1545,9 +1561,10 @@ perform_analysis<-function(){
   setwd(working_directory)
   # v3
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
-  rep_structure<-exp_struct[order(exp_struct[,2],exp_struct[,3],exp_struct[,4]),]
+  rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
   rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-  techreps<<-ddply(exp_struct,c("biorep"), function(x){return(length(which(x$techrep != 0)))})$V1  
+  #TODO: in case of fractions the following is not correct
+  techreps<<-ddply(rep_structure,c("biorep"), function(x){return(length(which(x$techrep != 0)))})$V1  
   
   # rep_structure<<-rep(1:(bioreps*nConditions),each=techreps)
   # The next allows different number of techreps per biorep, given that techreps is now a vector. This is the major feature of v3 (above, the old version of the statement)
@@ -1587,7 +1604,7 @@ perform_analysis<-function(){
     writeLines(tmpdata, con=pgroups_fname_cleaned)
     close(pgroups_fname_cleaned)    
     protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point,generateVenns=F)
-    do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
+    do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,rep_structure,outputFigsPrefix=outputFigsPrefix)
   }
   
   setwd(limma_output)
