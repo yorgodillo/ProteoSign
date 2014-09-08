@@ -12,13 +12,12 @@ pgroups_fname<-"MQ_proteinGroups.txt"
 evidence_fname<-"MQ_evidence.txt"
 outputFigsPrefix<-"pSILAC_3_plex_MQ_"
 filterL_lbl<-"L"
-bioreps<-3
 filterL_lvl<-F
 LabelFree<-F
 PDdata<-F
 time.point<-"4h"
-techreps<-3
 ProteinQuantitation<-T
 filterL<-F
 addLabel("M",c(""))
 addLabel("H",c(""))
+experimental_structure_file<-"exp_struct.txt"

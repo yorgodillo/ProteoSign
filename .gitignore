@@ -31,3 +31,4 @@ test data/Dimethyl_DIM_merged_psms.txt
 dev/msdiffexp/v3/Dimethyl_MQ_proteinGroups.txt
 dev/php/Dimethyl_MQ_evidence.txt
 dev/php/PD_psms.txt
+dev/msdiffexp/v3/MQ_proteinGroups.txt
