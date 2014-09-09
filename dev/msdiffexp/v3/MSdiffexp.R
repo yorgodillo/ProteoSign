@@ -433,7 +433,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
 }
 
 # Performs the differential expression analysis through limma, after quantile normalization.
-do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_structure,exportFormat="pdf",outputFigsPrefix=""){
+do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=""){
 	levellog("",change=1)
 	
 	levellog("Preparing limma input data frame ...")
@@ -485,10 +485,15 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_stru
 
 	row.names(norm.median.intensities) <- row.names(sample.key)
 
-	blocking_var<-rep_structure$biorep
-	for(i in 2:n_bioreps){
-	  blocking_var<-c(blocking_var, (i-1)*nConditions+rep_structure$biorep)
-	}  
+	blocking_var<-c()
+	if(n_techreps > 1){
+	  for(i in unique(rep_structure$biorep)){
+	    blocking_var<-c(blocking_var, rep(i,length(rep_structure[rep_structure$biorep == i,]$techrep)))
+	  }
+	  blocking_var<-rep(blocking_var, nConditions)
+	}else{
+	  blocking_var<-1:nrow(sample.key)
+	}
   
 	# Setup design matrix
 	# This specifies the design of the experiment for limma, replicating
@@ -584,7 +589,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,rep_stru
 
 
 ## PATCHED -- number of conditions/labels-indpendent function
-read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepEvidenceIDs=F,rep_order=NA){
+read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("",change=1)
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
@@ -773,7 +778,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,rep_structure,keepE
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=1:nlevels(melted_subtotals$Spectrum.File)),rep_structure)
     levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc    
   }
   
@@ -948,7 +953,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   }
   
 	melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
-  tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+  tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=1:nlevels(melted_subtotals$Spectrum.File)),rep_structure)
 	levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc
   
 	if(ProteinQuantitation){
@@ -1057,7 +1062,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
 
 ## PATCHED -- number of conditions/labels-indpendent function
 # Like the (see) above function, but without protein grouping.
-id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,rep_structure,filterL=F,rep_order=NA){
+id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,filterL=F){
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
   #Generate Evidence ID
   evidence$id<-1:(nrow(evidence))	
@@ -1147,7 +1152,7 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,rep_structure,filt
     }
     melted_subtotals$brtr<-factor(melted_subtotals$brtr)
   }else{
-    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=nlevels(melted_subtotals$Spectrum.File)),rep_structure)
+    tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=1:nlevels(melted_subtotals$Spectrum.File)),rep_structure)
     levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc    
   }
   
@@ -1256,10 +1261,10 @@ quant_Venn3_pgroups<-function(pgroups){
 # Like the above, apart from the quant filter.
 # Quantified proteins using this function will be considered only those with a total Ratio.H.M.count > 2 for at least two replicates
 #TODO: generalize for any replicate structure for the identified proteins, as it now assumes 3 biological x 3 technical replicates (nested)
-do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,rep_structure,outputFigsPrefix=""){
+do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,outputFigsPrefix=""){
 	setwd(limma_output)
 	#venn_data<-quant_Venn3_pgroups(pgroups[pgroups$time.point == time.point,])
-	venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,],time.point))
+	venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,]))
 	write.table(venn_data,file=paste(outputFigsPrefix,"_quant_venn3-data-2reps_",time.point,".txt",sep=""),sep="\t",row.names=F)
 	venn_data<-id_Venn3_pgroups(pgroups[pgroups$time.point == time.point,])
 	write.table(venn_data,file=paste(outputFigsPrefix,"_id_venn3-data_",time.point,".txt",sep=""),sep="\t",row.names=F)
@@ -1267,17 +1272,17 @@ do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,rep_struc
 }
 
 # Like the above, but for PD (1.3)
-do_generate_Venn3_data_quant_filter_2reps_PD<-function(pgroups,time.point,evidence_fname,rep_structure,rep_order=NA,outputFigsPrefix=""){
-  venn_data<-id_Venn3_pgroups_PD("",evidence_fname,time.point,rep_structure,rep_order)
+do_generate_Venn3_data_quant_filter_2reps_PD<-function(pgroups,time.point,evidence_fname,outputFigsPrefix=""){
+  venn_data<-id_Venn3_pgroups_PD("",evidence_fname,time.point)
 	setwd(limma_output)
 	write.table(venn_data,file=paste(outputFigsPrefix,"_id_venn3-data_",time.point,".txt",sep=""),sep="\t",row.names=F)
-  venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,],time.point))
+  venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,]))
 	write.table(venn_data,file=paste(outputFigsPrefix,"_quant_venn3-data-2reps_",time.point,".txt",sep=""),sep="\t",row.names=F)
 	setwd("..")
 }
 
 #More stringent quant filter, require quantitation in at least 2 replicates if bioreps>1 or in at least 2 injections if bioreps=1
-pgroups_filter_2reps_v2<-function(pgroups,reps){	#reps is dummy here
+pgroups_filter_2reps_v2<-function(pgroups){	#reps is dummy here
   #write.table(pgroups,file="proteinGroups_beforeFiltering.txt",sep="\t",row.names=F);
 	reps_cols<-colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]
 	
@@ -1290,9 +1295,9 @@ pgroups_filter_2reps_v2<-function(pgroups,reps){	#reps is dummy here
   
 	# if the following is true, then it means we have fractions and we no longer need them, so rep_structure has to be redefined
 	if(nrow(tmp_orderdf) < nrow(rep_structure)){
-	  colnames(rep_structure)[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
-	  rep_structure$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
-	  rep_structure<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
+	  colnames(.GlobalEnv[["rep_structure"]])[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
+	  .GlobalEnv[["rep_structure"]]$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
+	  .GlobalEnv[["rep_structure"]]<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
 	}
   indexmap<-merge(tmp_orderdf,rep_structure)
 	indexmap<-indexmap[order(indexmap$rindex),]
@@ -1346,14 +1351,14 @@ prepare_working_pgroups<-function(working_pgroups){
 }
 
 #Perform the analysis using the more stringent quant filter (see above pgroups_filter_2reps_v2)
-do_analyse_all_2reps_v2<-function(pgroups,time.point,exp_design_fname,rep_structure,exportFormat="pdf",outputFigsPrefix=""){
+do_analyse_all_2reps_v2<-function(pgroups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=""){
 	levellog("Filtering data based on desired reproducibility level...",change=1)
 	working_pgroups<-pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,])
 	levellog("Formatting data for the statistical analysis ...")
 	working_pgroups<-prepare_working_pgroups(working_pgroups)
 	outputFigsPrefix<-paste(outputFigsPrefix,"-all-2reps",sep="")
 	levellog("Performing the statistical analysis ...")
-	ret<-do_limma_analysis(working_pgroups,time.point,exp_design_fname,rep_structure,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
+	ret<-do_limma_analysis(working_pgroups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
 	levellog("",change=-1)
 	return(ret)
 }
@@ -1560,19 +1565,17 @@ perform_analysis<-function(){
   levellog("",change=1)
   setwd(working_directory)
   # v3
-  rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
-  rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
-  rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-  #TODO: in case of fractions the following is not correct
-  techreps<<-ddply(rep_structure,c("biorep"), function(x){return(length(which(x$techrep != 0)))})$V1  
-  
+  .GlobalEnv[["rep_structure"]]<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
+  .GlobalEnv[["rep_structure"]]<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
+  .GlobalEnv[["rep_structure"]]$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
+
   # rep_structure<<-rep(1:(bioreps*nConditions),each=techreps)
   # The next allows different number of techreps per biorep, given that techreps is now a vector. This is the major feature of v3 (above, the old version of the statement)
   #rep_structure<<-rep(1:(bioreps*nConditions),times=rep(techreps,times=nConditions))
   
   #not_rep_dup<-which(!duplicated(rep_structure))
-  n_bioreps<<-length(unique(rep_structure$biorep))
-  n_techreps<<-min(techreps)
+  n_bioreps<<-max(rep_structure$biorep)
+  n_techreps<<-min(rep_structure$techrep)
   #i_bioreps<<-not_rep_dup[1:n_bioreps]
   
   #tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
@@ -1595,8 +1598,8 @@ perform_analysis<-function(){
   close(evidence_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
-    protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,rep_structure,keepEvidenceIDs=T,rep_order=rep_order)
-    do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,rep_structure,outputFigsPrefix=outputFigsPrefix,rep_order=rep_order)
+    protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
+    do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
     levellog("Removing double quotes from input data file #2 ...")
     tmpdata<-gsub("\"", "", readLines(pgroups_fname))
@@ -1604,7 +1607,7 @@ perform_analysis<-function(){
     writeLines(tmpdata, con=pgroups_fname_cleaned)
     close(pgroups_fname_cleaned)    
     protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point,generateVenns=F)
-    do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,rep_structure,outputFigsPrefix=outputFigsPrefix)
+    do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }
   
   setwd(limma_output)
@@ -1620,7 +1623,7 @@ perform_analysis<-function(){
   exp_design_fname<<-"curr_exp_design.txt"
   
   levellog("Performing the analysis ...")
-  results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,rep_structure,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
+  results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
   levellog("Data analysis finished.")
   if(!PDdata & mqValidation){
     getValidationData(pgroups_fname=pgroups_fname,

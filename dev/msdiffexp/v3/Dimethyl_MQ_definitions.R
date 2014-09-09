@@ -20,4 +20,4 @@ ProteinQuantitation<-T
 filterL<-F
 addLabel("L",c(""))
 addLabel("H",c(""))
-experimental_structure_file<-"exp_struct.txt"
+experimental_structure_file<-"Dimethyl_MQ_exp_struct.txt"

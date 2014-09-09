@@ -18,6 +18,7 @@ PDdata<-F
 time.point<-"4h"
 ProteinQuantitation<-T
 filterL<-F
+addLabel("L",c(""))
 addLabel("M",c(""))
 addLabel("H",c(""))
-experimental_structure_file<-"exp_struct.txt"
+experimental_structure_file<-"quancat_4h_MQ_exp_struct.txt"

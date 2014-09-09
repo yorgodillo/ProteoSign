@@ -31,3 +31,12 @@ if(nrow(tmp_orderdf) < nrow(rep_structure)){
   rep_structure$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
   rep_structure<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
 }
+
+blocking_var<-c()
+if(n_techreps > 1){
+  for(i in unique(rep_structure$biorep)){
+    blocking_var<-c(blocking_var, rep_structure[rep_structure$biorep == i,]$techrep)
+  }
+}else{
+  blocking_var<-1:nrow(sample.key)
+}

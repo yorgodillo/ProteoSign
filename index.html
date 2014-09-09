@@ -22,7 +22,9 @@
 				<br><hr class="style-one"><br>
 				<p style="color: #000000">Click <em>Start</em> to begin your analysis.</p>
 				<br>
+				<!--
 				<p style="font-size: 0.9em"><strong>Important note: In the case of an unexpected error, please help us to improve this software by <a id='contact' onclick='$("#contact").attr("href","mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid); return true;' target='_blank'><u>contacting</u></a> us.</strong></p>
+				-->
 				<div class="buttonbar">
 					<button type="button" class="main" id="s1btnf">Start</button>
 				</div>
@@ -61,14 +63,21 @@
 				<p style="color: #000000">Please define the experimental design by assigning to each raw file the appropriate location coordinate in the experimental structure. 
 					<p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Ctrl</em> key and click to select individual items. Hold down the <em>Shift</em> and click to select a range of items. To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank. To assign fractions, specify both the biological and the technical replicate.</p>
 				</p>
-				<div style="text-align: center; height: 50%; overflow-y:scroll;">
-					<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="display: inline-block; vertical-align:top;">
-						<tbody>
-							<tr>
-								<th>Raw files</th>
-							</tr>
-						</tbody>
-					</table>
+				<hr class="style-one">
+				<div style="text-align: center; height: 50%;">
+					<div style="position:relative; display: inline-block; vertical-align:top;">
+						<div style="overflow:auto; height: 200px; margin-top: 1em;">
+							<table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="margin-top: 0;">
+								<!--<thead>
+									<tr>
+										<th><span style="position:absolute; left: 0;top: 0; border-bottom: 1px solid #aaa;">Raw files</span></th>
+									</tr>
+								</thead>-->
+								<tbody>
+								</tbody>
+							</table>
+						</div>
+					</div>
 					<table class="expstructcoord_tbl" id="expstructcoord" style="display: inline-block; vertical-align:top;">
 						<tr>
 							<td colspan="2" style="padding: 15px 5px 6px 5px;">Experimental structure coordinate</td>
