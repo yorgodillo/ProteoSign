@@ -1294,21 +1294,22 @@ pgroups_filter_2reps_v2<-function(pgroups){	#reps is dummy here
 	tmp_orderdf$rindex<-1:nrow(tmp_orderdf)
   
 	# if the following is true, then it means we have fractions and we no longer need them, so rep_structure has to be redefined
-	if(nrow(tmp_orderdf) < nrow(rep_structure)){
+	#if(nrow(tmp_orderdf) < (nrow(rep_structure)*nConditions)){
 	  colnames(.GlobalEnv[["rep_structure"]])[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
 	  .GlobalEnv[["rep_structure"]]$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
 	  .GlobalEnv[["rep_structure"]]<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
-	}
+	#}
   indexmap<-merge(tmp_orderdf,rep_structure)
 	indexmap<-indexmap[order(indexmap$rindex),]
   
+	nConditions_combs<-nrow(combinations(nConditions,2,1:nConditions))
 	i<-1
   for(i in 1:n_bioreps){
   #for(rep_cols_i in i_bioreps){
 		curr_techreps_cols<-reps_cols[indexmap[indexmap$biorep==i,]$rindex]
 		#ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
 		if(n_techreps>1){
-        		ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
+        		ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>(2*nConditions_combs))
       		}else{
         		ratioRepTruth<-cbind(ratioRepTruth,pgroups[,curr_techreps_cols]>0)
       		}
@@ -1575,7 +1576,7 @@ perform_analysis<-function(){
   
   #not_rep_dup<-which(!duplicated(rep_structure))
   n_bioreps<<-max(rep_structure$biorep)
-  n_techreps<<-min(rep_structure$techrep)
+  n_techreps<<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
   #i_bioreps<<-not_rep_dup[1:n_bioreps]
   
   #tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
