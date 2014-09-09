@@ -1002,16 +1002,16 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
     tmp_map<-unique(merge(evidence,data.frame(Raw.file=rep_structure$raw_file,biorep=rep_structure$biorep,techrep=rep_structure$techrep))[,c("biorep","techrep","Experiment")])
     tmp_map$rep_desc<-paste("b",tmp_map$biorep,"t",tmp_map$techrep,sep="")
     tmp_str<-colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]
-    tmp<-regexpr("^[^\\.]+",tmp_str)
-    tmp_matches<-regmatches(tmp_str,tmp)
-    tmp_merged<-merge(data.frame(Experiment=tmp_matches, row_order=1:length(tmp_matches)),tmp_map)
-    rep_desc<-paste(tmp_merged[order(tmp_merged$row_order),]$rep_desc,".Ratio.counts",sep="")
+    tmp_matches<-sub("(^[^\\.]+).*","\\1",tmp_str)
+    tmp_matches_invert<-sub("^[^\\.]+(.*)","\\1",tmp_str)
+    tmp_merged<-merge(data.frame(Experiment=tmp_matches, Experiment_rest=tmp_matches_invert, row_order=1:length(tmp_matches)),tmp_map)
+    rep_desc<-paste(tmp_merged[order(tmp_merged$row_order),]$rep_desc,tmp_merged[order(tmp_merged$row_order),]$Experiment_rest,sep="")
     colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]<-rep_desc
     
     tmp_str<-colnames(pgroups)[grep("^Intensity",colnames(pgroups))]
-    tmp<-regexpr("[^\\.]+$",tmp_str)
-    tmp_matches<-regmatches(tmp_str,tmp)
-    tmp_merged<-merge(data.frame(Experiment=tmp_matches, row_order=1:length(tmp_matches)),tmp_map)
+    tmp_matches<-sub(".*\\.([^\\.]+)$","\\1",tmp_str)
+    tmp_matches_invert<-sub("(.*\\.)[^\\.]+$","\\1",tmp_str)
+    tmp_merged<-merge(data.frame(Experiment=tmp_matches, Experiment_rest=tmp_matches_invert, row_order=1:length(tmp_matches)),tmp_map)
     
     colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-sub("^Intensity\\.([^\\.]+)\\..*","Intensity.\\1.",colnames(pgroups)[grep("^Intensity",colnames(pgroups))])
     colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-paste(colnames(pgroups)[grep("^Intensity",colnames(pgroups))],tmp_merged[order(tmp_merged$row_order),]$rep_desc,sep="")
