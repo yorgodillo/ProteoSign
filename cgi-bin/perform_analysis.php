@@ -22,6 +22,7 @@
 		unlink($upload_dir . "/msdiffexp.zip");
 	}
 	// Run analysis
+	error_log("perl proteosign_dispatcher.pl \"$upload_dir/parameters.txt\" 2>&1");
 	exec("perl proteosign_dispatcher.pl \"$upload_dir/parameters.txt\" 2>&1", $server_response['dispatcher_dump']);
 	// Determine success of dispatcher run by counting the number of "DONE" + newline character
 	$server_response['dispatcher_success'] = (count($server_response['dispatcher_dump']) == 6);

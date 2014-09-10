@@ -28,13 +28,13 @@ use strict;
     exit;
   }
   
-  # Assume all files in directory of param file (except the param file itself) are input data files
+  # Assume all files in directory of param file, except the param file and the exp_struct files, are input data files
   if($#ARGV == 0){
 	my ($tmp_fname, $tmp_absparampath, $tmp_dummy) = fileparse(File::Spec->rel2abs( $ARGV[0] ));
 	opendir(DIR, $tmp_absparampath) or die "[LOG] proteosign_dispatcher: ERROR! Can't open directory.\n";
     while (my $datafile_i = readdir(DIR)) {
         # Use a regular expression to ignore file beginning with a period, is not $ARGV[0] and not a directory
-        next if ($datafile_i =~ m/^\./) || ($datafile_i !~ m/.txt$/) || ($datafile_i =~ m/$tmp_fname/) || (-d "$tmp_absparampath$datafile_i");
+        next if ($datafile_i =~ m/^\./) || ($datafile_i !~ m/.txt$/) || ($datafile_i =~ m/$tmp_fname/) || ($datafile_i =~ m/exp_struct.txt/) || (-d "$tmp_absparampath$datafile_i");
 		push(@ARGV,"$tmp_absparampath$datafile_i");
     }
     closedir(DIR);	
@@ -313,10 +313,11 @@ experimental_structure_file<-"exp_struct.txt"
  #do the analysis and send the results
  my $os_name = $^O;
 
-	 copy($data_fname, $working_dir_name . "/" . $data_fname);
-	 unlink($data_fname);
-	 copy($launch_path . "/" . "MSdiffexp.R", $working_dir_name . "/MSdiffexp.R");
-
+	copy($data_fname, $working_dir_name . "/" . $data_fname);
+	unlink($data_fname);
+	copy("exp_struct.txt", $working_dir_name . "/exp_struct.txt");
+	copy($launch_path . "/" . "MSdiffexp.R", $working_dir_name . "/MSdiffexp.R");
+	 
 	 my $beforechdir = cwd();
 	 #execute R-script and wait for it to finish
 	 chdir($working_dir_name);

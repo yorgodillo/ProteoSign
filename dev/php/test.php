@@ -21,5 +21,6 @@
 		echo "lbl: $label\n";
 	}
 	*/
-	error_log(print_r(get_rawfiles_names($argv[1],'/file/i'), true));
+	//error_log(print_r(get_rawfiles_names($argv[1],'/file/i'), true));
+	
  ?>

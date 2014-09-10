@@ -1,7 +1,7 @@
 Sample	Category
-L.b1t1	L
-L.b2t1	L
-L.b3t1	L
-H.b1t1	H
-H.b2t1	H
-H.b3t1	H
+Light.b1t1	Light
+Light.b2t1	Light
+Light.b3t1	Light
+Medium.b1t1	Medium
+Medium.b2t1	Medium
+Medium.b3t1	Medium

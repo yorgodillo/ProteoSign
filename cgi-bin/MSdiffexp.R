@@ -786,7 +786,16 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     if(LabelFree){
       pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$brtr,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
     }else{
-      pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
+      # if we have fractions, we have to redefine the rep structure and perform fraction sums for uniqueSequences, Ratio counts etc ...
+      if((n_techreps * n_bioreps) < nrow(rep_structure)){
+        melted_subtotals<-merge(melted_subtotals,data.frame(Spectrum.File=rep_structure$rep_desc,biorep=rep_structure$biorep,techrep=rep_structure$techrep,fraction=rep_structure$fraction))
+        melted_subtotals$Spectrum.File<-factor(paste('b',melted_subtotals$biorep,'t',melted_subtotals$techrep,sep=''))
+        pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
+        rep_structure$rep_desc<-paste('b',rep_structure$biorep,'t',rep_structure$techrep,sep='')
+        rep_structure<-unique(rep_structure[,c('biorep','techrep','rep_desc')])
+      }else{
+        pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
+      }
     }
   }else{
     pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Peptide.IDs=paste(melted_subtotals$Sequence," [",melted_subtotals$Modifications.only,"]",sep=""),RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
