@@ -3,6 +3,12 @@ var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
 
+//http://dzone.com/snippets/array-shuffle-javascript
+function shuffle(o){
+    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+    return o;
+};
+
 //modified from http://stackoverflow.com/questions/17964108/select-multiple-html-table-rows-with-ctrlclick-and-shiftclick
 var lastSelectedRow;
 var trs;
@@ -217,7 +223,8 @@ var postFireUpAnalysisAndWait = function(){
 		contentType: false,
         beforeSend: function(jqXHR, settings){
 			//fire-up spinner
-			$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
+			//$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
+			getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
 		},		
         success: function(data, textStatus, jqXHR){
 			$("#server_feedback").empty();
@@ -768,6 +775,61 @@ var gen_expdesign = function(struct){
 	}
 	return ret;
 }
+
+
+var rss_i;
+
+var renderRSSData = function(data, renderelem){
+	var prev_html = "<notset>";
+	rss_i = 0;
+	var items = Object.keys(data);
+	items = shuffle(items);
+	var updateFun = function(){
+		// If the current html content of renderelem is not the same as the last one set by this function, it means some other function has set the html content so we have to terminate this infinite update of renderelem's content by not calling the setTimeout function (essentially calling oneself) and just returning.
+		if(prev_html.localeCompare("<notset>") != 0 && $(renderelem).html().localeCompare(prev_html) != 0){
+			return;
+		}
+		if(rss_i == (items.length - 1)){
+			rss_i = 0;
+		}
+		var item = items[rss_i++];
+		console.log(data[item]);
+		if(! /^http/.test(data[item]) || /gif|png|jpg|jpeg$/.test(data[item])){
+			inter = setTimeout(updateFun, 100);
+			return;
+		}
+		$(renderelem).hide();
+		prev_html = '<p>Inside the current issue of Nature Methods:<br><a href="'+data[item]+'" target="_blank">'+item+'</a></p>';
+		//$("#rsscontent").html('<p><a href="'+data[item]+'" target="_blank">'+item+'</a></p><br><iframe src="'+data[item]+'" style="display: block; width:100%; height:100%;"/>').fadeIn(300);
+		$(renderelem).html(prev_html).fadeIn(300);
+		var intertime = (Math.log((item.split(/\s/).length)+1)/Math.log(1.6))*1000+1000;
+		//console.log(item.split(/\s/).length + ': ' + intertime);
+		inter = setTimeout(updateFun, intertime);
+	}
+	var inter = setTimeout(updateFun, 100);
+}
+
+var getRSS = function(rssurl, renderelem){
+	var thedata = new FormData();
+	thedata.append('session_id', sessionid);
+	thedata.append('rssurl', rssurl);
+    $.ajax({
+        url: cgi_bin_path + 'get_rss.php', 
+        type: 'POST',
+        // Form data
+        data: thedata,
+        //Options to tell jQuery not to worry about content-type.
+		processData: false,
+        cache: false,
+		contentType: false,
+        beforeSend: function(jqXHR, settings){},
+        success: function(data, textStatus, jqXHR){
+			renderRSSData(data, renderelem);
+		},
+        error: function(jqXHR, textStatus, errorThrown){}
+    });	
+}
+
 
 $(document).ready(function() {
 	var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
