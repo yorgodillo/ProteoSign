@@ -6,7 +6,7 @@
 	$dataset_requested = "dimethyl 2-plex (PD)";
 	*/
 	
-	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/test data/";
+	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/test data";
 	$descriptions_requested = ($_POST["descriptions_requested"] === "true");
 	
 	$server_response = [];
@@ -15,6 +15,7 @@
 	$server_response['queryres'] = [];
 	
 	try{
+		error_log("$test_data_dir/testdatadb");
 		$db = new SQLite3("$test_data_dir/testdatadb");
 	}
 	catch (Exception $exception) {
