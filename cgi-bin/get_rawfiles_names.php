@@ -24,7 +24,7 @@
 			}
 			fclose($handle);
 		}
-		error_log(print_r($ret, true));
+		//error_log(print_r($ret, true));
 		return $ret;
 	}
  ?>
