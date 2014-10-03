@@ -756,16 +756,36 @@ var postTestDatasetInfo = function(dataset_desc) {
 								}
 							}
 						}else{
-							// raw files correpsond to breps
-							for(var brep_i = 1; brep_i <= n_breps; brep_i++){
-								//select tr
-								clearAll();
-								trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';	
-								//define coords
-								$('#expstructcoord_biorep').val(brep_i);
-								$('#expstructcoord_techrep').val('');
-								//trigger
-								$('#btnAssignExpStructCoord').click();
+							if(n_frac > 1){
+								// raw files correpsond to fractions
+								for(var brep_i = 1; brep_i <= n_breps; brep_i++){
+									for(var trep_i = 1; trep_i <= n_treps; trep_i++){
+										//select multiple trs
+										clearAll();
+										for(var j = 0; j < data.queryres.raw_file.length; j++){
+											if(data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i){
+												trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';	
+											}
+										}
+										//define coords
+										$('#expstructcoord_biorep').val(brep_i);
+										$('#expstructcoord_techrep').val(trep_i);
+										//trigger
+										$('#btnAssignExpStructCoord').click();									
+									}
+								}								
+							}else{						
+								// raw files correpsond to breps
+								for(var brep_i = 1; brep_i <= n_breps; brep_i++){
+									//select tr
+									clearAll();
+									trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';	
+									//define coords
+									$('#expstructcoord_biorep').val(brep_i);
+									$('#expstructcoord_techrep').val('');
+									//trigger
+									$('#btnAssignExpStructCoord').click();
+								}
 							}
 						}
 						clearAll();
@@ -862,13 +882,13 @@ var renderRSSData = function(data, renderelem){
 			rss_i = 0;
 		}
 		var item = items[rss_i++];
-		console.log(data[item]);
+		//console.log(data[item]);
 		if(! /^http/.test(data[item]) || /gif|png|jpg|jpeg$/.test(data[item])){
 			inter = setTimeout(updateFun, 100);
 			return;
 		}
 		$(renderelem).hide();
-		prev_html = '<p>Inside the current issue of Nature Methods:<br><a href="'+data[item]+'" target="_blank">'+item+'</a></p>';
+		prev_html = '<p>Inside the current issue of Nature Methods:<br><br><a href="'+data[item]+'" target="_blank"><strong>'+item+'</strong></a></p>';
 		//$("#rsscontent").html('<p><a href="'+data[item]+'" target="_blank">'+item+'</a></p><br><iframe src="'+data[item]+'" style="display: block; width:100%; height:100%;"/>').fadeIn(300);
 		$(renderelem).html(prev_html).fadeIn(300);
 		var intertime = (Math.log((item.split(/\s/).length)+1)/Math.log(1.6))*1000+1000;

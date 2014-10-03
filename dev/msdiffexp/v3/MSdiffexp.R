@@ -380,10 +380,10 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     quant_species<-"peptides"
   }  
 
-  if(n_bioreps>1){
-    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",n_techreps," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(results)," (",time.point,")\n",sep=""))
+  if(.GlobalEnv[["n_bioreps"]]>1){
+    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(results)," (",time.point,")\n",sep=""))
   }else{
-    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",n_techreps," injection(s)): ",nrow(results)," (",time.point,")\n",sep=""))
+    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s)): ",nrow(results)," (",time.point,")\n",sep=""))
   }  
   
   for(i in 1:nrow(ratio_combs)){
@@ -486,7 +486,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 	row.names(norm.median.intensities) <- row.names(sample.key)
 
 	blocking_var<-c()
-	if(n_techreps > 1){
+	if(.GlobalEnv[["n_techreps"]] > 1){
 	  for(i in unique(rep_structure$biorep)){
 	    blocking_var<-c(blocking_var, rep(i,length(rep_structure[rep_structure$biorep == i,]$techrep)))
 	  }
@@ -508,7 +508,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 
   
 	levellog("Fitting the model ...")
-  if(n_bioreps > 1 & n_techreps > 1){
+  if(.GlobalEnv[["n_bioreps"]] > 1 & .GlobalEnv[["n_techreps"]] > 1){
 		# technical replication specification
 		corfit <- duplicateCorrelation(t(norm.median.intensities), design=design, block = blocking_var, trim = duplicateCorrelation_trim)
 		# Fit the limma model to the data
@@ -787,7 +787,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$brtr,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
     }else{
       # if we have fractions, we have to redefine the rep structure and perform fraction sums for uniqueSequences, Ratio counts etc ...
-      if((n_techreps * n_bioreps) < nrow(rep_structure)){
+      if((.GlobalEnv[["n_techreps"]] * .GlobalEnv[["n_bioreps"]]) < nrow(rep_structure)){
         melted_subtotals<-merge(melted_subtotals,data.frame(Spectrum.File=rep_structure$rep_desc,biorep=rep_structure$biorep,techrep=rep_structure$techrep,fraction=rep_structure$fraction))
         melted_subtotals$Spectrum.File<-factor(paste('b',melted_subtotals$biorep,'t',melted_subtotals$techrep,sep=''))
         pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
@@ -1202,8 +1202,8 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,filterL=F){
   row.names(pgroups)<-pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
 	
 	venn_data<-c()
-  for(brep_i in 1:n_bioreps){
-    if(n_techreps>1){
+  for(brep_i in 1:.GlobalEnv[["n_bioreps"]]){
+    if(.GlobalEnv[["n_techreps"]]>1){
       b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("b",brep_i,sep=""),colnames(pgroups))]],na.rm=T)>0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
       b_i$rep<-as.character(brep_i)
       venn_data<-rbind(venn_data,b_i)
@@ -1225,8 +1225,8 @@ id_Venn3_pgroups<-function(pgroups){
     pgroups<-pgroups[,c(paste(quantitated_items_lbl,".IDs",sep=""),colnames(pgroups)[grep("uniqueSequences$",colnames(pgroups))])]
   }
   venn_data<-c()
-  for(brep_i in 1:n_bioreps){
-    if(n_techreps>1){
+  for(brep_i in 1:.GlobalEnv[["n_bioreps"]]){
+    if(.GlobalEnv[["n_techreps"]]>1){
       b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("^b",brep_i,sep=""),colnames(pgroups))]],na.rm=T)>0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
       b_i$rep<-as.character(brep_i)
       venn_data<-rbind(venn_data,b_i)
@@ -1248,8 +1248,8 @@ quant_Venn3_pgroups<-function(pgroups){
   pgroups<-pgroups[,c(paste(quantitated_items_lbl,".IDs",sep=""),colnames(pgroups)[grep("\\.Ratio\\.counts$",colnames(pgroups))])]
   
   venn_data<-c()
-    for(brep_i in 1:n_bioreps){
-      if(n_techreps>1){
+    for(brep_i in 1:.GlobalEnv[["n_bioreps"]]){
+      if(.GlobalEnv[["n_techreps"]]>1){
         b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("^b",brep_i,sep=""),colnames(pgroups))]], na.rm=T) > 0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
         b_i$rep<-as.character(brep_i)
         venn_data<-rbind(venn_data,b_i)
@@ -1304,20 +1304,23 @@ pgroups_filter_2reps_v2<-function(pgroups){	#reps is dummy here
   
 	# if the following is true, then it means we have fractions and we no longer need them, so rep_structure has to be redefined
 	#if(nrow(tmp_orderdf) < (nrow(rep_structure)*nConditions)){
-	  colnames(.GlobalEnv[["rep_structure"]])[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
-	  .GlobalEnv[["rep_structure"]]$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
-	  .GlobalEnv[["rep_structure"]]<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
+	
+  colnames(.GlobalEnv[["rep_structure"]])[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
+	.GlobalEnv[["rep_structure"]]$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
+	.GlobalEnv[["rep_structure"]]<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
+	# TESTING the following  
+  #.GlobalEnv[["rep_structure"]]$rep_desc<-paste(.GlobalEnv[["rep_structure"]]$rep_desc,'f0',sep='')
 	#}
   indexmap<-merge(tmp_orderdf,rep_structure)
 	indexmap<-indexmap[order(indexmap$rindex),]
   
 	nConditions_combs<-nrow(combinations(nConditions,2,1:nConditions))
 	i<-1
-  for(i in 1:n_bioreps){
+  for(i in 1:.GlobalEnv[["n_bioreps"]]){
   #for(rep_cols_i in i_bioreps){
 		curr_techreps_cols<-reps_cols[indexmap[indexmap$biorep==i,]$rindex]
 		#ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
-		if(n_techreps>1){
+		if(.GlobalEnv[["n_techreps"]]>1){
         		ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>(2*nConditions_combs))
       		}else{
         		ratioRepTruth<-cbind(ratioRepTruth,pgroups[,curr_techreps_cols]>0)
@@ -1325,7 +1328,7 @@ pgroups_filter_2reps_v2<-function(pgroups){	#reps is dummy here
     i<-i+1
 	}
 	filter<-apply(ratioRepTruth,1,function(x) length(which(x)))
-	if(n_bioreps>1){
+	if(.GlobalEnv[["n_bioreps"]]>1){
     pgroups_intersect<-pgroups[filter>(nRequiredLeastBioreps-1),]
 	}else{
 	  pgroups_intersect<-pgroups[filter>0,]
@@ -1575,17 +1578,44 @@ perform_analysis<-function(){
   levellog("",change=1)
   setwd(working_directory)
   # v3
-  .GlobalEnv[["rep_structure"]]<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
-  .GlobalEnv[["rep_structure"]]<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
-  .GlobalEnv[["rep_structure"]]$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
+  rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
+  rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
+  
+  if(length(unique(rep_structure$bioreps)) == 1){
+    cat("Error: Cannot accept dataset with just one biological replicate. Aborting ...\n")
+    return(F)
+  }
+  
+  if(length(unique(rep_structure$techrep)) > 1){
+    if(length(unique(rep_structure$fraction)) > 1){
+      # we have techreps and fractions
+      rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
+    }else{
+      #we have bioreps and techreps
+      rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
+    }
+  }else{
+    if(length(unique(rep_structure$fraction)) > 1){
+      # we have fractions but not techreps
+      rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
+    }else{
+      # we just have bioreps
+      rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
+      # it should be like below, but for backward compatibility with other parts of the code, we keep the convention that in the rep. description, we will always have the terms 'b' (i.e. bio-rep) and 't', even if we don't have tech-reps ...
+      # rep_structure$rep_desc<-paste('b',rep_structure$biorep,sep='')
+    }
+  }
+  
+  .GlobalEnv[["rep_structure"]]<-rep_structure
 
   # rep_structure<<-rep(1:(bioreps*nConditions),each=techreps)
   # The next allows different number of techreps per biorep, given that techreps is now a vector. This is the major feature of v3 (above, the old version of the statement)
   #rep_structure<<-rep(1:(bioreps*nConditions),times=rep(techreps,times=nConditions))
   
   #not_rep_dup<-which(!duplicated(rep_structure))
-  n_bioreps<<-max(rep_structure$biorep)
-  n_techreps<<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
+  
+  .GlobalEnv[["n_bioreps"]]<-max(rep_structure$biorep)
+  .GlobalEnv[["n_techreps"]]<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
   #i_bioreps<<-not_rep_dup[1:n_bioreps]
   
   #tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
@@ -1651,6 +1681,7 @@ perform_analysis<-function(){
       limma_outfname=paste(outputFigsPrefix,"-all-2reps_limmaout_",time.point,".txt",sep=""))			
   }
   levellog("",change=-1)
+  return(T)
 }
 
 #================ PRODUCTION ===============

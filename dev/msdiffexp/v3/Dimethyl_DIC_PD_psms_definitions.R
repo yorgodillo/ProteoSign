@@ -22,3 +22,4 @@ ProteinQuantitation<-T
 filterL<-F
 addLabel("Light",c("Dimethyl"))
 addLabel("Medium",c("2H(4)"))
+experimental_structure_file<-"Dimethyl_DIC_PD_exp_struct.txt"
