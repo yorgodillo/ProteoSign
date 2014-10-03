@@ -18,11 +18,13 @@
 					while (($data = fgetcsv($handle, 0, "\t")) !== FALSE) {
 						array_push($rawfiles_names, $data[$labeldefcol]);
 					}
-					$ret = array_unique($rawfiles_names);
+					// extract unique file names, do not use the PHP function 'array_unique' (it is slower and preserves the array keys, doesn't make new keys)!
+					$ret = array_keys(array_flip($rawfiles_names));
 				}
 			}
 			fclose($handle);
 		}
+		error_log(print_r($ret, true));
 		return $ret;
 	}
  ?>

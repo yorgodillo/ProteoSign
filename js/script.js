@@ -3,11 +3,33 @@ var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
 
+// from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
+Array.prototype.unique = function() {
+    var o = {}, i, l = this.length, r = [];
+    for(i=0; i<l;i+=1) o[this[i]] = this[i];
+    for(i in o) r.push(o[i]);
+    return r;
+}
+
+// for counting the number of elements in an associative array
+// from: http://stackoverflow.com/questions/5223/length-of-javascript-object-ie-associative-array
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+}
+
 //http://dzone.com/snippets/array-shuffle-javascript
 function shuffle(o){
     for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
     return o;
 };
+
+File.prototype.toString = function getFileName() {
+  return this.name;
+}
 
 //modified from http://stackoverflow.com/questions/17964108/select-multiple-html-table-rows-with-ctrlclick-and-shiftclick
 var lastSelectedRow;
@@ -48,21 +70,6 @@ function clearAll() {
     for (var i = 0; i < trs.length; i++) {
         trs[i].className = 'rawfiles_tbl_td_not_selected';
     }
-}
-//
-
-// for counting the number of elements in an associative array
-// from: http://stackoverflow.com/questions/5223/length-of-javascript-object-ie-associative-array
-Object.size = function(obj) {
-    var size = 0, key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) size++;
-    }
-    return size;
-};
-
-File.prototype.toString = function getFileName() {
-  return this.name;
 }
 
 var inputChCheck = function(e,repatt,maxCharacters){
@@ -108,7 +115,6 @@ var combinations_arr = function(arr,delim){
 	}
 	return ret;
 }
-
 
 // From an array of items matched by "selector", choose the one with index "idx" and set some attribute(s)
 var helper_setItemArrAttr = function(selector,idx,json){
@@ -466,8 +472,8 @@ var postFile = function(idx, file, serverSide, postSuccess) {
 			if(data.success){
 				$(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
 				var tmp_rawfiles = [];
-				for(var f_i in data.raw_filesnames){
-					tmp_rawfiles.push(data.raw_filesnames[f_i]);
+				for(var i = 0; i < data.raw_filesnames.length; i++){
+					tmp_rawfiles.push(data.raw_filesnames[i]);
 				}
 				// If we have info regarding rawdata files names, save it					
 				if(tmp_rawfiles.length > 0){
@@ -703,6 +709,69 @@ var postTestDatasetInfo = function(dataset_desc) {
 									break;
 							}						
 						});
+						// simulate user-based experimental structure building via the GUI
+						var i;
+						var tmp_map = [];
+						for(i = 0; i < trs.length; i++){
+							tmp_map[trs[i].childNodes[0].nodeValue] = i;
+						}
+						var n_rawfiles = data.queryres.raw_file.length;
+						var n_breps = data.queryres.brep.unique().length;
+						var n_treps = data.queryres.trep.unique().length;
+						var n_frac = data.queryres.frac.unique().length;
+						if(n_treps > 1){
+							if(n_frac > 1){
+								// raw files correpsond to fractions
+								for(var brep_i = 1; brep_i <= n_breps; brep_i++){
+									for(var trep_i = 1; trep_i <= n_treps; trep_i++){
+										//select multiple trs
+										clearAll();
+										for(var j = 0; j < data.queryres.raw_file.length; j++){
+											if(data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i){
+												trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';	
+											}
+										}
+										//define coords
+										$('#expstructcoord_biorep').val(brep_i);
+										$('#expstructcoord_techrep').val(trep_i);
+										//trigger
+										$('#btnAssignExpStructCoord').click();									
+									}
+								}								
+							}else{
+								// raw files correpsond to technical replicates
+								for(var brep_i = 1; brep_i <= n_breps; brep_i++){
+									//select multiple trs
+									clearAll();
+									for(var j = 0; j < data.queryres.raw_file.length; j++){
+										if(data.queryres.brep[j] == brep_i){
+											trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';	
+										}
+									}
+									//define coords
+									$('#expstructcoord_biorep').val(brep_i);
+									$('#expstructcoord_techrep').val('');
+									//trigger
+									$('#btnAssignExpStructCoord').click();
+								}
+							}
+						}else{
+							// raw files correpsond to breps
+							for(var brep_i = 1; brep_i <= n_breps; brep_i++){
+								//select tr
+								clearAll();
+								trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';	
+								//define coords
+								$('#expstructcoord_biorep').val(brep_i);
+								$('#expstructcoord_techrep').val('');
+								//trigger
+								$('#btnAssignExpStructCoord').click();
+							}
+						}
+						clearAll();
+						$('#expstructcoord_biorep').val('');
+						$('#expstructcoord_techrep').val('');
+						//
 						$("#s3expparams").animate({ scrollTop: 0 }, "slow");					
 					});
 				}else{

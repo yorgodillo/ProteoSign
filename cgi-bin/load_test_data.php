@@ -6,7 +6,7 @@
 	$dataset_requested = "dimethyl 2-plex (PD)";
 	*/
 	
-	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/test data";
+	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/test data";
 	$descriptions_requested = ($_POST["descriptions_requested"] === "true");
 	
 	$server_response = [];
@@ -15,7 +15,6 @@
 	$server_response['queryres'] = [];
 	
 	try{
-		error_log("$test_data_dir/testdatadb");
 		$db = new SQLite3("$test_data_dir/testdatadb");
 	}
 	catch (Exception $exception) {
@@ -43,6 +42,7 @@
 	$qres->finalize();
 	
 	if(!$descriptions_requested){
+		// fetch data-file info
 		$qres = $db->query('select file from dataset inner join dataset_files on dataset.id=dataset_files.dataset_id inner join files on dataset_files.file_id = files.id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
 		if(!$qres){
 			$server_response['msg'] = "Failed to query the database: " . $sqlite->lastErrorMsg();
@@ -55,7 +55,21 @@
 			}
 			//echo "\n";
 		}
-		$qres->finalize();		
+		$qres->finalize();
+		// fetch experimental structure info
+		$qres = $db->query('select name as raw_file,brep,trep,frac from processed_files inner join experimental_structure on processed_files.id=experimental_structure.processed_file_id inner join dataset on experimental_structure.dataset_id=dataset.id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
+		if(!$qres){
+			$server_response['msg'] = "Failed to query the database: " . $sqlite->lastErrorMsg();
+			goto end;		
+		}
+		while($qrow = $qres->fetchArray(SQLITE3_ASSOC)){
+			foreach($qrow as $col => $val){
+				$server_response['queryres'][$col][] = $val;
+				//echo $col . ": " . $val . " ";
+			}
+			//echo "\n";
+		}
+		$qres->finalize();
 	}
 	
 	$db->close();
