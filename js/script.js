@@ -1,4 +1,4 @@
-var sessionid;
+var sessionid = new Date().getTime();
 var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
@@ -567,18 +567,11 @@ var bind_explbldefinition_focus = function(explbldefinition){
 		var lbl = $(this);
 		$("#dlglabelsBtnOK").unbind();
 		$("#dlglabelsBtnOK").on("click",function(){
-			$(".expparamsDlg").fadeOut(300 , function() {
-				$('#mask').remove();  
-			});
+			dlgFadeout();
 			var selection = $("#s3expparamsDlgLabelsSelection").val();
 			if(selection != null){
 				$(lbl).val(selection.join(","));
 			}
-		});
-		$("#dlglabelsBtnCancel").on("click",function(){
-			$(".expparamsDlg").fadeOut(300 , function() {
-				$('#mask').remove();  
-			});
 		});
 	});			
 }
@@ -588,19 +581,6 @@ var onChooseFromTestDatasets = function(){
 		$('body').append('<div id="mask"></div>');
 		$("#s1TestDatasets").fadeIn(300);
 		$('#mask').fadeIn(300);
-		var lbl = $(this);
-		$("#dlgTestDatasetsBtnOK").unbind();
-		$("#dlgTestDatasetsBtnOK").on("click",function(){
-			$(".expparamsDlg").fadeOut(300 , function() {
-				$('#mask').remove();  
-			});
-			postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
-		});
-		$("#dlgTestDatasetsBtnCancel").on("click",function(){
-			$(".expparamsDlg").fadeOut(300 , function() {
-				$('#mask').remove();  
-			});
-		});
 	}	
 
 var addFormLabel = function(){
@@ -658,6 +638,10 @@ var removeFormLabel = function(){
 	if(peptideLabelsFromFile.length > 0){
 		bind_explbldefinition_focus("#explbl"+nFormLabels+"definition");
 	}
+}
+
+var downloadTestDataset = function(dataset_desc){
+	window.location = cgi_bin_path + 'download_test_data.php?session_id=' + sessionid + '&dataset_info_requested=' + dataset_desc;
 }
 
 var postTestDatasetInfo = function(dataset_desc) {
@@ -919,6 +903,12 @@ var getRSS = function(rssurl, renderelem){
     });	
 }
 
+var dlgFadeout = function(){
+	$(".expparamsDlg").fadeOut(300 , function() {
+		$('#mask').remove();  
+	});
+}
+
 
 $(document).ready(function() {
 	var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
@@ -1131,6 +1121,21 @@ $(document).ready(function() {
 		$(".tooltip span").css({"margin-left":-$(".tooltip span").width()/2+9});
 		$(".callout").css({"left":$(".tooltip span").width()/2});
 	});
+	
+	// Bind test datasets dialog buttons
+	$("#dlgTestDatasetsBtnOK").on("click",function(){
+		dlgFadeout();
+		postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
+	});
+	$("#dlgTestDatasetsBtnCancel").on("click",function(){
+		dlgFadeout();
+	});
+	$("#dlgTestDatasetsBtnDownload").on("click",function(){
+		dlgFadeout();
+		downloadTestDataset($("#s1TestDatasetsSelection option:selected").text());
+	});
+	
+	
 	// TEST DATA INIT
 	postTestDatasetsInfo();
 	//
