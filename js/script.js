@@ -35,17 +35,20 @@ File.prototype.toString = function getFileName() {
 var lastSelectedRow;
 var trs;
 
-function RowClick(currenttr, lock) {
-	if (window.event.ctrlKey) {
+function RowClick(e) {
+var event = e || window.event;
+var currenttr = (event.target ? event.target :  event.srcElement);
+var lock = false;
+if (event.ctrlKey) {
         toggleRow(currenttr);
     }
-    if (window.event.button === 0) {
-        if (!window.event.ctrlKey && !window.event.shiftKey) {
+    if (event.button === 0) {
+        if (!event.ctrlKey && !event.shiftKey) {
             clearAll();
             toggleRow(currenttr);
         }
     
-        if (window.event.shiftKey) {
+        if (event.shiftKey) {
             selectRowsBetweenIndexes([lastSelectedRow.parentNode.rowIndex, currenttr.parentNode.rowIndex])
         }
     }
@@ -836,7 +839,7 @@ var reset_reps = function(){
 	rep_counts = {biorep: []};
 	$('#rawfiles_tbl_allfiles td').parent().remove();
 	$.each(rawfiles, function(idx, filename_i){
-		$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td onmousedown="RowClick(this,false);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
+		$('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td onmousedown="RowClick(event);" class="rawfiles_tbl_td_not_selected">'+filename_i+'</td></tr>');
 	});					
 	trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
 }
