@@ -12,6 +12,8 @@ use strict;
   use File::Which qw(which where);
   STDOUT->autoflush(1); # turn-off STDOUT buffering
 
+  #print "[LOG] running as " . getpwuid( $< ) . "\n";
+
   # Windows path
   if($^O =~ /MSWin/){
 	my ($base,$IM_path,$R_path,$type);
@@ -104,16 +106,17 @@ sub doit {
   
   unlink "msdiffexp_in_TMP";
 
-  my %params_matchmap = ('proteome.*discoverer','PDdata',
-'experiment.*id','outputFigsPrefix',
-'time.*point','time.point',
-'protein.*quantitation','ProteinQuantitation',
-'quantitation.*filtering','filterL',
-'peptide.*filtering','filterL_lvl',
-'filtering.*label','filterL_lbl',
-'Label.free experiment','LabelFree',
-'label','addLabel( ,c(	))',
-'modification','addMod( ,c(	))');
+  # WARNING! Whenever touching the last 2 keys of the hash below, be sure to also update the lines 194 and 272 accordingly.
+  my %params_matchmap = ('^Proteome Discoverer data','PDdata',
+'^Experiment ID','outputFigsPrefix',
+'^Time point','time.point',
+'^Protein \(as opposed to peptide\)','ProteinQuantitation',
+'^Enable quantitation filtering','filterL',
+'^If the above two are enabled','filterL_lvl',
+'^If filtering is enabled','filterL_lbl',
+'^Label\-free experiment','LabelFree',
+'^Label\s','addLabel( ,c(	))',
+'^Modification','addMod( ,c(	))');
 
   my %parsed_params = ('PDdata','',
 'outputFigsPrefix','',
@@ -188,7 +191,7 @@ sub doit {
       if($line =~ m/$curr_param/i){
         my @param_val = split(/\t/, $line);
         #print "MATCHED TO $curr_param ($param_val[1])\n";
-        if($curr_param !~ m/^(label|modification)$/i){
+        if($curr_param !~ m/^\^(Label\\s|Modification)/i){
           
           if($param_val[1] !~ s/^\s*Yes\s*$/T/){
             if($param_val[1] !~ s/^\s*No\s*$/F/){
@@ -266,7 +269,7 @@ experimental_structure_file<-"exp_struct.txt"
  
  #write params
  foreach my $curr_param (keys %params_matchmap){
-   if($curr_param !~ m/^(label|modification)$/i){
+   if($curr_param !~ m/^\^(Label\\s|Modification)/i){
       my $line = $params_matchmap{$curr_param} . "<-" . $parsed_params{$params_matchmap{$curr_param}} . "\n";
       $line=~ s/\x0D//g;
      print RDEFFILE $line;
