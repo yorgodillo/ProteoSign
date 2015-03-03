@@ -1,21 +1,24 @@
-# Load the limma library so we can use it
-# Can be installed by running following commands in R
-#
+options(warn=1)
+
+# ======================================
+# WARNING: Make sure to install the following packages as administrator/root (for them to be available to all users)
+# ======================================
+
 #source("http://www.bioconductor.org/biocLite.R")
 #if(!require("limma")){ biocLite("limma") }
 #if(!require("statmod")){ biocLite("statmod") }
 #if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
 #if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
 #if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
-#if(!require("tcltk")){ install.packages("tcltk", repos="http://cran.fhcrc.org") }
 #if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
 
 library(limma)
 library(statmod)
 library(reshape)
 library(plyr)
 library(ggplot2)
-library(tcltk)
+library(labeling)
 library(gtools)
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)

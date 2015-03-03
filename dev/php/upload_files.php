@@ -1,7 +1,7 @@
 <?php
 
-require 'get_labels.php';
-require 'get_rawfiles_names.php';
+require dirname(__DIR__) . '/../cgi-bin/get_labels.php';
+require dirname(__DIR__) . '/../cgi-bin/get_rawfiles_names.php';
 //"get_labels" function arguments for different file formats
 $_get_labels_aguments_sets = array(
     'PD' => array(
@@ -23,15 +23,8 @@ $_get_labels_aguments_sets = array(
     )
 );
 
-$server_side_file = ($_POST["server_side"] === "true");
-
-if ($server_side_file) {
-   $name = $_POST['thefile'];
-   $tmp_name = $_POST['thefile'];
-} else {
-   $name = $_FILES['thefile']['name'];
-   $tmp_name = $_FILES['thefile']['tmp_name'];
-}
+$name = $argv[1];
+$data_file = $name;
 $server_response = [];
 //Overall success, will be checked by client.
 $server_response['success'] = false;
@@ -43,29 +36,17 @@ $server_response['raw_filesnames'] = [];
 $document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign";
 if (isset($name)) {
    if (!empty($name)) {
-      $location = $document_root . '/uploads/' . $_POST["session_id"];
-      if (!file_exists($location) && !is_dir($location)) {
-         if (!mkdir($location, 0777, true)) {
-            $server_response['msg'] = "The directory $location could not be created ('mkdir' returned FALSE).";
-            goto end;
-         }
-      }
-      $file_copied_successfully = false;
-      if ($server_side_file) {
-         $file_copied_successfully = copy($document_root . "/test data/" . $tmp_name, $location . '/' . $name);
-      } else {
-         $file_copied_successfully = move_uploaded_file($tmp_name, $location . '/' . $name);
-      }
       $handle = null;
-      if ($file_copied_successfully && ($handle = fopen($location . '/' . $name, "r"))) {
-         $dtype = (array_search('Spectrum File', fgetcsv($handle, 0, "\t"), true) === true ? 'PD' : 'MQ');
+      $file_copied_successfully = true;
+      if ($file_copied_successfully && ($handle = fopen($data_file, "r"))) {
+         $dtype = (array_search('Spectrum File' , fgetcsv($handle, 0, "\t"), true) === true ? 'PD' : 'MQ');
          fclose($handle);
-         $get_labels_aguments_sets = array_merge(array_values($_get_labels_aguments_sets[$dtype]['L']), array_values($_get_labels_aguments_sets[$dtype]['LF']));
-         $get_labels_aguments_sets_labelfree_flag = array_merge(array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['L']), false)), array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['LF']), true)));
+         $get_labels_aguments_sets = array_merge(array_values($_get_labels_aguments_sets[$dtype]['L']),array_values($_get_labels_aguments_sets[$dtype]['LF']));
+         $get_labels_aguments_sets_labelfree_flag = array_merge(array_values(array_fill(0,count($_get_labels_aguments_sets[$dtype]['L']),false)),  array_values(array_fill(0,count($_get_labels_aguments_sets[$dtype]['LF']),true)));
          // Keep calling "get_labels" till you get some labels (validity criteria for labelled experiments: 1: # of label names > 0. 2: if # of label definitions > 0 then label definitions cannot contain white-space characters)
          for ($i = 0; $i < count($get_labels_aguments_sets); $i++) {
             $argset = $get_labels_aguments_sets[$i];
-            $tmp = get_labels($location . '/' . $name, $argset[0], $argset[1], $argset[2]);
+            $tmp = get_labels($name, $argset[0], $argset[1], $argset[2]);
             if (count($tmp[0]) > 0 || $get_labels_aguments_sets_labelfree_flag[$i]) {
                if (count($tmp[1]) > 0) {
                   //error_log("# of label defs (set $i): " . count($tmp[1]));
@@ -88,15 +69,8 @@ if (isset($name)) {
          $server_response['peptide_labels_names'] = $tmp[0];
          $server_response['peptide_labels'] = $tmp[1];
          $server_response['success'] = true;
-         $server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name, '/file/i');
-         if (count($server_response['raw_filesnames']) == 0) {
-            error_log("Could not retrieve replicate information (raw files names) from data file " . $name);
-         }
-         //else{
-         //error_log("Retrieved replicate information (raw files names) from data file " . $name . ": " . print_r($server_response['raw_filesnames'], true));
-         //}
       } else {
-         $server_response['msg'] = "The file $name could not be moved ('move_uploaded_file' returned FALSE).";
+         $server_response['msg'] = "The file $name could not be moved/read (either 'move_uploaded_file' or 'fopen' returned FALSE).";
       }
    } else {
       $server_response['msg'] = "The variable 'name' was empty (empty() returned TRUE).";
@@ -106,8 +80,5 @@ if (isset($name)) {
 }
 
 end:
-error_log("upload_files.php [" . $_POST["session_id"] . " " . $name . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
-//Send info back to the client
-header('Content-type: application/json');
-echo json_encode($server_response);
+echo print_r($server_response, true);
 ?>

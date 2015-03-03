@@ -340,8 +340,9 @@ experimental_structure_file<-"exp_struct.txt"
 	 #unlink("MSdiffexp_definitions.R");
 	 unlink("MSdiffexp.R");
 	 unlink($data_fname);
-	 unlink($data_fname . "_peptide.txt");
-	 unlink($data_fname . "_protein.txt");
+	 # Commnet the following two lines when debugging
+	 #unlink($data_fname . "_peptide.txt");
+	 #unlink($data_fname . "_protein.txt");
 	 chdir($beforechdir);
 	 print "[LOG] proteosign_dispatcher: Generating thumbnails ... ";
 	 system("mogrify -format png -density 150 -quality 100 -fill white -opaque none *.pdf");
