@@ -385,17 +385,17 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   }  
 
   if(.GlobalEnv[["n_bioreps"]]>1){
-    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(results)," (",time.point,")\n",sep=""))
+    levellog(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(results)," (",time.point,")",sep=""))
   }else{
-    cat(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s)): ",nrow(results)," (",time.point,")\n",sep=""))
+    levellog(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s)): ",nrow(results)," (",time.point,")",sep=""))
   }  
   
   for(i in 1:nrow(ratio_combs)){
 	col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
 	ndiffexp_tmp<-length(which(results[,col_desc_]<0.05))
-	cat(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,"\n",sep=""))
+	levellog(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,sep=""))
   }
-  cat(paste("do_results_plots: Differentially expressed in at least one combination of conditions: ",ndiffexp,"\n",sep=""))
+  levellog(paste("do_results_plots: Differentially expressed in at least one combination of conditions: ",ndiffexp,sep=""))
   
   diffexp<-results[,c(grep("^P-value adjusted",colnames(results)),grep("avg log2 [^I]+",colnames(results)),grep("sd log2 ",colnames(results)),grep("N log2 ",colnames(results)),grep("avg log2 I ",colnames(results)))]
   diffexp[,quantitated_items_lbl]<-rownames(diffexp)
@@ -617,7 +617,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   allproteins$Protein.IDs<-paste(allproteins$Protein.IDs," [",tmp," ...]",sep="")
   allproteins<-allproteins[!duplicated(allproteins$Protein.IDs),]
   
-  cat(paste("read.pgroups_v2_PD: Identified proteins: ",nrow(allproteins)," (",time.point,")\n",sep=""))
+  levellog(paste("read.pgroups_v2_PD: Identified proteins: ",nrow(allproteins)," (",time.point,")",sep=""))
   evidence<-merge(evidence,allproteins,by="Protein.Group.Accessions",all.x=T)
   levellog("Counting number of peptides per protein per label ...");
   #Count number of peptides per protein per label
@@ -845,9 +845,9 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }
   
   if(ProteinQuantitation){
-    cat(paste("read.pgroups_v2_PD: Quantifiable proteins: ",nrow(pgroups)," (",time.point,")\n",sep=""))
+    levellog(paste("read.pgroups_v2_PD: Quantifiable proteins: ",nrow(pgroups)," (",time.point,")",sep=""))
   }else{
-    cat(paste("read.pgroups_v2_PD: Quantifiable peptides: ",nrow(pgroups)," (",time.point,")\n",sep=""))
+    levellog(paste("read.pgroups_v2_PD: Quantifiable peptides: ",nrow(pgroups)," (",time.point,")",sep=""))
   }
   
   row.names(pgroups)<-pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
@@ -877,7 +877,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
   pgroups<-pgroups[pgroups$Reverse != "+" & pgroups$Contaminant != "+", ]
 	pgroups$Protein.IDs<-paste(sub("^([^;]*).*","\\1",pgroups$Protein.names)," [",sub("^([^;]*).*","\\1",pgroups$Gene.names)," ...] [",sub("^([^;]*).*","\\1",pgroups$Protein.IDs)," ...]",sep="")
 
-  cat(paste("read.pgroups_v2: Identified proteins (w/o contaminants): ",nrow(pgroups)," (",time.point,")\n",sep=""))
+  levellog(paste("read.pgroups_v2: Identified proteins (w/o contaminants): ",nrow(pgroups)," (",time.point,")",sep=""))
   
 	pgroups_evidence<-as.data.frame(do.call(rbind,apply(cbind(as.character(pgroups$id),pgroups$Evidence.IDs),1,function(x) cbind(x[1],unlist(strsplit(x[2],";"))))),stringsAsFactors=F)
   colnames(pgroups_evidence)<-c("id","Evidence.IDs")
@@ -1061,7 +1061,7 @@ read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
     quant_species<-"peptides"
   }  
   
-  cat(paste("read.pgroups_v2: Quantifiable ",quant_species," (w/o contaminants): ",nrow(pgroups)," (",time.point,")\n",sep=""))
+  levellog(paste("read.pgroups_v2: Quantifiable ",quant_species," (w/o contaminants): ",nrow(pgroups)," (",time.point,")",sep=""))
 
   if(generateVenns){
     setwd(limma_output)
@@ -1200,7 +1200,7 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,filterL=F){
     #pgroups<-pgroups[,!(colnames(pgroups) %in% c("Protein.Descriptions"))]
     #cat(paste("id_Venn3_pgroups_PD: Identified proteins: ",nrow(pgroups)," (",time.point,")\n",sep=""))
   }else{
-    cat(paste("id_Venn3_pgroups_PD: Peptide modified sequences: ",nrow(pgroups)," (",time.point,")\n",sep=""))
+    levellog(paste("id_Venn3_pgroups_PD: Peptide modified sequences: ",nrow(pgroups)," (",time.point,")",sep=""))
   }
   
   row.names(pgroups)<-pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
@@ -1384,6 +1384,7 @@ do_analyse_all_2reps_v2<-function(pgroups,time.point,exp_design_fname,exportForm
 #Gets rid of proteins identified just by peptides of a certain label named 'filterL_lbl'.
 filter_unlabeled_proteins<-function(protein_groups,evidence,filterL_lbl="")
 {
+  levellog("", change=1)
 	N_proteins_before<-nrow(protein_groups)
 	N_peptides_before<-nrow(evidence)
 	#protein_groups$Protein.IDs<-paste(sub("^([^;]*).*","\\1",protein_groups$Protein.names)," [",sub("^([^;]*).*","\\1",protein_groups$Gene.names)," ...] [",sub("^([^;]*).*","\\1",protein_groups$Protein.IDs)," ...]",sep="")
@@ -1396,7 +1397,8 @@ filter_unlabeled_proteins<-function(protein_groups,evidence,filterL_lbl="")
 	row.names(evidence_pgroups)<-NULL
 	protein_groups<-protein_groups[protein_groups$id %in% evidence_pgroups$Protein.group.IDs,]
 	N_proteins_after<-nrow(protein_groups)
-	cat(paste("filter_unlabeled_proteins: Before L peptide filtering (proteins, peptides): ",N_proteins_before,", ",N_peptides_before,". After: ",N_proteins_after,", ",N_peptides_after,".\n",sep=""))
+	levellog(paste("filter_unlabeled_proteins: Before L peptide filtering (proteins, peptides): ",N_proteins_before,", ",N_peptides_before,". After: ",N_proteins_after,", ",N_peptides_after,".",sep=""))
+  levellog("", change=-1)
 	return(protein_groups)
 }
 
@@ -1466,6 +1468,7 @@ getProteinPeptideData_2reps_filter<-function(pgroups_fname,evidence_fname,output
 duplicateCorrelation_trim<-0.15 # use 0.22 for "bad" datasets (too many missing values)
 
 addLabel<-function(lblname, lbl.Modifications){
+  levellog("", change=1)
   #If label name is a number some routines won't work, it has to be converted to some acceptable variable name
   lblname<-make.names(lblname)
   labeltxt <- "label";
@@ -1486,7 +1489,7 @@ addLabel<-function(lblname, lbl.Modifications){
   }
   lblname_i<-which(grepl(paste("^",lblname,"$",sep=""),conditions.labels))
   if(length(lblname_i) != 0){
-    cat(paste("addLabel: Error adding ",labeltxt," '",lblname,"': An existing ",labeltxt," with name '",lblname,"' (specification: ",paste(unlist(conditions.labels.Modifications[lblname_i]),collapse=", "),") already exists. Please try a different name.",sep=""))
+    levellog(paste("addLabel: Error adding ",labeltxt," '",lblname,"': An existing ",labeltxt," with name '",lblname,"' (specification: ",paste(unlist(conditions.labels.Modifications[lblname_i]),collapse=", "),") already exists. Please try a different name.",sep=""), change=-1)
     return(FALSE)
   }
 
@@ -1506,22 +1509,28 @@ addLabel<-function(lblname, lbl.Modifications){
   j<-length(conditions.labels.Modifications)+1
   conditions.labels.Modifications[[j]]<<-lbl.Modifications
   nConditions<<-length(conditions.labels)
+  levellog("", change=-1)
 }
 removeLabel<-function(lblname){
+  levellog("", change=1)
   lblname_i<-which(grepl(paste("^",lblname,"$",sep=""),conditions.labels))
   if(length(lblname_i) != 0){
     conditions.labels<<-conditions.labels[-lblname_i]
     conditions.labels.Modifications<<-conditions.labels.Modifications[-lblname_i]
   }
   nConditions<<-length(conditions.labels)
+  levellog("", change=-1)
 }
 clearLabels<-function(){
+  levellog("", change=1)
   conditions.labels<<-c()
   conditions.labels.Modifications<<-list()
   nConditions<<-length(conditions.labels)
+  levellog("", change=-1)
 }
 
 addMod<-function(modname, mod.Modifications){
+  levellog("", change=1)
   modname<-make.names(modname)
   mod.Modifications<-gsub("\\(","\\\\(",mod.Modifications)
   mod.Modifications<-gsub("\\)","\\\\)",mod.Modifications)
@@ -1536,7 +1545,7 @@ addMod<-function(modname, mod.Modifications){
   }
   modname_i<-which(grepl(paste("^",modname,"$",sep=""),conditions.Mods))
   if(length(modname_i) != 0){
-    cat(paste("addMod: Error adding modification '",modname,"': An existing modification with name '",modname,"' (specification: ",paste(unlist(conditions.Mods.Modifications[modname_i]),collapse=", "),") already exists. Please try a different name.",sep=""))
+    levellog(paste("addMod: Error adding modification '",modname,"': An existing modification with name '",modname,"' (specification: ",paste(unlist(conditions.Mods.Modifications[modname_i]),collapse=", "),") already exists. Please try a different name.",sep=""), change=-1)
     return(FALSE)
   }
   i<-1
@@ -1544,7 +1553,7 @@ addMod<-function(modname, mod.Modifications){
     for(mod_i in mod.Modifications){
       mod_i_matches<-which(grepl(paste("^",mod_i,"$",sep=""),mod_i))
       if(length(mod_i_matches) != 0){
-        cat(paste("addMod: Error adding modification '",modname,"': Existing modification with name '",conditions.Mods[i],"' has an identical specification (",mod_i,").",sep=""))
+        levellog(paste("addMod: Error adding modification '",modname,"': Existing modification with name '",conditions.Mods[i],"' has an identical specification (",mod_i,").",sep=""),change=-1)
         return(FALSE)
       }
     }
@@ -1554,19 +1563,24 @@ addMod<-function(modname, mod.Modifications){
   j<-length(conditions.Mods.Modifications)+1
   conditions.Mods.Modifications[[j]]<<-mod.Modifications
   nMods<<-length(conditions.Mods)
+  levellog("", change=-1)
 }
 removeMod<-function(modname){
+  levellog("", change=1)
   modname_i<-which(grepl(paste("^",modname,"$",sep=""),conditions.Mods))
   if(length(modname_i) != 0){
     conditions.Mods<<-conditions.Mods[-modname_i]
     conditions.Mods.Modifications<<-conditions.Mods.Modifications[-modname_i]
   }
   nMods<<-length(conditions.Mods)
+  levellog("", change=-1)
 }
 clearMods<-function(){
+  levellog("", change=1)
   conditions.Mods<<-c()
   conditions.Mods.Modifications<<-list()
   nMods<<-length(conditions.Mods)
+  levellog("", change=-1)
 }
 
 unlabeled_peptide_regex<-"^$"
@@ -1586,7 +1600,7 @@ perform_analysis<-function(){
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
   
   if(length(unique(rep_structure$bioreps)) == 1){
-    cat("Error: Cannot accept dataset with just one biological replicate. Aborting ...\n")
+    levellog("Error: Cannot accept dataset with just one biological replicate. Aborting ...")
     return(F)
   }
   

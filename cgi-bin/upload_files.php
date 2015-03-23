@@ -58,7 +58,8 @@ if (isset($name)) {
       }
       $handle = null;
       if ($file_copied_successfully && ($handle = fopen($location . '/' . $name, "r"))) {
-         $dtype = (array_search('Spectrum File', fgetcsv($handle, 0, "\t"), true) === true ? 'PD' : 'MQ');
+         $tmp = preg_grep("/Spectrum File/", fgetcsv($handle, 0, "\t"));
+         $dtype = (count($tmp) > 0 ? 'PD' : 'MQ');
          fclose($handle);
          $get_labels_aguments_sets = array_merge(array_values($_get_labels_aguments_sets[$dtype]['L']), array_values($_get_labels_aguments_sets[$dtype]['LF']));
          $get_labels_aguments_sets_labelfree_flag = array_merge(array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['L']), false)), array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['LF']), true)));

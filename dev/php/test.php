@@ -3,8 +3,8 @@
 	require dirname(__DIR__) . '/../cgi-bin/get_rawfiles_names.php';
 	
 	// MaxQuant
-	//$tmp = get_labels($argv[1],'/^Ratio ([^\s]+)\/([^\s]+)/',null,null);
-   $tmp = get_labels($argv[1],'/^Reporter intensity ([0-9]+)/',null,null);
+	$tmp = get_labels($argv[1],'/^Ratio ([^\s]+)\/([^\s]+)/',null,null);
+   //$tmp = get_labels($argv[1],'/^Reporter intensity ([0-9]+)/',null,null);
 	// PD
 	//$tmp = get_labels($argv[1],'/^([^\s]+)\/([^\s]+)$/','/Modifications/','/\((?:[^:]+?:)?(.+?)\)(;|$)/');
 	// PD label-free
