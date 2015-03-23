@@ -552,7 +552,6 @@ var postFile = function (idx, file, serverSide, postSuccess) {
                while (nFormLabels > 1) {
                   removeFormLabel();
                }
-               $("#s2btnf").prop('disabled', false);
             }
          } else {
             $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
@@ -957,7 +956,11 @@ $(document).ready(function () {
       $("#s2uluploaders > table").empty();
       if (this.files.length > 0) {
          //Start uploading ...
-         uploadFiles(this.files, false, null);
+         uploadFiles(this.files, false, function(){
+            if(++nUploaded == this.files.length){
+               $("#s2btnf").prop('disabled', false);
+            }
+         });
       } else {
          $("#s2btnf").prop('disabled', true);
       }
