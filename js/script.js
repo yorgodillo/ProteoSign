@@ -957,7 +957,7 @@ $(document).ready(function () {
       if (this.files.length > 0) {
          //Start uploading ...
          uploadFiles(this.files, false, function(){
-            if(++nUploaded == this.files.length){
+            if(++nUploaded == nToUpload){
                $("#s2btnf").prop('disabled', false);
             }
          });
