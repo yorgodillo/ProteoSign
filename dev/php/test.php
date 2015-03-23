@@ -11,7 +11,9 @@
 	//$tmp = get_labels($argv[1],null,'/Spectrum File/',null);
 	// MaxQuant label-free
 	//$tmp = get_labels($argv[1],null,'/Raw file/',null);
-	$labels_names = $tmp[0];
+	
+   /*
+   $labels_names = $tmp[0];
 	$labels = $tmp[1];
 
 	foreach($labels_names as $name){
@@ -21,7 +23,8 @@
 	foreach($labels as $label){
 		echo "lbl: $label\n";
 	}
+   */
 	
-	//error_log(print_r(get_rawfiles_names($argv[1],'/file/i'), true));
+	error_log(print_r(get_rawfiles_names($argv[1],'/file/i'), true));
 	
  ?>

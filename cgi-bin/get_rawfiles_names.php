@@ -16,10 +16,11 @@
 				}
 				if($labeldefcol > -1){
 					while (($data = fgetcsv($handle, 0, "\t")) !== FALSE) {
-						array_push($rawfiles_names, $data[$labeldefcol]);
+                  if(! isset($rawfiles_names[$data[$labeldefcol]])){
+                     $rawfiles_names[$data[$labeldefcol]] = 1;
+                  }
 					}
-					// extract unique file names, do not use the PHP function 'array_unique' (it is slower and preserves the array keys, doesn't make new keys)!
-					$ret = array_keys(array_flip($rawfiles_names));
+					$ret = array_keys($rawfiles_names);
 				}
 			}
 			fclose($handle);
