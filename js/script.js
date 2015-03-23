@@ -412,6 +412,7 @@ var resetState = function () {
    peptideLabelsFromFile = [];
    peptideLabelsNamesFromFile = [];
    peptideLabelsFromFileCombs = [];
+   rawfiles = undefined;
    // Reset items that contained information from previous data input files (e.g. label information)
    $("#s3expparamsDlgLabelsSelection").empty();
    $("#explbl1name_").empty();
@@ -957,8 +958,8 @@ $(document).ready(function () {
       if (this.files.length > 0) {
          //Start uploading ...
          uploadFiles(this.files, false, function(){
-            if(++nUploaded == nToUpload){
-               $("#s2btnf").prop('disabled', false);
+            if(++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)){
+              $("#s2btnf").prop('disabled', false);
             }
          });
       } else {
