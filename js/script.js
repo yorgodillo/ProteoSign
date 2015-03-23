@@ -465,7 +465,11 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          if (myXhr.upload) { // Check if upload property exists
             myXhr.upload.addEventListener('progress', function (e) {
                if (e.lengthComputable) {
-                  helper_setItemAttr("#uploadfile" + idx, {value: e.loaded, max: e.total});
+                  if(e.loaded / e.total == 1.0){
+                     $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>Processing ...<em><strong></span>");
+                  }else{
+                     helper_setItemAttr("#uploadfile" + idx, {value: e.loaded, max: e.total});
+                  }
                }
             }, false); // For handling the progress of the upload
          }
