@@ -69,7 +69,7 @@ function selectRowsBetweenIndexes(indexes) {
       return a - b;
    });
 
-   for (var i = indexes[0]; i <= indexes[1]; i++) {
+   for (var i = indexes[0]; i < indexes[1]; i++) {
       trs[i].className = 'rawfiles_tbl_td_selected';
    }
 }
