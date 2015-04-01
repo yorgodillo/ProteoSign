@@ -243,7 +243,7 @@ var postFireUpAnalysisAndWait = function () {
          //$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
          getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
       },
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          $("#server_feedback").empty();
          $("#s4btnf").prop('disabled', !data.success);
          if (data.success) {
@@ -267,7 +267,7 @@ var postFireUpAnalysisAndWait = function () {
             }
          }
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
          $("#server_feedback").empty();
          $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
       }
@@ -288,13 +288,13 @@ var postClientServerClientInfo = function () {
       contentType: false,
       beforeSend: function (jqXHR, settings) {
       },
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          clientname = data.hostname;
          softversion = data.version;
          $("#scrollingtext").html("Welcome <em>" + clientname + "</em> to ProteoSign");
          $("#proteosignversion").html("ProteoSign version " + softversion);
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
       }
    });
 }
@@ -331,7 +331,7 @@ var postParameters = function (params) {
       processData: false,
       cache: false,
       contentType: false,
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          //if there was a server-side error alert.
          if (!data.success) {
             alert("ERROR on SERVER: " + data.msg);
@@ -458,6 +458,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
    thedata.append('session_id', sessionid);
    thedata.append('server_side', serverSide);
    var progresstditm = $("#s2uluploaders table tr:nth-child(" + (idx + 1) + ") td").get(1);
+   
+   
    $.ajax({
       url: cgi_bin_path + 'upload_files.php', //Server script to receive file
       type: 'POST',
@@ -482,7 +484,7 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
          }
       },
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          debug_ajax_data = data;
          //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
          uploadFinished(data.success, idx, file);
@@ -561,7 +563,7 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             postSuccess();
          }
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
          $(progresstditm).empty();
          $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
          uploadFinished(false, idx, file);
@@ -675,7 +677,7 @@ var postTestDatasetInfo = function (dataset_desc) {
       processData: false,
       cache: false,
       contentType: false,
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          //if there was a server-side error alert.
          if (!data.success) {
             alert("ERROR on SERVER: " + data.msg);
@@ -800,7 +802,7 @@ var postTestDatasetInfo = function (dataset_desc) {
             }
          }
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
          alert("An AJAX error occurred: " + errorThrown);
       }
    });
@@ -820,7 +822,7 @@ var postTestDatasetsInfo = function () {
       processData: false,
       cache: false,
       contentType: false,
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          //if there was a server-side error alert.
          if (!data.success) {
             alert("ERROR on SERVER: " + data.msg);
@@ -832,7 +834,7 @@ var postTestDatasetsInfo = function () {
             });
          }
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
          alert("An AJAX error occurred: " + errorThrown);
       }
    });
@@ -914,10 +916,10 @@ var getRSS = function (rssurl, renderelem) {
       contentType: false,
       beforeSend: function (jqXHR, settings) {
       },
-      success: function (data, textStatus, jqXHR) {
+      done: function (data, textStatus, jqXHR) {
          renderRSSData(data, renderelem);
       },
-      error: function (jqXHR, textStatus, errorThrown) {
+      fail: function (jqXHR, textStatus, errorThrown) {
       }
    });
 }
