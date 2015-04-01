@@ -1590,7 +1590,8 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-source("MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/1427878265781/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
   levellog("",change=1)
@@ -1599,7 +1600,7 @@ perform_analysis<-function(){
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
   
-  if(length(unique(rep_structure$bioreps)) == 1){
+  if(length(unique(rep_structure$biorep)) == 1){
     levellog("Error: Cannot accept dataset with just one biological replicate. Aborting ...")
     return(F)
   }

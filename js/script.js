@@ -1055,15 +1055,15 @@ $(document).ready(function () {
          if (curr_str.match(/\|/) == null) {
             if (def_biorep > 0) { // i.e. non-blank
                if (def_techrep == 0) { // blank
-                  //techreps, from current count to items.length
-                  if (def_biorep in rep_counts["biorep"]) {
+                  //techreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+                  if (def_biorep in rep_counts["biorep"] && peptideLabelsNamesFromFile.length > 0) {
                      curr_techrep = (rep_counts["biorep"][def_biorep].techrep.length - 1) + rep_offset++;
                   } else {
                      curr_techrep = rep_offset++;
                   }
                } else {
-                  // fractions, from current count to items.length
-                  if (def_biorep in rep_counts["biorep"] && def_techrep in rep_counts["biorep"][def_biorep].techrep) {
+                  // fractions, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+                  if (def_biorep in rep_counts["biorep"] && def_techrep in rep_counts["biorep"][def_biorep].techrep && peptideLabelsNamesFromFile.length > 0) {
                      curr_fraction = (rep_counts["biorep"][def_biorep].techrep[def_techrep].fraction.length - 1) + rep_offset++;
                   } else {
                      curr_fraction = rep_offset++;
@@ -1071,8 +1071,12 @@ $(document).ready(function () {
                }
             } else {
                if (def_techrep == 0) { // blank
-                  // bioreps, from current count to items.length
-                  curr_biorep = rep_counts["biorep"].length + rep_offset++;
+                  // bioreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+                  if (peptideLabelsNamesFromFile.length > 0) {
+                     curr_biorep = rep_counts["biorep"].length + rep_offset++;
+                  } else {
+                     curr_biorep = rep_offset++;
+                  }
                } else {
                   // error, a biorep must be specified
                   if (rawfiles_structure.length == 0) {
