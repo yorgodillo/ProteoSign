@@ -213,10 +213,10 @@
 	}
 	
 	button.main.inline.unrelated{
-		background-image: -webkit-linear-gradient(top, #ffffff 0%, #bbbbbb 50%, #aaaaaa 50%, #888888 100%);
-		background-image: -moz-linear-gradient(top, #ffffff 0%, #bbbbbb 50%, #aaaaaa 50%, #888888 100%);
-		background-image: -ms-linear-gradient(top, #ffffff 0%, #bbbbbb 50%, #aaaaaa 50%, #888888 100%);
-		background-image: -o-linear-gradient(top, #ffffff 0%, #bbbbbb 50%, #aaaaaa 50%, #888888 100%);
+		background-image: -webkit-linear-gradient(top, #cccccc 0%, #b2b2b2 50%, #999999 50%, #7f7f7f 100%);
+		background-image: -moz-linear-gradient(top, #cccccc 0%, #b2b2b2 50%, #999999 50%, #7f7f7f 100%);
+		background-image: -ms-linear-gradient(top, #cccccc 0%, #b2b2b2 50%, #999999 50%, #7f7f7f 100%);
+		background-image: -o-linear-gradient(top, #cccccc 0%, #b2b2b2 50%, #999999 50%, #7f7f7f 100%);
 	}	
 	
 	

@@ -972,6 +972,18 @@ $(document).ready(function () {
          $('#mask').remove();
       });
    });
+   $("#dlglabelsBtnInvertSel").on("click", function () {
+      var allOptions = $.map($("#s3expparamsDlgLabelsSelection option"), function(v, i){return $(v).val();});
+      var selection = $("#s3expparamsDlgLabelsSelection").val();
+      if (selection != null) {
+         var invOptions = allOptions.filter(function(elem){
+            return selection.indexOf(elem) == -1;
+         });
+         $("#s3expparamsDlgLabelsSelection").val(invOptions);
+      }else{
+         $("#s3expparamsDlgLabelsSelection").val(allOptions);
+      }
+   });   
    //Toggle visibility on inputs that are dependent to each other
    // #1: dependency between quantitation filtering settings
    $("#s3advparams input[name='expquantfilt']").on("click", function () {
