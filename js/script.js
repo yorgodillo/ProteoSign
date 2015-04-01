@@ -243,34 +243,32 @@ var postFireUpAnalysisAndWait = function () {
          //$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
          getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
       },
-      done: function (data, textStatus, jqXHR) {
-         $("#server_feedback").empty();
-         $("#s4btnf").prop('disabled', !data.success);
-         if (data.success) {
-            $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
-            $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("/") + 1) + "</strong></a></span>");
-            patt = new RegExp("limma\-graphs");
-            $.each(data.results_preview, function (idx, path_to_img_i)
-            {
-               var img_i = path_to_img_i.substr(data.results_url.lastIndexOf("/") + 1);
-               if (!patt.test(img_i)) {
-                  $("#server_feedback").append("<div class='resimg'><a href='" + path_to_img_i + "' target='_blank'><img src='" + path_to_img_i + "' width='120'></img></a></div>");
-               }
-            });
-         } else {
-            $("#results_p").html("");
-            $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>The analysis could not be completed: " + data.msg + "<em><strong></span>");
-            if (data.R_dump.length > 0) {
-               $("#server_feedback").append("<br><br><span style='font-family: Georgia; font-size: 95%; text-align: left; display: inline-block; width: 90%'><p>Please ensure that input parameters (such as number of replicates, number of biological conditions/labels etc) are correctly defined and input data format is valid. The statistical analysis routine relies heavily on the validity of the input parameters, i.e. minor deviations from the correct parameter values may bring the analysis to a halt.</p><p>If the above does not apply, then the statistical analysis may have failed due to numerical problems (e.g. there were too many missing values/data points).</p><p> If you feel that none of the above is the case, please click <a href='mailto:msdiffexp@gmail.com?Subject=Session%20" + sessionid + "' target='_blank'><u>here</u></a> to notify via e-mail (do not delete the session id in the subject) the ProteoSign team for investigation of your analysis issue.</p></span>")
-               //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
-               //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
+   }).done(function (data, textStatus, jqXHR) {
+      $("#server_feedback").empty();
+      $("#s4btnf").prop('disabled', !data.success);
+      if (data.success) {
+         $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
+         $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("/") + 1) + "</strong></a></span>");
+         patt = new RegExp("limma\-graphs");
+         $.each(data.results_preview, function (idx, path_to_img_i)
+         {
+            var img_i = path_to_img_i.substr(data.results_url.lastIndexOf("/") + 1);
+            if (!patt.test(img_i)) {
+               $("#server_feedback").append("<div class='resimg'><a href='" + path_to_img_i + "' target='_blank'><img src='" + path_to_img_i + "' width='120'></img></a></div>");
             }
+         });
+      } else {
+         $("#results_p").html("");
+         $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>The analysis could not be completed: " + data.msg + "<em><strong></span>");
+         if (data.R_dump.length > 0) {
+            $("#server_feedback").append("<br><br><span style='font-family: Georgia; font-size: 95%; text-align: left; display: inline-block; width: 90%'><p>Please ensure that input parameters (such as number of replicates, number of biological conditions/labels etc) are correctly defined and input data format is valid. The statistical analysis routine relies heavily on the validity of the input parameters, i.e. minor deviations from the correct parameter values may bring the analysis to a halt.</p><p>If the above does not apply, then the statistical analysis may have failed due to numerical problems (e.g. there were too many missing values/data points).</p><p> If you feel that none of the above is the case, please click <a href='mailto:msdiffexp@gmail.com?Subject=Session%20" + sessionid + "' target='_blank'><u>here</u></a> to notify via e-mail (do not delete the session id in the subject) the ProteoSign team for investigation of your analysis issue.</p></span>")
+            //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
+            //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
          }
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
-         $("#server_feedback").empty();
-         $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
       }
+   }).fail(function (jqXHR, textStatus, errorThrown) {
+      $("#server_feedback").empty();
+      $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
    });
 }
 
@@ -287,15 +285,12 @@ var postClientServerClientInfo = function () {
       cache: false,
       contentType: false,
       beforeSend: function (jqXHR, settings) {
-      },
-      done: function (data, textStatus, jqXHR) {
-         clientname = data.hostname;
-         softversion = data.version;
-         $("#scrollingtext").html("Welcome <em>" + clientname + "</em> to ProteoSign");
-         $("#proteosignversion").html("ProteoSign version " + softversion);
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
-      }
+      }}).done(function (data, textStatus, jqXHR) {
+      clientname = data.hostname;
+      softversion = data.version;
+      $("#scrollingtext").html("Welcome <em>" + clientname + "</em> to ProteoSign");
+      $("#proteosignversion").html("ProteoSign version " + softversion);
+   }).fail(function (jqXHR, textStatus, errorThrown) {
    });
 }
 
@@ -330,14 +325,13 @@ var postParameters = function (params) {
       //Options to tell jQuery not to worry about content-type.
       processData: false,
       cache: false,
-      contentType: false,
-      done: function (data, textStatus, jqXHR) {
-         //if there was a server-side error alert.
-         if (!data.success) {
-            alert("ERROR on SERVER: " + data.msg);
-         } else {
-            postFireUpAnalysisAndWait();
-         }
+      contentType: false
+   }).done(function (data, textStatus, jqXHR) {
+      //if there was a server-side error alert.
+      if (!data.success) {
+         alert("ERROR on SERVER: " + data.msg);
+      } else {
+         postFireUpAnalysisAndWait();
       }
    });
 }
@@ -458,8 +452,6 @@ var postFile = function (idx, file, serverSide, postSuccess) {
    thedata.append('session_id', sessionid);
    thedata.append('server_side', serverSide);
    var progresstditm = $("#s2uluploaders table tr:nth-child(" + (idx + 1) + ") td").get(1);
-   
-   
    $.ajax({
       url: cgi_bin_path + 'upload_files.php', //Server script to receive file
       type: 'POST',
@@ -468,9 +460,9 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          if (myXhr.upload) { // Check if upload property exists
             myXhr.upload.addEventListener('progress', function (e) {
                if (e.lengthComputable) {
-                  if(e.loaded / e.total == 1.0){
-                     $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>Processing ...<em><strong></span>");
-                  }else{
+                  if (e.loaded / e.total == 1.0) {
+                     $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>Processing, please wait ...<em><strong></span>");
+                  } else {
                      helper_setItemAttr("#uploadfile" + idx, {value: e.loaded, max: e.total});
                   }
                }
@@ -478,102 +470,99 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          }
          return myXhr;
       },
-      //Ajax events
-      beforeSend: function (jqXHR, settings) {
-         if (serverSide) {
-            helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
-         }
-      },
-      done: function (data, textStatus, jqXHR) {
-         debug_ajax_data = data;
-         //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
-         uploadFinished(data.success, idx, file);
-         //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
-         if (data.success) {
-            $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
-            var tmp_rawfiles = [];
-            for (var i = 0; i < data.raw_filesnames.length; i++) {
-               tmp_rawfiles.push(data.raw_filesnames[i]);
-            }
-            // If we have info regarding rawdata files names, save it					
-            if (tmp_rawfiles.length > 0) {
-               rawfiles = tmp_rawfiles;
-               reset_reps();
-            }
-            // If we have info regarding peptide labels and such info has not been available in previous upload
-            if (peptideLabelsNamesFromFile.length == 0 && (data.peptide_labels_names.length > 0 || data.peptide_labels.length > 0)) {
-               peptideLabelsFromFile = data.peptide_labels.sort();
-               peptideLabelsNamesFromFile = data.peptide_labels_names.sort();
-               // some doc items that depend on whether the experiment is label-free or not
-               // 1. Non-labelled "background" species present?
-               var item1 = $("#s3advparams input[name='explbl00']").closest("tr").children().first();
-               // 2. Quantitation filtering?
-               var item2 = $("#s3advparams input[name='expquantfilt']").closest("tr").children().first();
-               // 3. Species label #1
-               var item3 = $("#explbl1name_").closest("tr").children().first();
-               // 4. Species label #1 select item td
-               var item4 = $("#explbl1name_").closest("td");
-               // 5. Label tooltip
-               var item5 = $("#quantsoftdetectedspan").closest("td").children().first();
-               // 6. Species label #1 definition
-               var item6 = $("#explbl1definition");
-               // if not label-free data
-               if (peptideLabelsNamesFromFile.length > 0) {
-                  // Set states of parameters relevant to labelled experiments accordingly
-                  $(item1).prop('disabled', false);
-                  $(item2).prop('disabled', false);
-                  $(item3).html('&#8212 Species label #1');
-                  $(item4).html('<select data-required="true" id="explbl1name_" name="explbl1name" type="text" placeholder="Name"></select>');
-                  // Only Proteome Discoverer data currently provide label definition information.
-                  // When this information is made available it means that our data originate from PD software.
-                  $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
-                  //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
-                  $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
-                  $(item5).removeClass('hidden');
-                  $(item6).attr('placeholder', 'Definition');
-               } else {
-                  //label-free case (disable non-applicable parameters and rename others accordingly)
-                  $(item1).prop('disabled', true);
-                  $(item2).prop('disabled', true);
-                  $(item3).html('&#8212 Biological condition #1');
-                  $(item4).html('<input data-required="true" id="explbl1name_" name="explbl1name" type="text" onkeypress="inputChCheck(event,\'^(?!_)[a-zA-Z0-9_]+$\',20)" placeholder="Character rules apply"></input>');
-                  $(item5).addClass('hidden');
-                  $(item6).attr('placeholder', 'Raw file');
-               }
-
-               $.each(peptideLabelsFromFile, function (idx, lbl_i) {
-                  $("#s3expparamsDlgLabelsSelection").append("<option value='" + lbl_i + "'>" + lbl_i + "</option>");
-               });
-               $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
-                  $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-                  $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-                  $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-               });
-               if (peptideLabelsFromFile.length > 0) {
-                  $("#explbl1definition").removeClass("hidden");
-               }
-               while (nFormLabels > 1) {
-                  removeFormLabel();
-               }
-            }
-         } else {
-            $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
-         }
-         if (typeof (postSuccess) == "function") {
-            postSuccess();
-         }
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
-         $(progresstditm).empty();
-         $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
-         uploadFinished(false, idx, file);
-      },
       // Form data
       data: thedata,
       //Options to tell jQuery not to process data or worry about content-type.
       cache: false,
       contentType: false,
-      processData: false
+      processData: false,
+      //Ajax events
+      beforeSend: function (jqXHR, settings) {
+         if (serverSide) {
+            helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
+         }
+      }}).done(function (data, textStatus, jqXHR) {
+      //debug_ajax_data = data;
+      //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
+      uploadFinished(data.success, idx, file);
+      //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
+      if (data.success) {
+         $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
+         var tmp_rawfiles = [];
+         for (var i = 0; i < data.raw_filesnames.length; i++) {
+            tmp_rawfiles.push(data.raw_filesnames[i]);
+         }
+         // If we have info regarding rawdata files names, save it					
+         if (tmp_rawfiles.length > 0) {
+            rawfiles = tmp_rawfiles;
+            reset_reps();
+         }
+         // If we have info regarding peptide labels and such info has not been available in previous upload
+         if (peptideLabelsNamesFromFile.length == 0 && (data.peptide_labels_names.length > 0 || data.peptide_labels.length > 0)) {
+            peptideLabelsFromFile = data.peptide_labels.sort();
+            peptideLabelsNamesFromFile = data.peptide_labels_names.sort();
+            // some doc items that depend on whether the experiment is label-free or not
+            // 1. Non-labelled "background" species present?
+            var item1 = $("#s3advparams input[name='explbl00']").closest("tr").children().first();
+            // 2. Quantitation filtering?
+            var item2 = $("#s3advparams input[name='expquantfilt']").closest("tr").children().first();
+            // 3. Species label #1
+            var item3 = $("#explbl1name_").closest("tr").children().first();
+            // 4. Species label #1 select item td
+            var item4 = $("#explbl1name_").closest("td");
+            // 5. Label tooltip
+            var item5 = $("#quantsoftdetectedspan").closest("td").children().first();
+            // 6. Species label #1 definition
+            var item6 = $("#explbl1definition");
+            // if not label-free data
+            if (peptideLabelsNamesFromFile.length > 0) {
+               // Set states of parameters relevant to labelled experiments accordingly
+               $(item1).prop('disabled', false);
+               $(item2).prop('disabled', false);
+               $(item3).html('&#8212 Species label #1');
+               $(item4).html('<select data-required="true" id="explbl1name_" name="explbl1name" type="text" placeholder="Name"></select>');
+               // Only Proteome Discoverer data currently provide label definition information.
+               // When this information is made available it means that our data originate from PD software.
+               $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
+               //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
+               $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
+               $(item5).removeClass('hidden');
+               $(item6).attr('placeholder', 'Definition');
+            } else {
+               //label-free case (disable non-applicable parameters and rename others accordingly)
+               $(item1).prop('disabled', true);
+               $(item2).prop('disabled', true);
+               $(item3).html('&#8212 Biological condition #1');
+               $(item4).html('<input data-required="true" id="explbl1name_" name="explbl1name" type="text" onkeypress="inputChCheck(event,\'^(?!_)[a-zA-Z0-9_]+$\',20)" placeholder="Character rules apply"></input>');
+               $(item5).addClass('hidden');
+               $(item6).attr('placeholder', 'Raw file');
+            }
+
+            $.each(peptideLabelsFromFile, function (idx, lbl_i) {
+               $("#s3expparamsDlgLabelsSelection").append("<option value='" + lbl_i + "'>" + lbl_i + "</option>");
+            });
+            $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+               $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+               $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+               $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+            });
+            if (peptideLabelsFromFile.length > 0) {
+               $("#explbl1definition").removeClass("hidden");
+            }
+            while (nFormLabels > 1) {
+               removeFormLabel();
+            }
+         }
+      } else {
+         $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>A server-side error occurred: " + data.msg + "<em><strong></span>");
+      }
+      if (typeof (postSuccess) == "function") {
+         postSuccess();
+      }
+   }).fail(function (jqXHR, textStatus, errorThrown) {
+      $(progresstditm).empty();
+      $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
+      uploadFinished(false, idx, file);
    });
 }
 
@@ -676,137 +665,134 @@ var postTestDatasetInfo = function (dataset_desc) {
       //Options to tell jQuery not to worry about content-type.
       processData: false,
       cache: false,
-      contentType: false,
-      done: function (data, textStatus, jqXHR) {
-         //if there was a server-side error alert.
-         if (!data.success) {
-            alert("ERROR on SERVER: " + data.msg);
-         } else {
-            uploadingFiles = data.queryres.file;
-            if (data.queryres.file.length > 0) {
-               //Start uploading ...
-               uploadFiles(data.queryres.file, true, function () {
-                  if (++nUploaded < uploadingFiles.length) {
-                     return;
-                  }
-                  $("#s2btnf").triggerHandler("click");
-                  $("#s3showhideadvparams").trigger("click");
-                  $("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
-                  $.each(data.queryres.selector, function (idx, param_selector)
-                  {
-                     //console.log(param_selector + " = " + data.queryres.value[idx]);
-                     switch ($(param_selector).attr('type')) {
-                        case "checkbox":
-                           // Here the 0/1 is transmitted false/true
-                           var theval = (data.queryres.value[idx] == "0" ? false : true);
-                           if ($(param_selector).prop("checked") != theval) {
-                              $(param_selector).trigger("click");
-                           }
-                           break;
-                        default:
-                           m = param_selector.match(/^#explbl[1-9]+[0-9]*name_$/);
-                           if (m != null && !$(param_selector).is(':visible')) {
-                              addFormLabel();
-                           }
-                           $(param_selector).val(data.queryres.value[idx]);
-                           break;
-                     }
-                  });
-                  // simulate user-based experimental structure building via the GUI
-                  var i;
-                  var tmp_map = [];
-                  for (i = 0; i < trs.length; i++) {
-                     tmp_map[trs[i].childNodes[0].nodeValue] = i;
-                  }
-                  var n_rawfiles = data.queryres.raw_file.length;
-                  var n_breps = data.queryres.brep.unique().length;
-                  var n_treps = data.queryres.trep.unique().length;
-                  var n_frac = data.queryres.frac.unique().length;
-                  if (n_treps > 1) {
-                     if (n_frac > 1) {
-                        // raw files correpsond to fractions
-                        for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                           for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
-                              //select multiple trs
-                              clearAll();
-                              for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                                 if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
-                                    trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
-                                 }
-                              }
-                              //define coords
-                              $('#expstructcoord_biorep').val(brep_i);
-                              $('#expstructcoord_techrep').val(trep_i);
-                              //trigger
-                              $('#btnAssignExpStructCoord').click();
-                           }
+      contentType: false
+   }).done(function (data, textStatus, jqXHR) {
+      //if there was a server-side error alert.
+      if (!data.success) {
+         alert("ERROR on SERVER: " + data.msg);
+      } else {
+         uploadingFiles = data.queryres.file;
+         if (data.queryres.file.length > 0) {
+            //Start uploading ...
+            uploadFiles(data.queryres.file, true, function () {
+               if (++nUploaded < uploadingFiles.length) {
+                  return;
+               }
+               $("#s2btnf").triggerHandler("click");
+               $("#s3showhideadvparams").trigger("click");
+               $("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
+               $.each(data.queryres.selector, function (idx, param_selector)
+               {
+                  //console.log(param_selector + " = " + data.queryres.value[idx]);
+                  switch ($(param_selector).attr('type')) {
+                     case "checkbox":
+                        // Here the 0/1 is transmitted false/true
+                        var theval = (data.queryres.value[idx] == "0" ? false : true);
+                        if ($(param_selector).prop("checked") != theval) {
+                           $(param_selector).trigger("click");
                         }
-                     } else {
-                        // raw files correpsond to technical replicates
-                        for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
+                        break;
+                     default:
+                        m = param_selector.match(/^#explbl[1-9]+[0-9]*name_$/);
+                        if (m != null && !$(param_selector).is(':visible')) {
+                           addFormLabel();
+                        }
+                        $(param_selector).val(data.queryres.value[idx]);
+                        break;
+                  }
+               });
+               // simulate user-based experimental structure building via the GUI
+               var i;
+               var tmp_map = [];
+               for (i = 0; i < trs.length; i++) {
+                  tmp_map[trs[i].childNodes[0].nodeValue] = i;
+               }
+               var n_rawfiles = data.queryres.raw_file.length;
+               var n_breps = data.queryres.brep.unique().length;
+               var n_treps = data.queryres.trep.unique().length;
+               var n_frac = data.queryres.frac.unique().length;
+               if (n_treps > 1) {
+                  if (n_frac > 1) {
+                     // raw files correpsond to fractions
+                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
+                        for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
                            //select multiple trs
                            clearAll();
                            for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                              if (data.queryres.brep[j] == brep_i) {
+                              if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
                                  trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
                               }
                            }
                            //define coords
                            $('#expstructcoord_biorep').val(brep_i);
-                           $('#expstructcoord_techrep').val('');
+                           $('#expstructcoord_techrep').val(trep_i);
                            //trigger
                            $('#btnAssignExpStructCoord').click();
                         }
                      }
                   } else {
-                     if (n_frac > 1) {
-                        // raw files correpsond to fractions
-                        for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                           for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
-                              //select multiple trs
-                              clearAll();
-                              for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                                 if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
-                                    trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
-                                 }
-                              }
-                              //define coords
-                              $('#expstructcoord_biorep').val(brep_i);
-                              $('#expstructcoord_techrep').val(trep_i);
-                              //trigger
-                              $('#btnAssignExpStructCoord').click();
+                     // raw files correpsond to technical replicates
+                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
+                        //select multiple trs
+                        clearAll();
+                        for (var j = 0; j < data.queryres.raw_file.length; j++) {
+                           if (data.queryres.brep[j] == brep_i) {
+                              trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
                            }
                         }
-                     } else {
-                        // raw files correpsond to breps
-                        for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                           //select tr
+                        //define coords
+                        $('#expstructcoord_biorep').val(brep_i);
+                        $('#expstructcoord_techrep').val('');
+                        //trigger
+                        $('#btnAssignExpStructCoord').click();
+                     }
+                  }
+               } else {
+                  if (n_frac > 1) {
+                     // raw files correpsond to fractions
+                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
+                        for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
+                           //select multiple trs
                            clearAll();
-                           trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';
+                           for (var j = 0; j < data.queryres.raw_file.length; j++) {
+                              if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
+                                 trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
+                              }
+                           }
                            //define coords
                            $('#expstructcoord_biorep').val(brep_i);
-                           $('#expstructcoord_techrep').val('');
+                           $('#expstructcoord_techrep').val(trep_i);
                            //trigger
                            $('#btnAssignExpStructCoord').click();
                         }
                      }
+                  } else {
+                     // raw files correpsond to breps
+                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
+                        //select tr
+                        clearAll();
+                        trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';
+                        //define coords
+                        $('#expstructcoord_biorep').val(brep_i);
+                        $('#expstructcoord_techrep').val('');
+                        //trigger
+                        $('#btnAssignExpStructCoord').click();
+                     }
                   }
-                  clearAll();
-                  $('#expstructcoord_biorep').val('');
-                  $('#expstructcoord_techrep').val('');
-                  //
-                  $("#s3expparams").animate({scrollTop: 0}, "slow");
-               });
-            } else {
-               $("#s2btnf").prop('disabled', true);
-            }
+               }
+               clearAll();
+               $('#expstructcoord_biorep').val('');
+               $('#expstructcoord_techrep').val('');
+               //
+               $("#s3expparams").animate({scrollTop: 0}, "slow");
+            });
+         } else {
+            $("#s2btnf").prop('disabled', true);
          }
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
-         alert("An AJAX error occurred: " + errorThrown);
       }
+   }).fail(function (jqXHR, textStatus, errorThrown) {
+      alert("An AJAX error occurred: " + errorThrown);
    });
-
 }
 
 var postTestDatasetsInfo = function () {
@@ -821,22 +807,20 @@ var postTestDatasetsInfo = function () {
       //Options to tell jQuery not to worry about content-type.
       processData: false,
       cache: false,
-      contentType: false,
-      done: function (data, textStatus, jqXHR) {
-         //if there was a server-side error alert.
-         if (!data.success) {
-            alert("ERROR on SERVER: " + data.msg);
-         } else {
-            var i = 1;
-            $.each(data.queryres.desc, function (idx, dataset_desc)
-            {
-               $("#s1TestDatasetsSelection").append("<option value='" + (i++) + "'>" + dataset_desc + "</option>");
-            });
-         }
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
-         alert("An AJAX error occurred: " + errorThrown);
+      contentType: false
+   }).done(function (data, textStatus, jqXHR) {
+      //if there was a server-side error alert.
+      if (!data.success) {
+         alert("ERROR on SERVER: " + data.msg);
+      } else {
+         var i = 1;
+         $.each(data.queryres.desc, function (idx, dataset_desc)
+         {
+            $("#s1TestDatasetsSelection").append("<option value='" + (i++) + "'>" + dataset_desc + "</option>");
+         });
       }
+   }).fail(function (jqXHR, textStatus, errorThrown) {
+      alert("An AJAX error occurred: " + errorThrown);
    });
 }
 
@@ -915,12 +899,10 @@ var getRSS = function (rssurl, renderelem) {
       cache: false,
       contentType: false,
       beforeSend: function (jqXHR, settings) {
-      },
-      done: function (data, textStatus, jqXHR) {
-         renderRSSData(data, renderelem);
-      },
-      fail: function (jqXHR, textStatus, errorThrown) {
       }
+   }).done(function (data, textStatus, jqXHR) {
+      renderRSSData(data, renderelem);
+   }).fail(function (jqXHR, textStatus, errorThrown) {
    });
 }
 
@@ -959,9 +941,9 @@ $(document).ready(function () {
       $("#s2uluploaders > table").empty();
       if (this.files.length > 0) {
          //Start uploading ...
-         uploadFiles(this.files, false, function(){
-            if(++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)){
-              $("#s2btnf").prop('disabled', false);
+         uploadFiles(this.files, false, function () {
+            if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
+               $("#s2btnf").prop('disabled', false);
             }
          });
       } else {
