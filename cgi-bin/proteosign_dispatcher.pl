@@ -89,7 +89,7 @@ sub doit {
     unlink "msdiffexp_in_TMP";
     die "[LOG] proteosign_dispatcher: " . $! . "\n";
   }
-  print "[LOG] proteosign_dispatcher: Packing input ... ";
+  print "[LOG] proteosign_dispatcher: Packing the input ... ";
   binmode(MSDIFFEXPIN);
   $success = open(TMP, "<" . "msdiffexp_in_TMP");
   if(! $success){
@@ -144,7 +144,7 @@ sub doit {
   my $working_dir_name = $data_fname . "_wd";
   
   mkdir $working_dir_name unless -d $working_dir_name;
-  print "[LOG] proteosign_dispatcher: Creating analysis parameter file ... ";
+  print "[LOG] proteosign_dispatcher: Creating the analysis parameter file ... ";
   open(RDEFFILE, ">$working_dir_name/MSdiffexp_definitions.R") or die "[ERROR] msdiffexp_dsipatcher: " . $! . "\n";
   if(! open(DATAFILE, "<" . $data_fname)){
     close(RDEFFILE);
@@ -196,8 +196,14 @@ sub doit {
 				 if($param_val[1] !~ s/^\s*Yes\s*$/T/){
 				   if($param_val[1] !~ s/^\s*No\s*$/F/){
 				     if($param_val[1] !~ m/^\s*[0-9]+\s*$/){
-				       $param_val[1] = '"' . $param_val[1] . '"';
-				       $param_val[1] =~ s/\s/_/;
+				       if($param_val[1] !~ m/[^,]+(,[^,]+)+/){
+				       	 # double-quote value
+						    $param_val[1] = '"' . $param_val[1] . '"';
+						 }else{
+						 	 # double-quote comma-separated values
+						 	 $param_val[1] = '"' . join('","',split(/,/, $param_val[1])) . '"';
+						 }
+						 $param_val[1] =~ s/\s/_/;
 				     }
 				   }
 				 }
@@ -211,8 +217,15 @@ sub doit {
           my $lblmod_entry = $params_matchmap{$curr_param};
           $param_val[1] = '"' . $param_val[1] . '"';
           if(defined($param_val[2])){
-            $param_val[2] =~ s/^([^,]*)/\"$1\"/;
-            $param_val[2] =~ s/\",(.*)$/\",\"$1\"/;
+		       if($param_val[2] !~ m/[^,]+(,[^,]+)+/){
+		       	 # double-quote value
+				    $param_val[2] = '"' . $param_val[2] . '"';
+				 }else{
+				 	 # double-quote comma-separated values
+				 	 $param_val[2] = '"' . join('","',split(/,/, $param_val[2])) . '"';
+				 }
+            #$param_val[2] =~ s/^([^,]*)/\"$1\"/;
+            #$param_val[2] =~ s/\",(.*)$/\",\"$1\"/;
             $lblmod_entry =~ s/\t/$param_val[2]/;
           }else{
             $lblmod_entry =~ s/\t/\"\"/;
@@ -289,7 +302,7 @@ experimental_structure_file<-"exp_struct.txt"
  close(RDEFFILE);
  
  print "DONE\n";
- print "[LOG] proteosign_dispatcher: Creating data file(s) ... ";
+ print "[LOG] proteosign_dispatcher: Creating the data file(s) ... ";
  #copy rest of contents to a peptide and/or protein file.
  $line = <DATAFILE>; # skip '[Peptide]' line
  open(PEPTFILE, ">$working_dir_name/" . $data_fname . "_peptide.txt") or die "[ERROR] msdiffexp_dsipatcher: " . $! . "\n";
@@ -328,7 +341,7 @@ experimental_structure_file<-"exp_struct.txt"
 	 #execute R-script and wait for it to finish
 	 chdir($working_dir_name);
 	 
-	 print "[LOG] proteosign_dispatcher: Performing analysis ... ";
+	 print "[LOG] proteosign_dispatcher: Performing the analysis ... ";
 	 
 	 system("R CMD BATCH --slave MSdiffexp.R " . $data_fname . "_log.txt");	 
 	 print "DONE\n";
@@ -347,14 +360,14 @@ experimental_structure_file<-"exp_struct.txt"
 	 #unlink($data_fname . "_peptide.txt");
 	 #unlink($data_fname . "_protein.txt");
 	 chdir($beforechdir);
-	 print "[LOG] proteosign_dispatcher: Generating thumbnails ... ";
+	 print "[LOG] proteosign_dispatcher: Generating the thumbnails ... ";
 	 system("mogrify -format png -density 150 -quality 100 -fill white -opaque none *.pdf");
 	 print "DONE\n";
 	@pdfs = glob("*.pdf");
 	foreach (@pdfs) {
 		unlink($_);
 	}
-	 print "[LOG] proteosign_dispatcher: Packing results ... ";
+	 print "[LOG] proteosign_dispatcher: Packing the results ... ";
 	 #compress the whole folder
 	 my $zip = Archive::Zip->new();
 	 my $dir_member = $zip->addTree($data_fname . "_wd", $data_fname );
