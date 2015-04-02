@@ -192,15 +192,18 @@ sub doit {
         my @param_val = split(/\t/, $line);
         #print "MATCHED TO $curr_param ($param_val[1])\n";
         if($curr_param !~ m/^\^(Label\\s|Modification)/i){
-          
-          if($param_val[1] !~ s/^\s*Yes\s*$/T/){
-            if($param_val[1] !~ s/^\s*No\s*$/F/){
-              if($param_val[1] !~ m/^\s*[0-9]+\s*$/){
-                $param_val[1] = '"' . $param_val[1] . '"';
-                $param_val[1] =~ s/\s/_/;
-              }
-            }
-          }
+			  if(scalar(@param_val) > 1){  
+				 if($param_val[1] !~ s/^\s*Yes\s*$/T/){
+				   if($param_val[1] !~ s/^\s*No\s*$/F/){
+				     if($param_val[1] !~ m/^\s*[0-9]+\s*$/){
+				       $param_val[1] = '"' . $param_val[1] . '"';
+				       $param_val[1] =~ s/\s/_/;
+				     }
+				   }
+				 }
+			  }else{
+			    push(@param_val, '""');
+			  }
           #print "  " . $params_matchmap{$curr_param} . "=" . $param_val[1] . "\n";
           $parsed_params{$params_matchmap{$curr_param}} = $param_val[1];
           push(@found_params, $curr_param);

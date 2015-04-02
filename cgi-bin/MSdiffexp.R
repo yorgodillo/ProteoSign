@@ -617,6 +617,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   allproteins$Protein.IDs<-paste(allproteins$Protein.IDs," [",tmp," ...]",sep="")
   allproteins<-allproteins[!duplicated(allproteins$Protein.IDs),]
   
+  
   levellog(paste("read.pgroups_v2_PD: Identified proteins: ",nrow(allproteins)," (",time.point,")",sep=""))
   evidence<-merge(evidence,allproteins,by="Protein.Group.Accessions",all.x=T)
   levellog("Counting number of peptides per protein per label ...");
@@ -769,7 +770,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(LabelFree){
     tmp_rep_desc<-c()
     for(i in 1:nConditions){
-      tmp_rep_desc[[i]]<-paste("c",i,rep_desc,sep="")
+      tmp_rep_desc[[i]]<-paste("c",i,rep_structure$rep_desc,sep="")
       levels(melted_subtotals$Spectrum.File)[which(levels(melted_subtotals$Spectrum.File) %in% paste(conditions.labels.Modifications[[i]],".raw",sep=""))]<-tmp_rep_desc[[i]]
     }
     rep_desc<-unlist(tmp_rep_desc)
@@ -1590,8 +1591,8 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/1427878265781/msdiffexp_wd/MSdiffexp_definitions.R")
-source("MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/1427884892870/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
   levellog("",change=1)
