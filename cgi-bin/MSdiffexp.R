@@ -648,9 +648,12 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     ## Calculate identified peptide counts per protein for each condition/label and replicate in the following three steps
     # 1. For each condition (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
     evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
-    # 2. Collapse the records for each protein (per replicate) and count the TRUEs.
-    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=conditions.labels]
-    # 3. Calculate the percentage columns
+    # 2. Add a column flagging the common, between conditions, sequences.
+    # In case of more than two conditions, the flag designates that there are at least two conditions where the peptide is common
+    evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]    
+    # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
+    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
+    # 4. Calculate the percentage columns
     evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
     ## Rename the peptide counts columns
     setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))    
@@ -666,12 +669,15 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }else{
     evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
     setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID)
-    ## Calculate identified peptide counts per protein for each label and replicate in the following three steps
+    ## Calculate identified peptide counts per protein for each label and replicate in the following steps
     # 1. For each label (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
     evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
-    # 2. Collapse the records for each protein (per replicate) and count the TRUEs.
-    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=conditions.labels]
-    # 3. Calculate the percentage columns
+    # 2. Add a column flagging the common, between labels, sequences.
+    # In case of more than two labels, the flag designates that there are at least two conditions where the peptide is common
+    evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]
+    # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
+    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
+    # 4. Calculate the percentage columns
     evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
     ## Rename the peptide counts columns
     setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))        
@@ -698,19 +704,20 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(biorep, techrep, Protein.IDs)]
     # Calculate the percentage columns
     evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
+    # Create new rep_desc column
+    evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]    
   }
   ## If enabled, do filter out proteins based on percentage labeling for the desired label
   if(filterL && !filterL_lvl){
     n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
     evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
     levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "'-modified peptides ..."));
-    # Create new rep_desc column
-    evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]
   }
   ## Cast the table to the following format
   # Protein.IDs Intensity.[<rep_desc_X>.<label/condition_Y> ...] [<rep_desc_X>.Ratio.counts ...] [<rep_desc_X>.uniqueSequences ...] time.point [<label/condition_Y> ...] [<label/condition_Y>p ...]
   
-  # Step 1: For each 'rep_desc', add to a growing dataframe the evidence.dt data, renaming the columns accordingly
+  ## Step 1: For each 'rep_desc', add to a growing dataframe the evidence.dt data, renaming the columns accordingly
+  # Also, calculate the missing columns required by the target format and drop the unnecessary columns
   setkey(evidence.dt, Protein.IDs)
   pgroups<-data.frame(Protein.IDs = unique(evidence.dt)$Protein.IDs)
   setkey(evidence.dt, rep_desc)
@@ -722,20 +729,40 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       colnames(rep_desc_i_pgroups)[colsl]<-gsub("^Intensity(.+)$",paste("Intensity\\1",rep_desc_i,sep='.'), allcols[colsl])
       # Rename UniqueSequences cols
       colsl<-grepl('^UniqueSequences' ,allcols)
-      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^UniqueSequences(.+)$",paste(rep_desc_i,"uniqueSequences\\1",sep='.'), allcols[colsl])      
+      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^UniqueSequences(.+)$",paste(rep_desc_i,"uniqueSequences\\1",sep='.'), allcols[colsl])
+      # Add new column <rep_desc_X>.uniqueSequences
+      rep_desc_i_pgroups[, paste(rep_desc_i,'uniqueSequences',sep='.')]<-rowSums(rep_desc_i_pgroups[, colnames(rep_desc_i_pgroups)[colsl]])
       # Rename 'p' (percentage) cols
       colsl<-allcols %in% paste0(conditions.labels,'p')
-      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^(.+)$",paste("\\1",rep_desc_i,sep='.'), allcols[colsl])      
-      # add to the growing data frame
+      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^(.+)$",paste("\\1",rep_desc_i,sep='.'), allcols[colsl])
+      # Rename the 'common' column to <rep_desc_X>.Ratio.counts
+      colsl<-allcols %in% c('common')
+      colnames(rep_desc_i_pgroups)[colsl]<-paste(rep_desc_i,'Ratio.counts',sep='.')
+      # merge with the growing data frame
       pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')])
   }
-  # Step 2: Calculate the missing columns required by the target format and drop the unnecessary columns
-  
+  # Step 2: Calculate the columns [<label/condition_Y> ...] [<label/condition_Y>p ...]
+  allcols<-colnames(pgroups)
+  for(cond_i in conditions.labels){
+    colsl<-grepl(paste('uniqueSequences', cond_i,sep='\\.') ,allcols)
+    pgroups[, cond_i]<-rowSums(pgroups[, allcols[colsl]])
+  }
+  # Step 3: Calculate the columns [<label/condition_Y>p ...]
+  allcols<-colnames(pgroups)
+  for(cond_i in conditions.labels){
+    colsl<-allcols %in% conditions.labels & ! allcols %in% cond_i
+    pgroups[, paste0(cond_i,'p')]<-(pgroups[, cond_i]/rowSums(pgroups[, c(cond_i, allcols[colsl])]))*100
+  }
+  # Step 4: Add time-point column
+  pgroups$time.point<-time.point
+  # Step 5: Remove unnecessary columns (uniqueSequences per rep_desc and percentage unique peptides per rep_desc)
+  allcols<-colnames(pgroups)
+  pgroups<-pgroups[,-which(grepl('uniqueSequences\\.', allcols) | grepl('p\\.b[0-9]+t[0-9]+$', allcols))]
   ##
-  levellog(paste0("read.pgroups_v3_PD: Quantifiable proteins: ",length(unique(evidence.dt[,Protein.IDs]))," (",time.point,")"))
+  levellog(paste0("read.pgroups_v3_PD: Quantifiable proteins: ", nrow(pgroups)," (",time.point,")"))
   levellog("",change=-1)
   ## 
-  return(as.data.frame(evidence.dt))  
+  return(pgroups)  
 }
 
 
@@ -1751,8 +1778,8 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
