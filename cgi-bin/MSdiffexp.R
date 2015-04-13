@@ -644,81 +644,53 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', 'Intensity','label_', 'rep_desc')])
     setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID, label_)
     # Get maximum PSM intensity per peptide/protein/[(rep_desc/label) = raw_file]
-    evidence.dt<-evidence.dt[, .(maxI=max(Intensity)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)]
-    ## Calculate identified peptide counts per protein for each condition/label and replicate in the following three steps
-    # 1. For each condition (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
-    evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
-    # 2. Add a column flagging the common, between conditions, sequences.
-    # In case of more than two conditions, the flag designates that there are at least two conditions where the peptide is common
-    evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]    
-    # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
-    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
-    # 4. Calculate the percentage columns
-    evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
-    ## Rename the peptide counts columns
-    setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))    
-    ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
-    # 1. Cast the data so that we have columns for each label and intensity separately
-    evidence.dt<-dcast.data.table(evidence.dt, rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=0)
-    ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
-    if(filterL && filterL_lvl){
-      minI<-min(evidence.dt[,get(conditions.labels)])
-      for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
-        evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
-        n1<-nrow(evidence.dt)
-        evidence.dt<-evidence.dt[minIcount < 2]
-        n2<-nrow(evidence.dt)
-        if(n2 < n1){
-          levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
-        }
-      }
-      evidence.dt[, minIcount := NULL]
-    }
-    # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
-    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
-    ## Rename the intensity columns
-    setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
-    ## Merge with the evidence.dt.seqCounts table
-    evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)
+    evidence.dt<-evidence.dt[, .(maxI=max(Intensity)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)]    
   }else{
     evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
-    setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID)
-    ## Calculate identified peptide counts per protein for each label and replicate in the following steps
-    # 1. For each label (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
-    evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
-    # 2. Add a column flagging the common, between labels, sequences.
-    # In case of more than two labels, the flag designates that there are at least two conditions where the peptide is common
-    evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]
-    # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
-    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
-    # 4. Calculate the percentage columns
-    evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
-    ## Rename the peptide counts columns
-    setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))        
-    ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
-    # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
-    evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]
-    ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
-    if(filterL && filterL_lvl){
-      minI<-min(evidence.dt[,get(conditions.labels)])
-      for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
-        evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
-        n1<-nrow(evidence.dt)
-        evidence.dt<-evidence.dt[minIcount < 2]
-        n2<-nrow(evidence.dt)
-        if(n2 < n1){
-          levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
-        }
-      }
-      evidence.dt[, minIcount := NULL]
-    }  
-    # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
-    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
-    ## Rename the intensity columns
-    setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
-    ## Merge with the evidence.dt.seqCounts table
-    evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)
+    setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID)    
   }
+  ## Calculate identified peptide counts per protein for each condition/label and replicate in the following three steps
+  # 1. For each condition (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
+  evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
+  # 2. Add a column flagging the common, between conditions/labels, sequences.
+  # In case of more than two conditions/labels, the flag designates that there are at least two conditions/labels where the peptide is common
+  evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]    
+  # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
+  evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
+  # 4. Calculate the percentage columns
+  evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
+  ## Rename the peptide counts columns
+  setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))    
+  ## Calculate the protein intensity = (sum of unique peptide intensities) for each condition/label and replicate in the following two steps
+  if(LabelFree){
+    # 1. Cast the data so that we have columns for each label and intensity separately
+    evidence.dt<-dcast.data.table(evidence.dt, rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=0)    
+  }else{
+    # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
+    evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
+  }
+  
+  ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
+  if(filterL && filterL_lvl){
+    minI<-min(evidence.dt[,get(conditions.labels)])
+    for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
+      evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
+      n1<-nrow(evidence.dt)
+      evidence.dt<-evidence.dt[minIcount < 2]
+      n2<-nrow(evidence.dt)
+      if(n2 < n1){
+        levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
+      }
+    }
+    evidence.dt[, minIcount := NULL]
+  }
+  # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each condition/label and replicate
+  evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+  ## Rename the intensity columns
+  setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
+  ## Merge with the evidence.dt.seqCounts table
+  evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)  
+  
   # Add the experimental structure information to evidence.dt based on rep_desc (raw file at this point has no information and is dropped)
   evidence.dt<-merge(evidence.dt ,data.table(.GlobalEnv[["rep_structure"]][! duplicated(.GlobalEnv[["rep_structure"]]$rep_desc), !grepl('raw_file', colnames(.GlobalEnv[["rep_structure"]]))]), by='rep_desc')
   ## If we have fractionation, combine fraction data (sum intensities and unique sequence counts accross fractions)
