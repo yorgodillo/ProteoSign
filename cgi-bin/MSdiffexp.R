@@ -660,6 +660,20 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
     # 1. Cast the data so that we have columns for each label and intensity separately
     evidence.dt<-dcast.data.table(evidence.dt, rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=0)
+    ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
+    if(filterL && filterL_lvl){
+      minI<-min(evidence.dt[,get(conditions.labels)])
+      for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
+        evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
+        n1<-nrow(evidence.dt)
+        evidence.dt<-evidence.dt[minIcount < 2]
+        n2<-nrow(evidence.dt)
+        if(n2 < n1){
+          levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
+        }
+      }
+      evidence.dt[, minIcount := NULL]
+    }
     # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
     evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
     ## Rename the intensity columns
@@ -684,6 +698,20 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
     # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
     evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]
+    ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
+    if(filterL && filterL_lvl){
+      minI<-min(evidence.dt[,get(conditions.labels)])
+      for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
+        evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
+        n1<-nrow(evidence.dt)
+        evidence.dt<-evidence.dt[minIcount < 2]
+        n2<-nrow(evidence.dt)
+        if(n2 < n1){
+          levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
+        }
+      }
+      evidence.dt[, minIcount := NULL]
+    }  
     # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
     evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
     ## Rename the intensity columns
@@ -713,6 +741,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
     levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "'-modified peptides ..."));
   }
+
   ## Cast the table to the following format
   # Protein.IDs Intensity.[<rep_desc_X>.<label/condition_Y> ...] [<rep_desc_X>.Ratio.counts ...] [<rep_desc_X>.uniqueSequences ...] time.point [<label/condition_Y> ...] [<label/condition_Y>p ...]
   
@@ -1778,8 +1807,8 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
