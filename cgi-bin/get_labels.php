@@ -64,8 +64,12 @@ function get_labels($data_file, $labelmatch_re, $labeldefcol_re, $labeldef_re) {
             while ($labeldefcol > -1 && ($data = fgetcsv($handle, 0, "\t")) !== FALSE) {
                $matches = [];
                $row++;
-               #echo "SEARCHING line $row: $data[$labeldefcol]\n";
+               //echo "SEARCHING line $row: $data[$labeldefcol]\n";
                $rawdata_filename_wext = $data[$labeldefcol];
+               if(!array_key_exists($rawdata_filename_wext, $labels_defs)){
+                  $labels_defs[$rawdata_filename_wext] = 1;
+               }
+               /*
                if (preg_match_all('/(.+?)(\.[^.]*$|$)/', $rawdata_filename_wext, $matches) > 0) {
                   foreach ($matches[1] as $match) {
                      if (strlen($match) > 1 && !array_key_exists($match, $labels_defs)) {
@@ -74,6 +78,7 @@ function get_labels($data_file, $labelmatch_re, $labeldefcol_re, $labeldef_re) {
                      }
                   }
                }
+               */
             }
          }
       }

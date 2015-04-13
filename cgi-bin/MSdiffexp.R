@@ -12,6 +12,7 @@ options(warn=1)
 #if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
 #if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
 #if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
+#if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
 
 library(limma)
 library(statmod)
@@ -20,6 +21,7 @@ library(plyr)
 library(ggplot2)
 library(labeling)
 library(gtools)
+library(data.table)
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)
 debuglog <- 10
@@ -591,6 +593,151 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 	return(results)
 }
 
+read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
+  levellog("",change=1)
+  levellog("Reading data file ...");
+  evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
+  colnames(evidence)[grepl('Protein.Group.Accessions',colnames(evidence))]<-'Protein.IDs'
+  levellog(paste("read.pgroups_v3_PD: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")",sep=""))
+  n1<-nrow(evidence)
+  evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
+  levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
+  # Assign defined labels (conditions), one for each PSM record
+  if(LabelFree){
+    cond_spec_col<-"Spectrum.File"
+  }else{
+    cond_spec_col<-"Modifications"
+  }
+  evidence$label_<-NA
+  background_species_lbl<-NA
+  for(i in 1:length(conditions.labels)){
+    for(cond_i_spec in conditions.labels.Modifications[[i]]){
+      if(nchar(cond_i_spec) > 0){
+        mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
+        evidence[mi,]$label_<-conditions.labels[i]
+      }else{
+        # if the label specification is the empty string
+        # it means that we have background / unlabelled species that we need treat as 'labeled'.
+        # In such case, we shouldn't remove any NA-assigned label_ record after this loop.
+        # So set a flag in order to set the label for the NA records after the loop.
+        background_species_lbl<-conditions.labels[i]
+      }
+    }
+  }
+  mi<-which(is.na(evidence$label_))
+  if(is.na(background_species_lbl)){
+    if(length(mi) > 0){
+      evidence<-evidence[-mi,]
+      levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned label: ",length(mi),sep=""))
+    }
+  }else{
+    evidence[mi,]$label_<-background_species_lbl
+  }
+  # Now add the experimental structure information
+  evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c('Spectrum.File'), by.y=c('raw_file'))
+  
+  # Bring Labeled or Label-free data to the following common format (table headers):
+  # rep_desc Protein.IDs UniqueSequences.Intensity.condition_1 ... UniqueSequences.Intensity.condition_N Intensity.condition_1 ... Intensity.condition_N
+  
+  levellog("read.pgroups_v3_PD: Standarizing data format ...")
+  if(LabelFree){
+    evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', 'Intensity','label_', 'rep_desc')])
+    setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID, label_)
+    # Get maximum PSM intensity per peptide/protein/[(rep_desc/label) = raw_file]
+    evidence.dt<-evidence.dt[, .(maxI=max(Intensity)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)]
+    ## Calculate identified peptide counts per protein for each condition/label and replicate in the following three steps
+    # 1. For each condition (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
+    evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
+    # 2. Collapse the records for each protein (per replicate) and count the TRUEs.
+    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=conditions.labels]
+    # 3. Calculate the percentage columns
+    evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
+    ## Rename the peptide counts columns
+    setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))    
+    ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
+    # 1. Cast the data so that we have columns for each label and intensity separately
+    evidence.dt<-dcast.data.table(evidence.dt, rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=0)
+    # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
+    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+    ## Rename the intensity columns
+    setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
+    ## Merge with the evidence.dt.seqCounts table
+    evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)
+  }else{
+    evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
+    setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID)
+    ## Calculate identified peptide counts per protein for each label and replicate in the following three steps
+    # 1. For each label (per sequnce, protein and replicate), set a corresponding column to TRUE if there are > 0 evidence.dt (PSMs) records, FALSE otherwise
+    evidence.dt.seqCounts<-dcast.data.table(evidence.dt[, .(n=.N > 0), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)], rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=FALSE)
+    # 2. Collapse the records for each protein (per replicate) and count the TRUEs.
+    evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=conditions.labels]
+    # 3. Calculate the percentage columns
+    evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
+    ## Rename the peptide counts columns
+    setnames(evidence.dt.seqCounts,colnames(evidence.dt.seqCounts)[which(colnames(evidence.dt.seqCounts) %in% conditions.labels)],paste('UniqueSequences',conditions.labels,sep='.'))        
+    ## Calculate the protein intensity = (sum of unique peptide intensities) for each label and replicate in the following two steps
+    # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
+    evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]
+    # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each label and replicate
+    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+    ## Rename the intensity columns
+    setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
+    ## Merge with the evidence.dt.seqCounts table
+    evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)
+  }
+  # Add the experimental structure information to evidence.dt based on rep_desc (raw file at this point has no information and is dropped)
+  evidence.dt<-merge(evidence.dt ,data.table(.GlobalEnv[["rep_structure"]][! duplicated(.GlobalEnv[["rep_structure"]]$rep_desc), !grepl('raw_file', colnames(.GlobalEnv[["rep_structure"]]))]), by='rep_desc')
+  ## If we have fractionation, combine fraction data (sum intensities and unique sequence counts accross fractions)
+  if(length(unique(evidence.dt$fraction)) > 1){
+    # Drop rep_desc and the percentages columns as we will generate a new ones after combining the fraction data.
+    # Also drop the fraction col.
+    evidence.dt[, c('rep_desc', 'fraction', paste0(conditions.labels,'p')) := NULL] 
+    #
+    setkey(evidence.dt, biorep, techrep, Protein.IDs)
+    # Combine
+    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(biorep, techrep, Protein.IDs)]
+    # Calculate the percentage columns
+    evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
+  }
+  ## If enabled, do filter out proteins based on percentage labeling for the desired label
+  if(filterL && !filterL_lvl){
+    n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
+    evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
+    levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "'-modified peptides ..."));
+    # Create new rep_desc column
+    evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]
+  }
+  ## Cast the table to the following format
+  # Protein.IDs Intensity.[<rep_desc_X>.<label/condition_Y> ...] [<rep_desc_X>.Ratio.counts ...] [<rep_desc_X>.uniqueSequences ...] time.point [<label/condition_Y> ...] [<label/condition_Y>p ...]
+  
+  # Step 1: For each 'rep_desc', add to a growing dataframe the evidence.dt data, renaming the columns accordingly
+  setkey(evidence.dt, Protein.IDs)
+  pgroups<-data.frame(Protein.IDs = unique(evidence.dt)$Protein.IDs)
+  setkey(evidence.dt, rep_desc)
+  for(rep_desc_i in unique(evidence.dt)$rep_desc){
+      rep_desc_i_pgroups<-data.frame(evidence.dt[rep_desc == rep_desc_i,])
+      allcols<-colnames(rep_desc_i_pgroups)
+      # Rename Intensity cols
+      colsl<-grepl('^Intensity' ,allcols)
+      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^Intensity(.+)$",paste("Intensity\\1",rep_desc_i,sep='.'), allcols[colsl])
+      # Rename UniqueSequences cols
+      colsl<-grepl('^UniqueSequences' ,allcols)
+      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^UniqueSequences(.+)$",paste(rep_desc_i,"uniqueSequences\\1",sep='.'), allcols[colsl])      
+      # Rename 'p' (percentage) cols
+      colsl<-allcols %in% paste0(conditions.labels,'p')
+      colnames(rep_desc_i_pgroups)[colsl]<-gsub("^(.+)$",paste("\\1",rep_desc_i,sep='.'), allcols[colsl])      
+      # add to the growing data frame
+      pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')])
+  }
+  # Step 2: Calculate the missing columns required by the target format and drop the unnecessary columns
+  
+  ##
+  levellog(paste0("read.pgroups_v3_PD: Quantifiable proteins: ",length(unique(evidence.dt[,Protein.IDs]))," (",time.point,")"))
+  levellog("",change=-1)
+  ## 
+  return(as.data.frame(evidence.dt))  
+}
+
 
 ## PATCHED -- number of conditions/labels-indpendent function
 read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
@@ -675,7 +822,7 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       new_evidence[,cond_i]<-NA
     }
     for(i in 1:length(conditions.labels)){
-      tmpvec<-new_evidence$Spectrum.File %in% paste(unlist(conditions.labels.Modifications[i]),".raw",sep="")
+      tmpvec<-toupper(new_evidence$Spectrum.File) %in% toupper(paste(unlist(conditions.labels.Modifications[i]),".RAW",sep=""))
       new_evidence[tmpvec,conditions.labels[i]]<-new_evidence[tmpvec,"oldIntensity"]
     }
     old_evidence<-evidence
@@ -766,14 +913,18 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
   
   # For the label-free case: multiplex conditions so we have the same data format downstream, i.e. as with labelled experiments
-  #TODO: fix rep_desc
   if(LabelFree){
     tmp_rep_desc<-c()
     for(i in 1:nConditions){
-      tmp_rep_desc[[i]]<-paste("c",i,rep_structure$rep_desc,sep="")
-      levels(melted_subtotals$Spectrum.File)[which(levels(melted_subtotals$Spectrum.File) %in% paste(conditions.labels.Modifications[[i]],".raw",sep=""))]<-tmp_rep_desc[[i]]
+      tmp_rep_desc[[i]]<-paste("c",i,.GlobalEnv[["rep_structure"]]$rep_desc,sep="")
+      cond_files<-toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep=""))
+      idxs<-which(toupper(levels(melted_subtotals$Spectrum.File)) %in% toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep="")))
+      l<-data.frame(raw_file=as.character(levels(melted_subtotals$Spectrum.File)[idxs]))
+      tmp_rep_struct<-.GlobalEnv[["rep_structure"]][which(toupper(.GlobalEnv[["rep_structure"]]$raw_file) %in% toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep=""))),]
+      tmp_rep_struct$rep_desc<-paste("c",i,tmp_rep_struct$rep_desc,sep="")
+      m<-merge(l, tmp_rep_struct)
+      levels(melted_subtotals$Spectrum.File)[idxs]<-m$rep_desc
     }
-    rep_desc<-unlist(tmp_rep_desc)
     melted_subtotals$brtr<-NA
     biorep_techrep<-regmatches(levels(melted_subtotals$Spectrum.File), regexpr("b.*", levels(melted_subtotals$Spectrum.File)))
     for(i in 1:length(levels(melted_subtotals$Spectrum.File))){
@@ -788,16 +939,20 @@ read.pgroups_v2_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }
   
   if(ProteinQuantitation){
-    if(LabelFree){
-      pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$brtr,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
-    }else{
-      # if we have fractions, we have to redefine the rep structure and perform fraction sums for uniqueSequences, Ratio counts etc ...
-      if((.GlobalEnv[["n_techreps"]] * .GlobalEnv[["n_bioreps"]]) < nrow(rep_structure)){
+    # if we have fractions, we have to redefine the rep structure and perform fraction sums for uniqueSequences, Ratio counts etc ...
+    if((.GlobalEnv[["n_techreps"]] * .GlobalEnv[["n_bioreps"]]) < nrow(rep_structure)){
+      if(LabelFree){
+        melted_subtotals<-merge(melted_subtotals,data.frame(brtr=rep_structure$rep_desc,biorep=rep_structure$biorep,techrep=rep_structure$techrep,fraction=rep_structure$fraction))
+      }else{
         melted_subtotals<-merge(melted_subtotals,data.frame(Spectrum.File=rep_structure$rep_desc,biorep=rep_structure$biorep,techrep=rep_structure$techrep,fraction=rep_structure$fraction))
-        melted_subtotals$Spectrum.File<-factor(paste('b',melted_subtotals$biorep,'t',melted_subtotals$techrep,sep=''))
-        pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
-        rep_structure$rep_desc<-paste('b',rep_structure$biorep,'t',rep_structure$techrep,sep='')
-        rep_structure<-unique(rep_structure[,c('biorep','techrep','rep_desc')])
+      }
+      melted_subtotals$Spectrum.File<-factor(paste('b',melted_subtotals$biorep,'t',melted_subtotals$techrep,sep=''))
+      pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$brtr,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
+      rep_structure$rep_desc<-paste('b',rep_structure$biorep,'t',rep_structure$techrep,sep='')
+      rep_structure<-unique(rep_structure[,c('biorep','techrep','rep_desc')])      
+    }else{
+      if(LabelFree){
+        pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$brtr,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
       }else{
         pgroups<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
       }
@@ -1149,14 +1304,19 @@ id_Venn3_pgroups_PD<-function(fname,evidence_fname,time.point,filterL=F){
   
   melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
   
-  #TODO: fix rep_desc
+  # For the label-free case: multiplex conditions so we have the same data format downstream, i.e. as with labelled experiments
   if(LabelFree){
     tmp_rep_desc<-c()
     for(i in 1:nConditions){
-      tmp_rep_desc[[i]]<-paste("c",i,rep_desc,sep="")
-      levels(melted_subtotals$Spectrum.File)[which(levels(melted_subtotals$Spectrum.File) %in% paste(conditions.labels.Modifications[[i]],".raw",sep=""))]<-tmp_rep_desc[[i]]
+      tmp_rep_desc[[i]]<-paste("c",i,.GlobalEnv[["rep_structure"]]$rep_desc,sep="")
+      cond_files<-toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep=""))
+      idxs<-which(toupper(levels(melted_subtotals$Spectrum.File)) %in% toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep="")))
+      l<-data.frame(raw_file=as.character(levels(melted_subtotals$Spectrum.File)[idxs]))
+      tmp_rep_struct<-.GlobalEnv[["rep_structure"]][which(toupper(.GlobalEnv[["rep_structure"]]$raw_file) %in% toupper(paste(conditions.labels.Modifications[[i]],".RAW",sep=""))),]
+      tmp_rep_struct$rep_desc<-paste("c",i,tmp_rep_struct$rep_desc,sep="")
+      m<-merge(l, tmp_rep_struct)
+      levels(melted_subtotals$Spectrum.File)[idxs]<-m$rep_desc
     }
-    rep_desc<-unlist(tmp_rep_desc)
     melted_subtotals$brtr<-NA
     biorep_techrep<-regmatches(levels(melted_subtotals$Spectrum.File), regexpr("b.*", levels(melted_subtotals$Spectrum.File)))
     for(i in 1:length(levels(melted_subtotals$Spectrum.File))){
@@ -1591,8 +1751,9 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/1427884892870/msdiffexp_wd/MSdiffexp_definitions.R")
-source("MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
   levellog("",change=1)
@@ -1658,6 +1819,7 @@ perform_analysis<-function(){
   close(evidence_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
+    protein_groups<<-read.pgroups_v3_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
