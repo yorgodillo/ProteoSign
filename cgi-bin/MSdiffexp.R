@@ -599,6 +599,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
   colnames(evidence)[grepl('Protein.Group.Accessions',colnames(evidence))]<-'Protein.IDs'
   levellog(paste("read.pgroups_v3_PD: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")",sep=""))
+  
   n1<-nrow(evidence)
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
   levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
@@ -635,6 +636,14 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }
   # Now add the experimental structure information
   evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c('Spectrum.File'), by.y=c('raw_file'))
+  
+  ## Generate Venn data for the identified proteins and output to a file
+  levellog("read.pgroups_v3_PD: Generating ID Venn data ...")
+  tmp.table<-data.table(evidence[, c('Protein.IDs', 'biorep', 'techrep', 'fraction')])
+  setkey(tmp.table,  Protein.IDs, biorep, techrep, fraction)
+  setwd(limma_output)
+  write.table(tmp.table[, .(n=.N), by=.(Protein.IDs,rep=biorep)][,.(Protein.IDs,rep)],file=paste0(outputFigsPrefix,"_id_venn3-data_",time.point,".txt"),sep="\t",row.names=F)
+  setwd("..")    
   
   # Bring Labeled or Label-free data to the following common format (table headers):
   # rep_desc Protein.IDs UniqueSequences.Intensity.condition_1 ... UniqueSequences.Intensity.condition_N Intensity.condition_1 ... Intensity.condition_N
@@ -711,9 +720,17 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(filterL && !filterL_lvl){
     n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
     evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
-    levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "'-modified peptides ..."));
+    levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
   }
 
+  ## Generate Venn data for the identified proteins and output to a file
+  levellog("read.pgroups_v3_PD: Generating quant Venn data ...")
+  setwd(limma_output)
+  # Get protein IDs that were identified/quantified in at least 'nRequiredLeastBioreps' biological replicates
+  Protein.IDs.quant<-evidence.dt[, .(nTechrep=.N), by=.(Protein.IDs, biorep)][, .(pass=.N >= (.GlobalEnv[["nRequiredLeastBioreps"]])), by=.(Protein.IDs)][pass == T, Protein.IDs]
+  write.table(evidence.dt[Protein.IDs %in% Protein.IDs.quant, .(Protein.IDs, rep=biorep)],file=paste0(outputFigsPrefix,"_quant_venn3-data-",.GlobalEnv[["nRequiredLeastBioreps"]],"reps_",time.point,".txt"),sep="\t",row.names=F)
+  setwd("..")
+  
   ## Cast the table to the following format
   # Protein.IDs Intensity.[<rep_desc_X>.<label/condition_Y> ...] [<rep_desc_X>.Ratio.counts ...] [<rep_desc_X>.uniqueSequences ...] time.point [<label/condition_Y> ...] [<label/condition_Y>p ...]
   
@@ -1591,36 +1608,6 @@ filter_unlabeled_proteins<-function(protein_groups,evidence,filterL_lbl="")
 	return(protein_groups)
 }
 
-# VALIDATION HELP
-# For MaxQuant only, for PD this can be done much better through its GUI
-getValidationData<-function(pgroups_fname,diffexp_fname,evidence_fname,output_fname){
-	diffexp<-read.table(diffexp_fname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
-	protein_groups<-read.table(pgroups_fname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
-	evidence<-read.table(evidence_fname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
-	
-	colnames(diffexp)<-gsub("^X.","",colnames(diffexp))
-	colnames(diffexp)<-gsub(".$","",colnames(diffexp))
-
-	protein_groups$Protein.IDs<-paste(sub("^([^;]*).*","\\1",protein_groups$Protein.names)," [",sub("^([^;]*).*","\\1",protein_groups$Gene.names)," ...] [",sub("^([^;]*).*","\\1",protein_groups$Protein.IDs)," ...]",sep="")
-	protein_groups$Protein.IDs<-gsub("\"","",protein_groups$Protein.IDs)
-	diffexp$Protein.IDs<-gsub("\"","",diffexp$Protein.IDs)
-	protein_groups<-protein_groups[protein_groups$Protein.IDs %in% diffexp$Protein.IDs,]
-	diffexp_evidence<-as.data.frame(do.call(rbind,apply(protein_groups,1,function(x) cbind(x["Protein.IDs"],unlist(strsplit(x["Evidence.IDs"],";"))))),stringsAsFactors=F)
-	colnames(diffexp_evidence)<-c("Protein.IDs","Evidence.ID")
-	diffexp_evidence$Protein.IDs<-factor(diffexp_evidence$Protein.IDs)
-	diffexp_evidence$Evidence.ID<-as.numeric(diffexp_evidence$Evidence.ID)
-	evidence<-evidence[,c("id","Sequence","Labeling.State","Raw.file","MS.MS.Scan.Number","m.z","Charge","Mass.Error..ppm.","K.Count","R.Count")]
-	colnames(evidence)<-c("Evidence.ID","Sequence","Labeling.State","Raw.file","MS.MS.Scan.Number","m.z","Charge","Mass.Error.ppm.","K.Count","R.Count")
-	diffexp_evidence<-merge(diffexp_evidence,diffexp,by="Protein.IDs",all.x=T)
-	diffexp_evidence<-merge(diffexp_evidence,evidence,by="Evidence.ID",all.x=T)
-	write.table(diffexp_evidence,file=output_fname,sep="\t",row.names=F)
-}
-
-#getValidationData(pgroups_fname="QuaNCATrev_IV_4h_proteinGroups.txt",
-#diffexp_fname="QuaNCAT-rev_IV_4h_HM-all-2reps_diffexp_4h.txt",
-#evidence_fname="QuaNCATrev_IV_4h_evidence.txt",
-#output_fname="QuaNCATrev_IV_4h_HM-all-2reps_diffexpevidence.txt")
-
 # Again, for MaxQuant only
 getProteinPeptideData_2reps_filter<-function(pgroups_fname,evidence_fname,output_fname,time.point, filterL=T,linkLimmaout=F,limma_outfname=""){
 	protein_groups<-read.pgroups_v2(pgroups_fname,time.point,filterL=filterL,evidence_fname=evidence_fname,keepEvidenceIDs=T)
@@ -1642,15 +1629,6 @@ getProteinPeptideData_2reps_filter<-function(pgroups_fname,evidence_fname,output
 	}
 	write.table(peptide_evidence,file=output_fname,sep="\t",row.names=F)
 }
-
-#getProteinPeptideData_2reps_filter(
-#"QuaNCATrev_IV_2h_proteinGroups.txt",
-#"QuaNCATrev_IV_2h_evidence.txt",
-#"QuaNCATrev_IV_2h_HM-all-2reps_evidence.txt",
-#"2h",
-#filterL=T,
-#linkLimmaout=T,
-#limma_outfname="QuaNCAT-rev_IV_2h_HM-all-2reps_limmaout_2h.txt")
 
 #GLOBAL variables
 
@@ -1779,14 +1757,14 @@ paramssetfromGUI<-F
 working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
   levellog("",change=1)
   setwd(working_directory)
-  # v3
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
   
@@ -1816,24 +1794,9 @@ perform_analysis<-function(){
   }
   
   .GlobalEnv[["rep_structure"]]<-rep_structure
-
-  # rep_structure<<-rep(1:(bioreps*nConditions),each=techreps)
-  # The next allows different number of techreps per biorep, given that techreps is now a vector. This is the major feature of v3 (above, the old version of the statement)
-  #rep_structure<<-rep(1:(bioreps*nConditions),times=rep(techreps,times=nConditions))
-  
-  #not_rep_dup<-which(!duplicated(rep_structure))
-  
   .GlobalEnv[["n_bioreps"]]<-max(rep_structure$biorep)
   .GlobalEnv[["n_techreps"]]<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
-  #i_bioreps<<-not_rep_dup[1:n_bioreps]
-  
-  #tmp<-rep(paste('b',1:n_bioreps,sep=''),times=techreps)
-  #tmp2<-c()
-  #for(brep_i in paste('b',1:n_bioreps,sep='')){
-  #  tmp2<-c(tmp2,paste('t',1:length(which(brep_i==tmp)),sep=''))
-  #}
-  #rep_desc<<-paste(tmp,tmp2,sep='')
-  
+    
   if(ProteinQuantitation){
     quantitated_items_lbl<<-"Protein"
   }else{
@@ -1848,7 +1811,7 @@ perform_analysis<-function(){
   levellog("Reading input data ...")
   if(PDdata){
     protein_groups<<-read.pgroups_v3_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
-    protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
+    #protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
     levellog("Removing double quotes from input data file #2 ...")
@@ -1875,68 +1838,14 @@ perform_analysis<-function(){
   levellog("Performing the analysis ...")
   results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
   levellog("Data analysis finished.")
-  if(!PDdata & mqValidation){
-    getValidationData(pgroups_fname=pgroups_fname,
-                      diffexp_fname=paste(outputFigsPrefix,"-all-2reps_diffexp_",time.point,".txt",sep=""),
-                      evidence_fname=evidence_fname,
-                      output_fname=paste(outputFigsPrefix,"-all-2reps_diffexpevidence_",time.point,".txt",sep=""))
-    
-    getProteinPeptideData_2reps_filter(
-      pgroups_fname,
-      evidence_fname,
-      paste(outputFigsPrefix,"-all-2reps_evidence.txt",sep=""),
-      time.point,
-      filterL=filterL,
-      linkLimmaout=T,
-      limma_outfname=paste(outputFigsPrefix,"-all-2reps_limmaout_",time.point,".txt",sep=""))			
-  }
   levellog("",change=-1)
   return(T)
 }
 
 #================ PRODUCTION ===============
 
-if(GUI & !paramssetfromGUI){
-  
+if(GUI & !paramssetfromGUI){  
 }else{
   perform_analysis()
 }
 
-
-#================ TESTING ===============
-# nParams<-4
-# nCombs<-2^nParams
-# combs_to_test<-(nCombs-1):0
-# combs_to_test<-combs_to_test[1]
-# for(ci in combs_to_test){
-#   #Binary representation of ci reveals the parameter combination, because each param is a binary variable
-#   #Assumes that integer is a 32-bit variable (it doesn't have to do with machine architecture, apparently)
-#   paramset<-as.numeric(unlist(strsplit(substring(paste(rev(as.integer(intToBits(ci))), collapse=""),32-nParams+1),"")))
-#   PDdata<-paramset[1]
-#   ProteinQuantitation<-paramset[2]
-#   filterL<-paramset[3]
-#   filterL_lvl<-paramset[4]
-#   
-#   if(PDdata){
-#     pgroups_fname <- "PD_psms.txt"
-#     evidence_fname <- pgroups_fname
-#   }else{
-#     pgroups_fname <- "MQ_proteingroups.txt"
-#     evidence_fname <- "MQ_evidence.txt"
-#     fname<-pgroups_fname  
-#   }  
-#   cat(paste("Executing with paramset #",(ci+1)," {PDdata, ProteinQuantitation, filterL, filterL_lvl}={",PDdata,",", ProteinQuantitation,",", filterL,",", filterL_lvl, "} ...\n",sep=""))
-#   #cat(paste("Execute with paramset #",(ci+1)," {PDdata, ProteinQuantitation, filterL, filterL_lvl}={",PDdata,",", ProteinQuantitation,",", filterL,",", filterL_lvl, "} ?[y/n]",sep=""))
-#   #ans <- readline("")
-#   #if (substr(ans, 1, 1) != "n"){
-#     outputFigsPrefix <- paste(c("TEST-",(ci+1),"__",PDdata, ProteinQuantitation, filterL, filterL_lvl),sep="",collapse="_")
-#     perform_analysis()
-#     file.copy(c("curr_exp_design.txt"), limma_output)
-#     setwd(limma_output)
-#     dir.create(outputFigsPrefix)
-#     files_produced<-list.files(".", "\\.(pdf|txt)$", full.names = TRUE)
-#     file.copy(files_produced, outputFigsPrefix)
-#     file.remove(files_produced)
-#     setwd("..")
-#   #}  
-# }
