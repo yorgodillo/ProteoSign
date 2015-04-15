@@ -603,7 +603,17 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   n1<-nrow(evidence)
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
   levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
-  # Assign defined labels (conditions), one for each PSM record
+  ## Make Protein.IDs human-readable
+  tmp.table<-data.table(cbind(evidence[, c('Protein.IDs', 'Protein.Descriptions')], i=1:nrow(evidence)))
+  setkey(tmp.table, Protein.IDs)
+  # Generate data.table with unique Protein.IDs
+  tmp.table2<-tmp.table[,.(n=.N),by=Protein.IDs]
+  setkey(tmp.table2, Protein.IDs)
+  # Make a new protein description column in other data.table
+  tmp.table[, pdesc := paste0(Protein.IDs, ' [',strtrim(Protein.Descriptions, 50), ' ...]')]
+  # set the Protein.IDs in the original data frame
+  evidence$Protein.IDs<-tmp.table2[tmp.table][order(i),pdesc]
+  ## Assign defined labels (conditions), one for each PSM record
   if(LabelFree){
     cond_spec_col<-"Spectrum.File"
   }else{
@@ -679,22 +689,21 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
   }
   
-  ## If enabled, do filter out peptides where a certain pairs of 'channels' (one of them being the channel filterL_lbl) have noise-level intensity
+  ## If enabled, do filter out peptides where all 'channels' except filterL_lbl channel have noise-level intensity
   if(filterL && filterL_lvl){
     minI<-min(evidence.dt[,get(conditions.labels)])
-    for(lbl_i in conditions.labels[! conditions.labels %in% filterL_lbl]){
-      evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=c(filterL_lbl, lbl_i)]
-      n1<-nrow(evidence.dt)
-      evidence.dt<-evidence.dt[minIcount < 2]
-      n2<-nrow(evidence.dt)
-      if(n2 < n1){
-        levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in two channels, one of them being the '", filterL_lbl,"' channel ..."));
-      }
+    evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=conditions.labels[! conditions.labels %in% filterL_lbl]]
+    n1<-nrow(evidence.dt)
+    evidence.dt<-evidence.dt[minIcount < (nConditions - 1)]
+    n2<-nrow(evidence.dt)
+    if(n2 < n1){
+      levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in all channels except the '", filterL_lbl,"' channel ..."));
     }
     evidence.dt[, minIcount := NULL]
   }
+  
   # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each condition/label and replicate
-  evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+  evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
   ## Rename the intensity columns
   setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
   ## Merge with the evidence.dt.seqCounts table
@@ -710,7 +719,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     #
     setkey(evidence.dt, biorep, techrep, Protein.IDs)
     # Combine
-    evidence.dt<-evidence.dt[, lapply(.SD, sum), by=.(biorep, techrep, Protein.IDs)]
+    evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(biorep, techrep, Protein.IDs)]
     # Calculate the percentage columns
     evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
     # Create new rep_desc column
@@ -757,7 +766,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       colsl<-allcols %in% c('common')
       colnames(rep_desc_i_pgroups)[colsl]<-paste(rep_desc_i,'Ratio.counts',sep='.')
       # merge with the growing data frame
-      pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')])
+      pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')], all.x = T)
   }
   # Step 2: Calculate the columns [<label/condition_Y> ...] [<label/condition_Y>p ...]
   allcols<-colnames(pgroups)
@@ -1802,7 +1811,10 @@ perform_analysis<-function(){
   }else{
     quantitated_items_lbl<<-"Peptide"
   }
-  if(!file.exists(limma_output)){dir.create(limma_output)}
+  if(file.exists(limma_output)){
+    unlink(limma_output, recursive=T, force=T)
+  }
+  dir.create(limma_output)
   levellog("Removing double quotes from input data file #1 ...")
   tmpdata<-gsub("\"", "", readLines(evidence_fname))
   evidence_fname_cleaned<-file(evidence_fname, open="w")
@@ -1812,7 +1824,7 @@ perform_analysis<-function(){
   if(PDdata){
     protein_groups<<-read.pgroups_v3_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     #protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
-    do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
+    #do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
     levellog("Removing double quotes from input data file #2 ...")
     tmpdata<-gsub("\"", "", readLines(pgroups_fname))
@@ -1836,7 +1848,9 @@ perform_analysis<-function(){
   exp_design_fname<<-"curr_exp_design.txt"
   
   levellog("Performing the analysis ...")
-  results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
+  #results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
+  do_limma_analysis(prepare_working_pgroups(protein_groups),time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
+  
   levellog("Data analysis finished.")
   levellog("",change=-1)
   return(T)
