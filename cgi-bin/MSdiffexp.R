@@ -593,62 +593,71 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 	return(results)
 }
 
-read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
+read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("",change=1)
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
-  colnames(evidence)[grepl('Protein.Group.Accessions',colnames(evidence))]<-'Protein.IDs'
-  levellog(paste("read.pgroups_v3_PD: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")",sep=""))
+  if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
+  colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
+  levellog(paste("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")",sep=""))
   
   n1<-nrow(evidence)
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
-  levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
+  levellog(paste("read.pgroups_v3: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
   ## Make Protein.IDs human-readable
-  tmp.table<-data.table(cbind(evidence[, c('Protein.IDs', 'Protein.Descriptions')], i=1:nrow(evidence)))
+  if(PDdata){ pgroups_colname<-'Protein.Descriptions' }else{ pgroups_colname<-'Protein.Names' }
+  tmp.table<-data.table(cbind(evidence[, c('Protein.IDs', pgroups_colname)], i=1:nrow(evidence)))
   setkey(tmp.table, Protein.IDs)
   # Generate data.table with unique Protein.IDs
   tmp.table2<-tmp.table[,.(n=.N),by=Protein.IDs]
   setkey(tmp.table2, Protein.IDs)
   # Make a new protein description column in other data.table
-  tmp.table[, pdesc := paste0(Protein.IDs, ' [',strtrim(Protein.Descriptions, 50), ' ...]')]
+  tmp.table[, pdesc := paste0(Protein.IDs, ' [',strtrim(get(pgroups_colname), 50), ' ...]')]
   # set the Protein.IDs in the original data frame
   evidence$Protein.IDs<-tmp.table2[tmp.table][order(i),pdesc]
   ## Assign defined labels (conditions), one for each PSM record
   if(LabelFree){
     cond_spec_col<-"Spectrum.File"
   }else{
-    cond_spec_col<-"Modifications"
+    if(PDdata){ cond_spec_col<-'Modifications' }else{ cond_spec_col<-'Labeling.State' }
   }
   evidence$label_<-NA
   background_species_lbl<-NA
   for(i in 1:length(conditions.labels)){
-    for(cond_i_spec in conditions.labels.Modifications[[i]]){
-      if(nchar(cond_i_spec) > 0){
-        mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
-        evidence[mi,]$label_<-conditions.labels[i]
-      }else{
-        # if the label specification is the empty string
-        # it means that we have background / unlabelled species that we need treat as 'labeled'.
-        # In such case, we shouldn't remove any NA-assigned label_ record after this loop.
-        # So set a flag in order to set the label for the NA records after the loop.
-        background_species_lbl<-conditions.labels[i]
+    if(PDdata){
+      for(cond_i_spec in conditions.labels.Modifications[[i]]){
+        if(nchar(cond_i_spec) > 0){
+          mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
+          evidence[mi,]$label_<-conditions.labels[i]
+        }else{
+          # if the label specification is the empty string
+          # it means that we have background / unlabelled species that we need treat as 'labeled'.
+          # In such case, we shouldn't remove any NA-assigned label_ record after this loop.
+          # So set a flag in order to set the label for the NA records after the loop.
+          background_species_lbl<-conditions.labels[i]
+        }
       }
+    }else{
+      # MQ nomenclature for labels: 0 the first label, 1 the second etc ...
+      mi<-which(grepl((i-1), evidence[, cond_spec_col]))
+      evidence[mi,]$label_<-conditions.labels[i]
     }
   }
   mi<-which(is.na(evidence$label_))
   if(is.na(background_species_lbl)){
     if(length(mi) > 0){
       evidence<-evidence[-mi,]
-      levellog(paste("read.pgroups_v3_PD: Discarded PSM records due to unassigned label: ",length(mi),sep=""))
+      levellog(paste("read.pgroups_v3: Discarded PSM records due to unassigned label: ",length(mi),sep=""))
     }
   }else{
     evidence[mi,]$label_<-background_species_lbl
   }
   # Now add the experimental structure information
-  evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c('Spectrum.File'), by.y=c('raw_file'))
+  if(PDdata){ rawfile_col<-'Spectrum.File' }else{ rawfile_col<-'Raw.file' }
+  evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c(rawfile_col), by.y=c('raw_file'))
   
   ## Generate Venn data for the identified proteins and output to a file
-  levellog("read.pgroups_v3_PD: Generating ID Venn data ...")
+  levellog("read.pgroups_v3: Generating ID Venn data ...")
   tmp.table<-data.table(evidence[, c('Protein.IDs', 'biorep', 'techrep', 'fraction')])
   setkey(tmp.table,  Protein.IDs, biorep, techrep, fraction)
   setwd(limma_output)
@@ -658,14 +667,22 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # Bring Labeled or Label-free data to the following common format (table headers):
   # rep_desc Protein.IDs UniqueSequences.Intensity.condition_1 ... UniqueSequences.Intensity.condition_N Intensity.condition_1 ... Intensity.condition_N
   
-  levellog("read.pgroups_v3_PD: Standarizing data format ...")
+  levellog("read.pgroups_v3: Standarizing data format ...")
+  if(!PDdata){
+    colnames(evidence)[grepl('Peptide.ID',colnames(evidence))]<-'Unique.Sequence.ID'
+    colnames(evidence)[grepl('Intensity\\..+',colnames(evidence))]<-conditions.labels
+  }
   if(LabelFree){
     evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', 'Intensity','label_', 'rep_desc')])
     setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID, label_)
     # Get maximum PSM intensity per peptide/protein/[(rep_desc/label) = raw_file]
     evidence.dt<-evidence.dt[, .(maxI=max(Intensity)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)]    
   }else{
-    evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
+    if(PDdata){
+      evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
+    }else{
+      evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
+    }
     setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID)    
   }
   ## Calculate identified peptide counts per protein for each condition/label and replicate in the following three steps
@@ -685,8 +702,15 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     # 1. Cast the data so that we have columns for each label and intensity separately
     evidence.dt<-dcast.data.table(evidence.dt, rep_desc + Protein.IDs + Unique.Sequence.ID ~ label_, fill=0)    
   }else{
-    # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
-    evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
+    if(PDdata){
+      # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
+      evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
+    }else{
+      # 1. Take the records with Intensity != NA across labels/conditions and for each peptide keep only the PSM record with the highest intensity
+      evidence.dt[, sumI := rowSums(.SD, na.rm = T), .SDcols=conditions.labels]
+      evidence.dt<-evidence.dt[sumI > 0, lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
+      evidence.dt[, sumI := NULL]
+    }
   }
   
   ## If enabled, do filter out peptides where all 'channels' except filterL_lbl channel have noise-level intensity
@@ -697,7 +721,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence.dt<-evidence.dt[minIcount < (nConditions - 1)]
     n2<-nrow(evidence.dt)
     if(n2 < n1){
-      levellog(paste0("read.pgroups_v3_PD: Filtered out ", (n1-n2)," peptides having noise-level intensity in all channels except the '", filterL_lbl,"' channel ..."));
+      levellog(paste0("read.pgroups_v3: Filtered out ", (n1-n2)," peptides having noise-level intensity in all channels except the '", filterL_lbl,"' channel ..."));
     }
     evidence.dt[, minIcount := NULL]
   }
@@ -738,7 +762,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(filterL && !filterL_lvl){
     n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
     evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
-    levellog(paste0("read.pgroups_v3_PD: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
+    levellog(paste0("read.pgroups_v3: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
   }
   
   ## Get protein IDs that were identified/quantified in at least 'nRequiredLeastBioreps' biological replicates
@@ -746,7 +770,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
   
   ## Generate Venn data for the identified proteins and output to a file
-  levellog("read.pgroups_v3_PD: Generating quant Venn data ...")
+  levellog("read.pgroups_v3: Generating quant Venn data ...")
   setwd(limma_output)  
   write.table(evidence.dt[, .(Protein.IDs, rep=biorep)],file=paste0(outputFigsPrefix,"_quant_venn3-data-",.GlobalEnv[["nRequiredLeastBioreps"]],"reps_",time.point,".txt"),sep="\t",row.names=F)
   setwd("..")
@@ -797,7 +821,7 @@ read.pgroups_v3_PD<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   allcols<-colnames(pgroups)
   pgroups<-pgroups[,-which(grepl('uniqueSequences\\.', allcols) | grepl('p\\.b[0-9]+t[0-9]+$', allcols))]
   ##
-  levellog(paste0("read.pgroups_v3_PD: Quantifiable proteins: ", nrow(pgroups)," (",time.point,")"))
+  levellog(paste0("read.pgroups_v3: Quantifiable proteins: ", nrow(pgroups)," (",time.point,")"))
   levellog("",change=-1)
   ## 
   return(pgroups)  
@@ -1327,7 +1351,8 @@ limma_output<-"msdiffexp_out"
 LabelFree<-F
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
@@ -1381,7 +1406,7 @@ perform_analysis<-function(){
   close(evidence_fname_cleaned)
   levellog("Reading input data ...")
   if(PDdata){
-    protein_groups<<-read.pgroups_v3_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
+    protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     #protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
     #do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
@@ -1390,8 +1415,9 @@ perform_analysis<-function(){
     pgroups_fname_cleaned<-file(pgroups_fname, open="w")
     writeLines(tmpdata, con=pgroups_fname_cleaned)
     close(pgroups_fname_cleaned)    
-    protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point,generateVenns=F)
-    do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
+    #protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point,generateVenns=F)
+    protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
+    #do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }
   
   setwd(limma_output)
