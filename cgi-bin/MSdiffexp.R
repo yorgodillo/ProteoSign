@@ -597,9 +597,22 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("",change=1)
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
+  if(!PDdata){
+    n1<-nrow(evidence)
+    evidence<-evidence[nchar(evidence$Reverse) == 0 & nchar(evidence$Contaminant) == 0,]
+    levellog(paste0("read.pgroups_v3: Removed ", (n1 - nrow(evidence))," PSMs belonging to contaminants."))
+  }
   if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
   colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
-  levellog(paste("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")",sep=""))
+  if(!PDdata){
+    # TODO:
+    # For MaxQuant correct protein groups using the protein groups file.
+    # Algo:
+    # Step 1. Extract the Protein.IDs and Peptide.IDs data from the protein groups file.
+    # Step 2. Correct the Protein.IDs accordingly inside the evidence data frame, using the peptide ids.
+  }
+  
+  levellog(paste0("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")"))
   
   n1<-nrow(evidence)
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
@@ -692,7 +705,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # In case of more than two conditions/labels, the flag designates that there are at least two conditions/labels where the peptide is common
   evidence.dt.seqCounts[, 'common' := rowSums(.SD) > 1,.SDcols=conditions.labels]    
   # 3. Collapse the records for each protein (per replicate) and count the TRUEs.
-  evidence.dt.seqCounts<-evidence.dt.seqCounts[,lapply(.SD, function(x){return(length(which(x)))}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
+  # evidence.dt[, .(n.Unique.Sequence.IDs=.N), by=.(rep_desc, Protein.IDs)]
+  evidence.dt.seqCounts<-evidence.dt.seqCounts[,c(n.Unique.Sequence.IDs=.N,lapply(.SD, function(x){return(length(which(x)))})), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels, 'common')]
   # 4. Calculate the percentage columns
   evidence.dt.seqCounts[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(rep_desc,Protein.IDs),.SDcols=c(conditions.labels)]
   ## Rename the peptide counts columns
@@ -713,9 +727,19 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     }
   }
   
+  # Get a the vector of unique peptides intensities
+  tmp.I<-sort(unique(evidence.dt[,get(conditions.labels)]))
+  # If the minimum intensity is zero
+  if(tmp.I[1] == 0){
+    # Replace 0's with minimum intensity (PD can do this automatically for us)
+    minI<-tmp.I[2]
+    evidence.dt[, (conditions.labels) := lapply(.SD, function(x){ t<-which(x == 0); if(length(t) > 0){x[t] <- minI}; return(x) }), .SDcols=conditions.labels]
+  }else{
+    minI<-tmp.I[1]
+  }
+  
   ## If enabled, do filter out peptides where all 'channels' except filterL_lbl channel have noise-level intensity
   if(filterL && filterL_lvl){
-    minI<-min(evidence.dt[,get(conditions.labels)])
     evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=conditions.labels[! conditions.labels %in% filterL_lbl]]
     n1<-nrow(evidence.dt)
     evidence.dt<-evidence.dt[minIcount < (nConditions - 1)]
@@ -728,15 +752,6 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   
   # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each condition/label and replicate
   evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
-  # Get a the vector of unique protein intensities
-  tmp.I<-sort(unique(evidence.dt[,get(conditions.labels)]))
-  # If the minimum intensity is zero
-  if(tmp.I[1] == 0){
-    # Replace 0's with minimum intensity in case the user hasn't set PD to do it.
-    # WARNING: This case should be avoided.
-    minI<-tmp.I[2]
-    evidence.dt[, (conditions.labels) := lapply(.SD, function(x){ t<-which(x == 0); if(length(t) > 0){x[t] <- minI}; return(x) }), .SDcols=conditions.labels]
-  }
   ## Rename the intensity columns
   setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
   ## Merge with the evidence.dt.seqCounts table
@@ -765,8 +780,9 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     levellog(paste0("read.pgroups_v3: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
   }
   
-  ## Get protein IDs that were identified/quantified in at least 'nRequiredLeastBioreps' biological replicates
-  Protein.IDs.quant<-evidence.dt[, .(nTechrep=.N), by=.(Protein.IDs, biorep)][, .(pass=.N >= (.GlobalEnv[["nRequiredLeastBioreps"]])), by=.(Protein.IDs)][pass == T, Protein.IDs]
+  # TODO:
+  ## Get protein IDs that were identified/quantified in at least 'nRequiredLeastBioreps' biological replicate and at least be a total of 2 peptides in at least 'nRequiredLeastBioreps'
+  Protein.IDs.quant<-evidence.dt[, .(nTechrep=.N, n.Unique.Sequence.IDs=sum(n.Unique.Sequence.IDs)), by=.(Protein.IDs, biorep)][, .(pass=.N >= (.GlobalEnv[["nRequiredLeastBioreps"]]) && n.Unique.Sequence.IDs >= (.GlobalEnv[["nRequiredLeastBioreps"]])), by=.(Protein.IDs)][pass == T, Protein.IDs]
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
   
   ## Generate Venn data for the identified proteins and output to a file
@@ -797,8 +813,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       # Rename 'p' (percentage) cols
       colsl<-allcols %in% paste0(conditions.labels,'p')
       colnames(rep_desc_i_pgroups)[colsl]<-gsub("^(.+)$",paste("\\1",rep_desc_i,sep='.'), allcols[colsl])
-      # Rename the 'common' column to <rep_desc_X>.Ratio.counts
-      colsl<-allcols %in% c('common')
+      # Rename the 'n.Unique.Sequence.IDs' column to <rep_desc_X>.Ratio.counts
+      colsl<-allcols %in% c('n.Unique.Sequence.IDs')
       colnames(rep_desc_i_pgroups)[colsl]<-paste(rep_desc_i,'Ratio.counts',sep='.')
       # merge with the growing data frame
       pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')], all.x = T)
@@ -819,7 +835,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   pgroups$time.point<-time.point
   # Step 5: Remove unnecessary columns (uniqueSequences per rep_desc and percentage unique peptides per rep_desc)
   allcols<-colnames(pgroups)
-  pgroups<-pgroups[,-which(grepl('uniqueSequences\\.', allcols) | grepl('p\\.b[0-9]+t[0-9]+$', allcols))]
+  pgroups<-pgroups[,-which(grepl('uniqueSequences\\.', allcols) | grepl('p\\.b[0-9]+t[0-9]+$', allcols) | grepl('^common$', allcols))]
   ##
   levellog(paste0("read.pgroups_v3: Quantifiable proteins: ", nrow(pgroups)," (",time.point,")"))
   levellog("",change=-1)
