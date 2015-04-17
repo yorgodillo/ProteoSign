@@ -597,26 +597,29 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("",change=1)
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
-  if(!PDdata){
-    n1<-nrow(evidence)
-    evidence<-evidence[nchar(evidence$Reverse) == 0 & nchar(evidence$Contaminant) == 0,]
-    levellog(paste0("read.pgroups_v3: Removed ", (n1 - nrow(evidence))," PSMs belonging to contaminants."))
-  }
   if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
   colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
   if(!PDdata){
-    # TODO:
-    # For MaxQuant correct protein groups using the protein groups file.
-    # Algo:
-    # Step 1. Extract the Protein.IDs and Peptide.IDs data from the protein groups file.
-    # Step 2. Correct the Protein.IDs accordingly inside the evidence data frame, using the peptide ids.
+    ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
+    # Construct a table, mapping the correct protein groups IDs (and the corresponding proteins names) to the evidence IDs
+    tmp.table.1<-data.table(do.call(rbind, apply(read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")[,c('Protein.IDs','Protein.names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
+    setnames(tmp.table.1, colnames(tmp.table.1), c('Protein.IDs', 'Protein.Names', 'id'))
+    class(tmp.table.1$id)<-'integer'
+    setkey(tmp.table.1, id)
+    # Get the evidence records
+    tmp.table.2<-data.table(evidence)
+    setkey(tmp.table.2, id)
+    # Remove the incorrect Protein.IDs column
+    tmp.table.2[, c('Protein.IDs', 'Protein.Names') := NULL]
+    # Inner join the mapping table with the evidence table and return the data frame that we ought to have in the first place
+    evidence<-data.frame(tmp.table.1[tmp.table.2])
   }
   
   levellog(paste0("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")"))
   
   n1<-nrow(evidence)
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
-  levellog(paste("read.pgroups_v3: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence)),sep=""))
+  levellog(paste0("read.pgroups_v3: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence))))
   ## Make Protein.IDs human-readable
   if(PDdata){ pgroups_colname<-'Protein.Descriptions' }else{ pgroups_colname<-'Protein.Names' }
   tmp.table<-data.table(cbind(evidence[, c('Protein.IDs', pgroups_colname)], i=1:nrow(evidence)))
