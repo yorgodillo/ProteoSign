@@ -754,7 +754,15 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }
   
   # 2. Calculate the protein intensity (= sum of unique peptide intensities) for each condition/label and replicate
-  evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+  # Also count the number of quantifiable peptides (those which do not have intensity NA)
+  if(LabelFree){
+    # Top three in abundance
+    #evidence.dt<-evidence.dt[, lapply(.SD, function(x){x<-x[!is.na(x)]; x<-sort(x, decreasing<-T); if(length(x)<3){return(sum(x))}else{return(sum(x[1:3]))}}), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+    evidence.dt<-evidence.dt[, c(n=.N, nas=length(which(is.na(.SD))) ,lapply(.SD, function(x){x<-x[!is.na(x)]; x<-sort(x, decreasing<-T); if(length(x)<3){return(sum(x))}else{return(sum(x[1:3]))}})), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels]
+  }else{
+    # All peptides
+    evidence.dt<-evidence.dt[, c(n=.N, nas=length(which(is.na(.SD))) ,lapply(.SD, sum, na.rm = T)), by=.(rep_desc, Protein.IDs), .SDcols=conditions.labels] 
+  }
   ## Rename the intensity columns
   setnames(evidence.dt,colnames(evidence.dt)[which(colnames(evidence.dt) %in% conditions.labels)],paste('Intensity',conditions.labels,sep='.'))
   ## Merge with the evidence.dt.seqCounts table
@@ -783,9 +791,14 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     levellog(paste0("read.pgroups_v3: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
   }
   
-  # TODO:
-  ## Get protein IDs that were identified/quantified in at least 'nRequiredLeastBioreps' biological replicate and at least be a total of 2 peptides in at least 'nRequiredLeastBioreps'
-  Protein.IDs.quant<-evidence.dt[, .(nTechrep=.N, n.Unique.Sequence.IDs=sum(n.Unique.Sequence.IDs)), by=.(Protein.IDs, biorep)][, .(pass=.N >= (.GlobalEnv[["nRequiredLeastBioreps"]]) && n.Unique.Sequence.IDs >= (.GlobalEnv[["nRequiredLeastBioreps"]])), by=.(Protein.IDs)][pass == T, Protein.IDs]
+  # !!!!! Then also move the fractionation combining to the seqCounts calculations (it messes up all the calculations)
+  ## Get protein IDs that were quantified with a total of at least 'nRequiredLeastBioreps' peptides accross biological replicates.
+  # E.g. 1: with 3 replicates, a protein that was quantified by a single peptide in 'nRequiredLeastBioreps' out of the 3 replicates will be retained.
+  # E.g. 2: with 3 replicates, a protein that was quantified by a single peptide in 1 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
+  # E.g. 3: with 3 replicates, a protein that was quantified by a two peptides in at least one of replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
+  # E.g. 4: with 3 replicates, a protein that was quantified by a two peptides in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 4 (retained otherwise).
+  Protein.IDs.quant = evidence.dt[, sum(n-nas) >= .GlobalEnv[["nRequiredLeastBioreps"]] , by=.(Protein.IDs)][V1 == T]$Protein.IDs
+  levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which where identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
   
   ## Generate Venn data for the identified proteins and output to a file
@@ -1369,8 +1382,8 @@ working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
