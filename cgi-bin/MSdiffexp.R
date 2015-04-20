@@ -386,11 +386,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     quant_species<-"peptides"
   }  
 
-  if(.GlobalEnv[["n_bioreps"]]>1){
-    levellog(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(results)," (",time.point,")",sep=""))
-  }else{
-    levellog(paste("do_results_plots: Quantified ",quant_species," (>2 peptides/",.GlobalEnv[["n_techreps"]]," injection(s)): ",nrow(results)," (",time.point,")",sep=""))
-  }  
+  levellog(paste("do_results_plots: Quantified ",quant_species,": ",nrow(results)," (",time.point,")",sep=""))
   
   for(i in 1:nrow(ratio_combs)){
 	col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
@@ -672,6 +668,24 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(PDdata){ rawfile_col<-'Spectrum.File' }else{ rawfile_col<-'Raw.file' }
   evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c(rawfile_col), by.y=c('raw_file'))
   
+  ## If we have fractionation, remake the rep_desc column and don't take into account the fraction number
+  if(length(unique(.GlobalEnv[["rep_structure"]]$fraction)) > 1){
+    evidence$rep_desc <- paste0('b',evidence$biorep,'t',evidence$techrep)
+  }
+  # Drop rep_desc and the percentages columns as we will generate a new ones after combining the fraction data.
+  # Also drop the fraction col.
+  #  evidence.dt[, c('rep_desc', 'fraction', paste0(conditions.labels,'p')) := NULL] 
+  #
+  #  setkey(evidence.dt, biorep, techrep, Protein.IDs)
+  # Combine
+  #  evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(biorep, techrep, Protein.IDs)]
+  # Calculate the percentage columns
+  #  evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
+  # Create new rep_desc column
+  #  evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]    
+  #}  
+  
+  
   ## Generate Venn data for the identified proteins and output to a file
   levellog("read.pgroups_v3: Generating ID Venn data ...")
   tmp.table<-data.table(evidence[, c('Protein.IDs', 'biorep', 'techrep', 'fraction')])
@@ -770,20 +784,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   
   # Add the experimental structure information to evidence.dt based on rep_desc (raw file at this point has no information and is dropped)
   evidence.dt<-merge(evidence.dt ,data.table(.GlobalEnv[["rep_structure"]][! duplicated(.GlobalEnv[["rep_structure"]]$rep_desc), !grepl('raw_file', colnames(.GlobalEnv[["rep_structure"]]))]), by='rep_desc')
-  ## If we have fractionation, combine fraction data (sum intensities and unique sequence counts accross fractions)
-  if(length(unique(evidence.dt$fraction)) > 1){
-    # Drop rep_desc and the percentages columns as we will generate a new ones after combining the fraction data.
-    # Also drop the fraction col.
-    evidence.dt[, c('rep_desc', 'fraction', paste0(conditions.labels,'p')) := NULL] 
-    #
-    setkey(evidence.dt, biorep, techrep, Protein.IDs)
-    # Combine
-    evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(biorep, techrep, Protein.IDs)]
-    # Calculate the percentage columns
-    evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
-    # Create new rep_desc column
-    evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]    
-  }
+
   ## If enabled, do filter out proteins based on percentage labeling for the desired label
   if(filterL && !filterL_lvl){
     n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
@@ -791,14 +792,15 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     levellog(paste0("read.pgroups_v3: Filtered out ", n1," proteins which where identified solely by '", filterL_lbl, "' peptides ..."));
   }
   
-  # !!!!! Then also move the fractionation combining to the seqCounts calculations (it messes up all the calculations)
-  ## Get protein IDs that were quantified with a total of at least 'nRequiredLeastBioreps' peptides accross biological replicates.
-  # E.g. 1: with 3 replicates, a protein that was quantified by a single peptide in 'nRequiredLeastBioreps' out of the 3 replicates will be retained.
-  # E.g. 2: with 3 replicates, a protein that was quantified by a single peptide in 1 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
-  # E.g. 3: with 3 replicates, a protein that was quantified by a two peptides in at least one of replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
-  # E.g. 4: with 3 replicates, a protein that was quantified by a two peptides in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 4 (retained otherwise).
-  Protein.IDs.quant = evidence.dt[, sum(n-nas) >= .GlobalEnv[["nRequiredLeastBioreps"]] , by=.(Protein.IDs)][V1 == T]$Protein.IDs
-  levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which where identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
+  ## Get protein IDs that were quantified with a total of at least 'nRequiredLeastBioreps' peptides accross 'nRequiredLeastBioreps' biological replicates.
+  # E.g. 1: with 3 replicates, a protein that was quantified by a single peptide in 'nRequiredLeastBioreps' out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
+  # E.g. 2: with 3 replicates, a protein that was quantified by a single peptide in 1 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 0 (retained otherwise).
+  # E.g. 3: with 3 replicates, a protein that was quantified by two peptides in at least one of replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
+  # E.g. 4: with 3 replicates, a protein that was quantified by two peptides (in total) in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
+  
+  Protein.IDs.quant = evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
+  levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
+  evidence.dt[,nQuantPeps := n-nas]
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
   
   ## Generate Venn data for the identified proteins and output to a file
@@ -829,8 +831,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       # Rename 'p' (percentage) cols
       colsl<-allcols %in% paste0(conditions.labels,'p')
       colnames(rep_desc_i_pgroups)[colsl]<-gsub("^(.+)$",paste("\\1",rep_desc_i,sep='.'), allcols[colsl])
-      # Rename the 'n.Unique.Sequence.IDs' column to <rep_desc_X>.Ratio.counts
-      colsl<-allcols %in% c('n.Unique.Sequence.IDs')
+      # Rename the 'nQuantPeps' column to <rep_desc_X>.Ratio.counts
+      colsl<-allcols %in% c('nQuantPeps')
       colnames(rep_desc_i_pgroups)[colsl]<-paste(rep_desc_i,'Ratio.counts',sep='.')
       # merge with the growing data frame
       pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')], all.x = T)
