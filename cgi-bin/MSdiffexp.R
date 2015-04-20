@@ -835,7 +835,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       colsl<-allcols %in% c('nQuantPeps')
       colnames(rep_desc_i_pgroups)[colsl]<-paste(rep_desc_i,'Ratio.counts',sep='.')
       # merge with the growing data frame
-      pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc')], all.x = T)
+      cc<-intersect(names(pgroups), names(rep_desc_i_pgroups))
+      pgroups<-merge(pgroups, rep_desc_i_pgroups[, ! colnames(rep_desc_i_pgroups) %in% c('biorep', 'techrep', 'fraction', 'rep_desc', cc[! grepl('Protein.IDs', cc)] )], all.x = T)
   }
   # Step 2: Calculate the columns [<label/condition_Y> ...] [<label/condition_Y>p ...]
   allcols<-colnames(pgroups)
@@ -1384,8 +1385,8 @@ working_directory<-getwd()
 limma_output<-"msdiffexp_out"
 LabelFree<-F
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
