@@ -609,6 +609,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     tmp.table.2[, c('Protein.IDs', 'Protein.Names') := NULL]
     # Inner join the mapping table with the evidence table and return the data frame that we ought to have in the first place
     evidence<-data.frame(tmp.table.1[tmp.table.2])
+    evidence<-evidence[evidence$Reverse == '' & evidence$Contaminant == '', ]
   }
   
   levellog(paste0("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")"))
@@ -628,6 +629,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # set the Protein.IDs in the original data frame
   evidence$Protein.IDs<-tmp.table2[tmp.table][order(i),pdesc]
   ## Assign defined labels (conditions), one for each PSM record
+  levellog("read.pgroups_v3: Assigning labels ...")
+  levellog("",change=1)
   if(LabelFree){
     cond_spec_col<-"Spectrum.File"
   }else{
@@ -654,7 +657,9 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       mi<-which(grepl((i-1), evidence[, cond_spec_col]))
       evidence[mi,]$label_<-conditions.labels[i]
     }
+    levellog(paste0("read.pgroups_v3: Assigned label '", conditions.labels[i],"'."))
   }
+  levellog("",change=-1)
   mi<-which(is.na(evidence$label_))
   if(is.na(background_species_lbl)){
     if(length(mi) > 0){
@@ -672,19 +677,6 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(length(unique(.GlobalEnv[["rep_structure"]]$fraction)) > 1){
     evidence$rep_desc <- paste0('b',evidence$biorep,'t',evidence$techrep)
   }
-  # Drop rep_desc and the percentages columns as we will generate a new ones after combining the fraction data.
-  # Also drop the fraction col.
-  #  evidence.dt[, c('rep_desc', 'fraction', paste0(conditions.labels,'p')) := NULL] 
-  #
-  #  setkey(evidence.dt, biorep, techrep, Protein.IDs)
-  # Combine
-  #  evidence.dt<-evidence.dt[, lapply(.SD, sum, na.rm = T), by=.(biorep, techrep, Protein.IDs)]
-  # Calculate the percentage columns
-  #  evidence.dt[, paste0(conditions.labels,'p') := lapply(.SD, function(x){return((x/sum(.SD))*100)}), by=.(biorep, techrep, Protein.IDs),.SDcols=paste('UniqueSequences',conditions.labels,sep='.')]    
-  # Create new rep_desc column
-  #  evidence.dt[, 'rep_desc' := paste0('b',biorep,'t',techrep)]    
-  #}  
-  
   
   ## Generate Venn data for the identified proteins and output to a file
   levellog("read.pgroups_v3: Generating ID Venn data ...")
@@ -701,12 +693,20 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(!PDdata){
     colnames(evidence)[grepl('Peptide.ID',colnames(evidence))]<-'Unique.Sequence.ID'
     colnames(evidence)[grepl('Intensity\\..+',colnames(evidence))]<-conditions.labels
+    
   }
   if(LabelFree){
-    evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', 'Intensity','label_', 'rep_desc')])
+    if(PDdata){
+      # Precursor Area is unfortunately buggy, so we are left with Intensity to work with
+      #intensityCol <- 'Precursor.Area'
+      intensityCol <- 'Intensity'
+    }else{
+      intensityCol <- 'Intensity'
+    }
+    evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', intensityCol,'label_', 'rep_desc')])
     setkey(evidence.dt, rep_desc, Protein.IDs, Unique.Sequence.ID, label_)
     # Get maximum PSM intensity per peptide/protein/[(rep_desc/label) = raw_file]
-    evidence.dt<-evidence.dt[, .(maxI=max(Intensity)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)]    
+    suppressWarnings(evidence.dt<-evidence.dt[, .(maxI=max(get(intensityCol), na.rm = T)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)][maxI != -Inf])
   }else{
     if(PDdata){
       evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
@@ -783,7 +783,9 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   evidence.dt<-merge(evidence.dt, evidence.dt.seqCounts)  
   
   # Add the experimental structure information to evidence.dt based on rep_desc (raw file at this point has no information and is dropped)
-  evidence.dt<-merge(evidence.dt ,data.table(.GlobalEnv[["rep_structure"]][! duplicated(.GlobalEnv[["rep_structure"]]$rep_desc), !grepl('raw_file', colnames(.GlobalEnv[["rep_structure"]]))]), by='rep_desc')
+  tmp.rep_struct<-.GlobalEnv[["rep_structure"]][! duplicated(.GlobalEnv[["rep_structure"]][,c('biorep','techrep')]), !grepl('raw_file', colnames(.GlobalEnv[["rep_structure"]])) & !grepl('fraction', colnames(.GlobalEnv[["rep_structure"]]) )]
+  tmp.rep_struct$rep_desc<-paste0('b',tmp.rep_struct$biorep,'t',tmp.rep_struct$techrep)
+  evidence.dt<-merge(evidence.dt ,data.table(tmp.rep_struct), by='rep_desc')
 
   ## If enabled, do filter out proteins based on percentage labeling for the desired label
   if(filterL && !filterL_lvl){
@@ -1386,8 +1388,8 @@ limma_output<-"msdiffexp_out"
 LabelFree<-F
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2/msdiffexp_wd/MSdiffexp_definitions.R")
-source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
-#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
+#source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
+source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
