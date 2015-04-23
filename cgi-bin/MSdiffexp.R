@@ -389,11 +389,13 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   levellog(paste("do_results_plots: Quantified ",quant_species,": ",nrow(results)," (",time.point,")",sep=""))
   
   for(i in 1:nrow(ratio_combs)){
-	col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
-	ndiffexp_tmp<-length(which(results[,col_desc_]<0.05))
-	levellog(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,sep=""))
+  	col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
+  	ndiffexp_tmp<-length(which(results[,col_desc_]<0.05))
+  	levellog(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,sep=""))
   }
-  levellog(paste("do_results_plots: Differentially expressed in at least one combination of conditions: ",ndiffexp,sep=""))
+  if(nrow(ratio_combs) > 1){
+    levellog(paste("do_results_plots: Differentially expressed in at least one combination of conditions: ",ndiffexp,sep=""))
+  }
   
   diffexp<-results[,c(grep("^P-value adjusted",colnames(results)),grep("avg log2 [^I]+",colnames(results)),grep("sd log2 ",colnames(results)),grep("N log2 ",colnames(results)),grep("avg log2 I ",colnames(results)))]
   diffexp[,quantitated_items_lbl]<-rownames(diffexp)
@@ -697,7 +699,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }
   if(LabelFree){
     if(PDdata){
-      # Precursor Area is unfortunately buggy, so we are left with Intensity to work with
+      # Precursor Area is unfortunately buggy (sometimes 0/NA), so we are left with Intensity to work with
       #intensityCol <- 'Precursor.Area'
       intensityCol <- 'Intensity'
     }else{
@@ -800,10 +802,31 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # E.g. 3: with 3 replicates, a protein that was quantified by two peptides in at least one of replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
   # E.g. 4: with 3 replicates, a protein that was quantified by two peptides (in total) in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
   
+  #Protein.IDs.quant = evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T][! Protein.IDs %like% '(K|k)eratin']$Protein.IDs
   Protein.IDs.quant = evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
   levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
   evidence.dt[,nQuantPeps := n-nas]
+  
+  
+  ## Experimental filter based on sd of protein intensities
+#   if(LabelFree){
+#     stdthresp <- 0.8
+#     cond_i<-conditions.labels[1]
+#     n<-length(unique(evidence.dt$Protein.IDs))
+#     tmp.dt<-evidence.dt[, .(avg=mean(get(paste0('Intensity.',cond_i)), na.rm=T), std=sd(get(paste0('Intensity.',cond_i)), na.rm=T), n=.N),by=.(Protein.IDs)]
+#     f<-sort(unique(tmp.dt[,.(f=abs(avg/std))]$f))
+#     stdthres <- max(f[1:as.integer(round(stdthresp*length(f)))])
+#     Protein.IDs.stdOK<-tmp.dt[,.(Protein.IDs, f=abs(avg/std))][f < stdthres]$Protein.IDs
+#     for(cond_i in conditions.labels[-1]){
+#       tmp.dt<-evidence.dt[, .(avg=mean(get(paste0('Intensity.',cond_i)), na.rm=T), std=sd(get(paste0('Intensity.',cond_i)), na.rm=T), n=.N),by=.(Protein.IDs)]
+#       # Get proteins with a avg/std ratio < 1
+#       Protein.IDs.stdOK<-Protein.IDs.stdOK[Protein.IDs.stdOK %in% tmp.dt[,.(Protein.IDs, f=abs(avg/std))][f < stdthres]$Protein.IDs]
+#     }
+#     levellog(paste0("read.pgroups_v3: Filtered out ", n - length(Protein.IDs.stdOK)," proteins with an Intensity std < ", stdthres," between replicates and for each codition."));
+#     Protein.IDs.quant <- Protein.IDs.quant[Protein.IDs.quant %in% Protein.IDs.stdOK]
+#   }
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
+  
   
   ## Generate Venn data for the identified proteins and output to a file
   levellog("read.pgroups_v3: Generating quant Venn data ...")
@@ -864,332 +887,6 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   return(pgroups)  
 }
 
-# Reads MaxQuant (1.3.0.5) proteinGroups table, discards information not required (for downstream analysis) and returns the table
-read.pgroups_v2<-function(fname,evidence_fname, time.point,generateVenns=F){
-  pgroups<-read.table(fname, header = T, sep = "\t",quote='',stringsAsFactors = FALSE,comment.char="")
-  # mq_labels_names is a vector of the labels found in the data (not user defined)
-  # conditions.labels is the same vector or a subset of it in the case the user has specified that there are contaminant labeled species
-  # WARNING: the above implies that the user must know the right names for the labels before he can use the addLabel() function
-
-  mq_labels_names<-c()
-  if(filterL){
-    mq_labels_names<-c(filterL_lbl, conditions.labels)
-  }else{
-    mq_labels_names<-conditions.labels
-  }
-  #mq_labels_names<-unique(sub("^Intensity\\.([^\\.]+)\\..+$","\\1",colnames(pgroups)[grep("^Intensity\\.([^\\.]+)\\..+$",colnames(pgroups))]))
-
-  evidence<-read.table(evidence_fname, header = T, sep = "\t",quote='',stringsAsFactors = FALSE,comment.char="")
-  
-  pgroups<-pgroups[pgroups$Reverse != "+" & pgroups$Contaminant != "+", ]
-	pgroups$Protein.IDs<-paste(sub("^([^;]*).*","\\1",pgroups$Protein.names)," [",sub("^([^;]*).*","\\1",pgroups$Gene.names)," ...] [",sub("^([^;]*).*","\\1",pgroups$Protein.IDs)," ...]",sep="")
-
-  levellog(paste("read.pgroups_v2: Identified proteins (w/o contaminants): ",nrow(pgroups)," (",time.point,")",sep=""))
-  
-	pgroups_evidence<-as.data.frame(do.call(rbind,apply(cbind(as.character(pgroups$id),pgroups$Evidence.IDs),1,function(x) cbind(x[1],unlist(strsplit(x[2],";"))))),stringsAsFactors=F)
-  colnames(pgroups_evidence)<-c("id","Evidence.IDs")
-	pgroups_evidence$id<-as.numeric(pgroups_evidence$id)
-	pgroups_evidence$Evidence.IDs<-as.numeric(pgroups_evidence$Evidence.IDs)
-  evidence_labels_intensity_cols<-paste("Intensity.",mq_labels_names,sep="")
-  evidence_sequences<-evidence[,c("id","Sequence","Raw.file","Labeling.State","Modifications", evidence_labels_intensity_cols)]
-  colnames(evidence_sequences)[1:5]<-c("Evidence.IDs","Sequence","Spectrum.File","Labeling.State", "Modifications")
-	pgroups_evidence<-merge(pgroups_evidence,evidence_sequences,by="Evidence.IDs",all.x=T)
-  pgroups_evidence<-merge(pgroups_evidence,pgroups[,c("id","Protein.IDs")],by="id",all.x=T)
-  pgroups_evidence<-pgroups_evidence[,-1]
-    
-  #Count the number of peptide labels (unique combination of peptide sequence and labeling state) per protein
-  subtotals<-ddply(pgroups_evidence,c("Protein.IDs"),function(x){
-    cond_lengths<-c()
-    for(cond_i in conditions.labels){
-      x_idxs<-which(x$Labeling.State==(which(cond_i==conditions.labels)-1))
-      x$lab_seq<-paste(x$Labeling.State,x$Sequence,sep="_")
-      cond_lengths<-cbind(cond_lengths, length(unique(x[x_idxs,c("lab_seq")])))
-    }
-    ret<-data.frame(cond_lengths)
-    colnames(ret)<-conditions.labels
-    return(ret)
-  })
-  
-  lblcols_idxs<-which(colnames(subtotals) %in% mq_labels_names)
-  #Calculate the respective percentages
-  for(label_i in conditions.labels){
-    subtotals$newcol<-apply(subtotals,1,function(x){
-      row_subtotals<-as.numeric(x[lblcols_idxs])
-      if(sum(row_subtotals) == 0){
-        return(0)
-      }else{
-        return(100*(row_subtotals[which(label_i==conditions.labels)]/sum(row_subtotals)))
-      }
-    })
-    colnames(subtotals)[length(colnames(subtotals))]<-paste(label_i,"p",sep="")
-  }  
-  
-  if(ProteinQuantitation){
-    #Count the number of peptide sequences per protein and replicate
-    subtotals2<-ddply(pgroups_evidence,c("Spectrum.File","Protein.IDs"),function(x){
-      uniqueSequences<-length(unique(x$Sequence))
-      ret<-data.frame(cbind(uniqueSequences))
-      colnames(ret)<-c("uniqueSequences")
-      return(ret)
-    })
-  }else{
-    #Calculate peptide intesity per label and per replicate
-    #Warning: Contrary to PD data, here we don't peptide uniqueness information, so one peptide might
-    # correspond to more than one protein IDs
-    subtotals2<-ddply(pgroups_evidence,c("Spectrum.File","Sequence","Modifications"),function(x){
-      cond_sums<-c()
-      for(cond_i in evidence_labels_intensity_cols){
-        cond_sums<-cbind(cond_sums, sum(x[,cond_i],na.rm=T))
-      }
-      cond_counts<-sum(!is.na(x[,evidence_labels_intensity_cols[1]]))
-      ret<-data.frame(cbind(cond_sums,cond_counts))
-      colnames(ret)<-c(paste("Intensity.",mq_labels_names,sep=""),"Ratio.counts")
-      ret$Evidence.IDs<-paste(x$Evidence.IDs,collapse=";")
-      ret$Sequence<-toupper(x$Sequence[1])
-      ret$Protein.IDs<-paste(unique(x$Protein.IDs),collapse=";") # maybe more than on protein IDs, so we have to collapse
-      ret$nProteins<-length(unique(x$Protein.IDs))
-      return(ret)    
-    })
-    #discard peptides that belong to more than one protein (i.e. non-unqiue)
-    subtotals2<-subtotals2[subtotals2$nProteins<2,]
-    subtotals2<-subtotals2[,!colnames(subtotals2) %in% "nProteins"]
-    # Remove peptides that are not of interest (conditions.Mod is not empty means the user wants peptides with certain modifications only)
-    if(!ProteinQuantitation && length(conditions.Mods)>0){
-      for(i in 1:length(conditions.Mods)){
-        for(mod_i_mods in conditions.Mods.Modifications[[i]]){
-          #strip modification from parentheses and escape characters
-          mod_i_mods<-sub("\\\\","",mod_i_mods)
-          mod_i_mods<-sub(")$","",mod_i_mods)
-          subtotals2<-subtotals2[grepl(mod_i_mods,subtotals2$Modifications),]
-        }
-      } 
-    }
-  }
-  #Re-arrange data and assign column names
-  if(ProteinQuantitation){
-    melted_subtotals<-melt(subtotals2)
-  }else{
-    melted_subtotals<-melt(subtotals2,id.vars=c("Spectrum.File", "Sequence", "Modifications", "Evidence.IDs","Protein.IDs"))
-  }
-  
-	melted_subtotals$Spectrum.File<-factor(melted_subtotals$Spectrum.File)
-  tmp_merged<-merge(data.frame(raw_file=levels(melted_subtotals$Spectrum.File),row_order=1:nlevels(melted_subtotals$Spectrum.File)),rep_structure)
-	levels(melted_subtotals$Spectrum.File)<-tmp_merged[order(tmp_merged$row_order),]$rep_desc
-  
-	if(ProteinQuantitation){
-	  pgroups_uniqueSequences<-as.data.frame(tapply(melted_subtotals$value,list(Protein.IDs=melted_subtotals$Protein.IDs,RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) x))
-	}else{
-	  pgroups_uniqueSequences<-as.data.frame(tapply(melted_subtotals$value,list(Peptide.IDs=paste(melted_subtotals$Sequence," [",melted_subtotals$Modifications,"]",sep=""),RawFile=melted_subtotals$Spectrum.File,LMHn=melted_subtotals$variable),function(x) sum(x,na.rm=T)))
-	}
-  
-	pgroups_uniqueSequences[,paste(quantitated_items_lbl,".IDs",sep="")]<-row.names(pgroups_uniqueSequences)
-
-  # At this point we merge unique sequences counts with already calculated for us peptide intensities and counts of intensities ratios (available in the proteinGroups.txt->pgroups variable), contrary to the PD case where we have to do these calculations on our own
-  if(ProteinQuantitation){
-	  if(keepEvidenceIDs){
-	  	pgroups<-merge(pgroups_uniqueSequences, pgroups[,c("Protein.IDs",sort(colnames(pgroups)[grep("Ratio\\..*\\.count.b",colnames(pgroups))]),sort(colnames(pgroups)[grep("Intensity\\..*\\.b",colnames(pgroups))]),"Evidence.IDs")],by="Protein.IDs",all.x=T)
-	  }else{
-	  	pgroups<-merge(pgroups_uniqueSequences, pgroups[,c("Protein.IDs",sort(colnames(pgroups)[grep("Ratio\\..*\\.count.b",colnames(pgroups))]),sort(colnames(pgroups)[grep("Intensity\\..*\\.b",colnames(pgroups))]))],by="Protein.IDs",all.x=T)
-	  }
-  }else{
-    subtotals2$Peptide.IDs<-paste(subtotals2$Sequence," [",subtotals2$Modifications,"]",sep="")
-    #pgroups_evidence$Peptide.IDs<-paste(pgroups_evidence$Sequence," [",pgroups_evidence$Modifications,"]",sep="")
-    #subtotals2<-merge(subtotals2, unique(pgroups_evidence[,c("Peptide.IDs","Protein.IDs")]),by="Peptide.IDs",all.x=T)
-    #if(keepEvidenceIDs){
-    #  pgroups<-merge(pgroups_uniqueSequences, unique(subtotals2[,c("Peptide.IDs","Protein.IDs","Evidence.IDs")]),by="Peptide.IDs",all.x=T)
-    #}else{
-      pgroups<-merge(pgroups_uniqueSequences, unique(subtotals2[,c("Peptide.IDs","Protein.IDs")]),by="Peptide.IDs",all.x=T)
-    #}    
-  }
-	#For razor-unique peptide column: replace the triple-dot R replaces the MaxQuant column name with
-  #colnames(pgroups)<-sub("\\.\\.\\.","\\.",colnames(pgroups)) 
-	#colnames(pgroups)<-sub("Ratio.([^\\.]+)\\.([^\\.]+)\\.count\\.(.*)","\\3.Ratio.counts.\\1.\\2",colnames(pgroups))  
-  #pgroups<-merge(pgroups,subtotals,by="Protein.IDs",all.x=T)
-  
-  if(ProteinQuantitation){
-    colnames(pgroups)[grep("^Ratio.[^\\.]+\\.[^\\.]+\\.count\\.",colnames(pgroups))]<-sub("^Ratio.([^\\.]+)\\.([^\\.]+)\\.count\\.(.+)$","\\3.\\1.\\2.Ratio.counts",colnames(pgroups)[grep("^Ratio.[^\\.]+\\.[^\\.]+\\.count\\.",colnames(pgroups))])
-    #
-    #for(i in 1:length(conditions.labels)){
-    #  colnames(pgroups)[grep("^Intensity\\.",colnames(pgroups))]<-sub(paste("^Intensity\\.(",mq_labels_names[i],")\\.",sep=""),paste("Intensity.",conditions.labels[i],".",sep=""),colnames(pgroups)[grep("^Intensity\\.",colnames(pgroups))])
-    #}    
-  }else{
-    #for(i in 1:length(conditions.labels)){
-    #   colnames(pgroups)[grep(paste("^[^\\.]+\\.Intensity\\.",mq_labels_names[i],"$",sep=""),colnames(pgroups))]<-sub(paste("^([^\\.]+)\\.Intensity\\.",mq_labels_names[i],"$",sep=""),paste("Intensity.",conditions.labels[i],".\\1",sep=""),colnames(pgroups)[grep(paste("^[^\\.]+\\.Intensity\\.",mq_labels_names[i],"$",sep=""),colnames(pgroups))])
-    #}    
-  }
-  
-  if(ProteinQuantitation){
-    tmp_map<-unique(merge(evidence,data.frame(Raw.file=rep_structure$raw_file,biorep=rep_structure$biorep,techrep=rep_structure$techrep))[,c("biorep","techrep","Experiment")])
-    tmp_map$rep_desc<-paste("b",tmp_map$biorep,"t",tmp_map$techrep,sep="")
-    tmp_str<-colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]
-    tmp_matches<-sub("(^[^\\.]+).*","\\1",tmp_str)
-    tmp_matches_invert<-sub("^[^\\.]+(.*)","\\1",tmp_str)
-    tmp_merged<-merge(data.frame(Experiment=tmp_matches, Experiment_rest=tmp_matches_invert, row_order=1:length(tmp_matches)),tmp_map)
-    rep_desc<-paste(tmp_merged[order(tmp_merged$row_order),]$rep_desc,tmp_merged[order(tmp_merged$row_order),]$Experiment_rest,sep="")
-    colnames(pgroups)[grep("Ratio\\.counts$",colnames(pgroups))]<-rep_desc
-    
-    tmp_str<-colnames(pgroups)[grep("^Intensity",colnames(pgroups))]
-    tmp_matches<-sub(".*\\.([^\\.]+)$","\\1",tmp_str)
-    tmp_matches_invert<-sub("(.*\\.)[^\\.]+$","\\1",tmp_str)
-    tmp_merged<-merge(data.frame(Experiment=tmp_matches, Experiment_rest=tmp_matches_invert, row_order=1:length(tmp_matches)),tmp_map)
-    
-    colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-sub("^Intensity\\.([^\\.]+)\\..*","Intensity.\\1.",colnames(pgroups)[grep("^Intensity",colnames(pgroups))])
-    colnames(pgroups)[grep("^Intensity",colnames(pgroups))]<-paste(colnames(pgroups)[grep("^Intensity",colnames(pgroups))],tmp_merged[order(tmp_merged$row_order),]$rep_desc,sep="")
-    
-    
-  }
-  row.names(pgroups)<-pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
-  
-  #
-  if(generateVenns){
-    setwd(limma_output)
-    venn_data<-id_Venn3_pgroups(pgroups)
-    write.table(venn_data,file=paste(outputFigsPrefix,"_id_venn3-data_",time.point,".txt",sep=""),sep="\t",row.names=F)
-    setwd("..")
-  }
-  #
-  
-  if(ProteinQuantitation){
-    #Remove proteins with total ratio count of 0 (not quantifiable)
-    pgroups<-pgroups[rowSums(pgroups[,colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]],na.rm=T)>0,]
-    #Integrate percentage labeling information
-    pgroups<-merge(pgroups,subtotals,by="Protein.IDs",all.x=T)
-    #If enabled, do filter out proteins based on percentage labeling for the desited label
-    if(filterL && !filterL_lvl){
-      fl<-paste(filterL_lbl,"p",sep="")
-      pgroups<-pgroups[pgroups[,c(fl)]<100,]
-    }
-  }
-  
-  pgroups$time.point<-time.point
-  
-  quant_species<-"proteins"
-  if(!ProteinQuantitation){
-    quant_species<-"peptides"
-  }  
-  
-  levellog(paste("read.pgroups_v2: Quantifiable ",quant_species," (w/o contaminants): ",nrow(pgroups)," (",time.point,")",sep=""))
-
-  if(generateVenns){
-    setwd(limma_output)
-    venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups,time.point))
-    write.table(venn_data,file=paste(outputFigsPrefix,"_quant_venn3-data-2reps_",time.point,".txt",sep=""),sep="\t",row.names=F)
-    setwd("..")  
-  }
-  
-	return(pgroups)
-}
-
-## PATCHED -- number of conditions/labels-indpendent function
-#Like the above, but for quantified proteins (quantified means having a Ratio.H.M.count greater than 0 for each replicate.
-quant_Venn3_pgroups<-function(pgroups){
-  
-  pgroups<-pgroups[,c(paste(quantitated_items_lbl,".IDs",sep=""),colnames(pgroups)[grep("\\.Ratio\\.counts$",colnames(pgroups))])]
-  
-  venn_data<-c()
-    for(brep_i in 1:.GlobalEnv[["n_bioreps"]]){
-      if(.GlobalEnv[["n_techreps"]]>1){
-        b_i<-data.frame(Protein.IDs=pgroups[rowSums(pgroups[,colnames(pgroups)[grep(paste("^b",brep_i,sep=""),colnames(pgroups))]], na.rm=T) > 0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
-        b_i$rep<-as.character(brep_i)
-        venn_data<-rbind(venn_data,b_i)
-      }else{
-        b_i_col<-colnames(pgroups)[grep(paste("^b",brep_i,sep=""),colnames(pgroups))]
-        b_i<-data.frame(Protein.IDs=pgroups[!is.na(pgroups[,b_i_col]) & pgroups[,b_i_col]>0,c(paste(quantitated_items_lbl,".IDs",sep=""))],stringsAsFactors=F)
-        b_i$rep<-as.character(brep_i)
-        venn_data<-rbind(venn_data,b_i)
-      }
-    }
-  colnames(venn_data)[1]<-paste(quantitated_items_lbl,".IDs",sep="")
-
-	return(venn_data)
-}
-
-
-# MaxQuant (1.3.0.5) only
-# Like the above, apart from the quant filter.
-# Quantified proteins using this function will be considered only those with a total Ratio.H.M.count > 2 for at least two replicates
-#TODO: generalize for any replicate structure for the identified proteins, as it now assumes 3 biological x 3 technical replicates (nested)
-do_generate_Venn3_data_quant_filter_2reps<-function(pgroups,time.point,outputFigsPrefix=""){
-	setwd(limma_output)
-	#venn_data<-quant_Venn3_pgroups(pgroups[pgroups$time.point == time.point,])
-	venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,]))
-	write.table(venn_data,file=paste(outputFigsPrefix,"_quant_venn3-data-2reps_",time.point,".txt",sep=""),sep="\t",row.names=F)
-	venn_data<-id_Venn3_pgroups(pgroups[pgroups$time.point == time.point,])
-	write.table(venn_data,file=paste(outputFigsPrefix,"_id_venn3-data_",time.point,".txt",sep=""),sep="\t",row.names=F)
-	setwd("..")
-}
-
-# Like the above, but for PD (1.3)
-do_generate_Venn3_data_quant_filter_2reps_PD<-function(pgroups,time.point,evidence_fname,outputFigsPrefix=""){
-  venn_data<-id_Venn3_pgroups_PD("",evidence_fname,time.point)
-	setwd(limma_output)
-	write.table(venn_data,file=paste(outputFigsPrefix,"_id_venn3-data_",time.point,".txt",sep=""),sep="\t",row.names=F)
-  venn_data<-quant_Venn3_pgroups(pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,]))
-	write.table(venn_data,file=paste(outputFigsPrefix,"_quant_venn3-data-2reps_",time.point,".txt",sep=""),sep="\t",row.names=F)
-	setwd("..")
-}
-
-#More stringent quant filter, require quantitation in at least 2 replicates if bioreps>1 or in at least 2 injections if bioreps=1
-pgroups_filter_2reps_v2<-function(pgroups){	#reps is dummy here
-  #write.table(pgroups,file="proteinGroups_beforeFiltering.txt",sep="\t",row.names=F);
-	reps_cols<-colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]
-	
-	ratioRepTruth<-c()
-	pgroups[,reps_cols]<-apply(pgroups[,reps_cols], 2,function(x){replace(x, is.na(x), 0)})
-	
-	tmp_order<-regmatches(colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))],regexpr("^b[0-9][^\\.]+",colnames(pgroups)[grep("Ratio\\.counts",colnames(pgroups))]))
-	tmp_orderdf<-data.frame(rep_desc=tmp_order)
-	tmp_orderdf$rindex<-1:nrow(tmp_orderdf)
-  
-	# if the following is true, then it means we have fractions and we no longer need them, so rep_structure has to be redefined
-	#if(nrow(tmp_orderdf) < (nrow(rep_structure)*nConditions)){
-	
-  colnames(.GlobalEnv[["rep_structure"]])[grep("rep_desc",colnames(rep_structure))]<-"rep_desc_old"
-	.GlobalEnv[["rep_structure"]]$rep_desc<-gsub("^b([0-9]+)t([0-9]+).*","b\\1t\\2",rep_structure$rep_desc_old)
-	.GlobalEnv[["rep_structure"]]<-unique(rep_structure[,c("biorep","techrep","rep_desc")])
-	# TESTING the following  
-  #.GlobalEnv[["rep_structure"]]$rep_desc<-paste(.GlobalEnv[["rep_structure"]]$rep_desc,'f0',sep='')
-	#}
-  indexmap<-merge(tmp_orderdf,rep_structure)
-	indexmap<-indexmap[order(indexmap$rindex),]
-  
-	nConditions_combs<-nrow(combinations(nConditions,2,1:nConditions))
-	i<-1
-  for(i in 1:.GlobalEnv[["n_bioreps"]]){
-  #for(rep_cols_i in i_bioreps){
-		curr_techreps_cols<-reps_cols[indexmap[indexmap$biorep==i,]$rindex]
-		#ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>2)
-		if(.GlobalEnv[["n_techreps"]]>1){
-        		ratioRepTruth<-cbind(ratioRepTruth,rowSums(pgroups[,curr_techreps_cols],na.rm=T)>(2*nConditions_combs))
-      		}else{
-        		ratioRepTruth<-cbind(ratioRepTruth,pgroups[,curr_techreps_cols]>0)
-      		}
-    i<-i+1
-	}
-	filter<-apply(ratioRepTruth,1,function(x) length(which(x)))
-	if(.GlobalEnv[["n_bioreps"]]>1){
-    pgroups_intersect<-pgroups[filter>(nRequiredLeastBioreps-1),]
-	}else{
-	  pgroups_intersect<-pgroups[filter>0,]
-	}
-	
-	#replace 0 with NA
-	pgroups_intersect<-as.data.frame(lapply(pgroups_intersect, function(x){replace(x, x == 0, NA)}),stringsAsFactors = FALSE)
-	pgroups_intersect<-as.data.frame(lapply(pgroups_intersect, function(x){replace(x, is.nan(x), NA)}),stringsAsFactors = FALSE)
-
-  quant_species<-"proteins"
-  if(!ProteinQuantitation){
-    quant_species<-"peptides"
-  }
-  #if(n_bioreps>1){
-  #  cat(paste("pgroups_filter_2reps_v2: Quantified ",quant_species," (>2 peptides/",n_techreps," injection(s) in at least ",nRequiredLeastBioreps," replicates): ",nrow(pgroups_intersect[pgroups_intersect$time.point == time.point,])," (",time.point,")\n",sep=""))
-  #}else{
-  #  cat(paste("pgroups_filter_2reps_v2: Quantified ",quant_species," (>2 peptides/",n_techreps," injection(s)): ",nrow(pgroups_intersect[pgroups_intersect$time.point == time.point,])," (",time.point,")\n",sep=""))
-  #}
-	#write.table(pgroups_intersect,file="proteinGroups_AfterFiltering.txt",sep="\t",row.names=F);
-	return(pgroups_intersect)
-}
-
 #Prepare protein intensity table for differential expression analysis (the format limma requires)
 prepare_working_pgroups<-function(working_pgroups){
 	rownames(working_pgroups)<-working_pgroups[,paste(quantitated_items_lbl,".IDs",sep="")]
@@ -1200,63 +897,6 @@ prepare_working_pgroups<-function(working_pgroups){
 	working_pgroups<-working_pgroups[,inten_cols]
 	colnames(working_pgroups)<-sub("Intensity\\.","",inten_cols)
 	return(working_pgroups)
-}
-
-#Perform the analysis using the more stringent quant filter (see above pgroups_filter_2reps_v2)
-do_analyse_all_2reps_v2<-function(pgroups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=""){
-	levellog("Filtering data based on desired reproducibility level...",change=1)
-	working_pgroups<-pgroups_filter_2reps_v2(pgroups[pgroups$time.point == time.point,])
-	levellog("Formatting data for the statistical analysis ...")
-	working_pgroups<-prepare_working_pgroups(working_pgroups)
-	outputFigsPrefix<-paste(outputFigsPrefix,"-all-2reps",sep="")
-	levellog("Performing the statistical analysis ...")
-	ret<-do_limma_analysis(working_pgroups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
-	levellog("",change=-1)
-	return(ret)
-}
-
-#MaxQuant (1.3.0.5) only
-#Gets rid of proteins identified just by peptides of a certain label named 'filterL_lbl'.
-filter_unlabeled_proteins<-function(protein_groups,evidence,filterL_lbl="")
-{
-  levellog("", change=1)
-	N_proteins_before<-nrow(protein_groups)
-	N_peptides_before<-nrow(evidence)
-	#protein_groups$Protein.IDs<-paste(sub("^([^;]*).*","\\1",protein_groups$Protein.names)," [",sub("^([^;]*).*","\\1",protein_groups$Gene.names)," ...] [",sub("^([^;]*).*","\\1",protein_groups$Protein.IDs)," ...]",sep="")
-	#protein_groups$Protein.IDs<-gsub("\"","",protein_groups$Protein.IDs)
-	evidence<-evidence[,c("id","Protein.group.IDs","Sequence","Labeling.State","Raw.file","MS.MS.Scan.Number","m.z","Charge","Mass.Error..ppm.","K.Count","R.Count")]
-	evidence<-evidence[!is.na(evidence$Labeling.State) & evidence$Labeling.State > 0,]
-	N_peptides_after<-nrow(evidence)
-	evidence_pgroups<-as.data.frame(do.call(rbind,apply(evidence,1,function(x) cbind(x["id"],unlist(strsplit(x["Protein.group.IDs"],";"))))),stringsAsFactors=F)
-	colnames(evidence_pgroups)<-c("id","Protein.group.IDs")
-	row.names(evidence_pgroups)<-NULL
-	protein_groups<-protein_groups[protein_groups$id %in% evidence_pgroups$Protein.group.IDs,]
-	N_proteins_after<-nrow(protein_groups)
-	levellog(paste("filter_unlabeled_proteins: Before L peptide filtering (proteins, peptides): ",N_proteins_before,", ",N_peptides_before,". After: ",N_proteins_after,", ",N_peptides_after,".",sep=""))
-  levellog("", change=-1)
-	return(protein_groups)
-}
-
-# Again, for MaxQuant only
-getProteinPeptideData_2reps_filter<-function(pgroups_fname,evidence_fname,output_fname,time.point, filterL=T,linkLimmaout=F,limma_outfname=""){
-	protein_groups<-read.pgroups_v2(pgroups_fname,time.point,filterL=filterL,evidence_fname=evidence_fname,keepEvidenceIDs=T)
-	protein_groups<-pgroups_filter_2reps_v2(protein_groups[protein_groups$time.point == time.point,])
-
-	evidence<-read.table(evidence_fname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
-	
-	peptide_evidence<-as.data.frame(do.call(rbind,apply(protein_groups,1,function(x) cbind(x["Protein.IDs"],unlist(strsplit(x["Evidence.IDs"],";"))))),stringsAsFactors=F)
-	colnames(peptide_evidence)<-c("Protein.IDs","Evidence.ID")
-	peptide_evidence$Protein.IDs<-factor(peptide_evidence$Protein.IDs)
-	peptide_evidence$Evidence.ID<-as.numeric(peptide_evidence$Evidence.ID)
-	evidence<-evidence[,c("id","Sequence","Labeling.State","Raw.file","MS.MS.Scan.Number","m.z","Charge","Mass.Error..ppm.","K.Count","R.Count","Protein.group.IDs")]
-	colnames(evidence)<-c("Evidence.ID","Sequence","Labeling.State","Raw.file","MS.MS.Scan.Number","m.z","Charge","Mass.Error.ppm.","K.Count","R.Count","Protein.group.IDs")
-	peptide_evidence<-merge(peptide_evidence,protein_groups[,!names(protein_groups) %in% c("Evidence.IDs")],by="Protein.IDs",all.x=T)
-	peptide_evidence<-merge(peptide_evidence,evidence,by="Evidence.ID",all.x=T)
-	if(linkLimmaout){
-		limmaout<-read.table(limma_outfname, header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
-		peptide_evidence<-merge(peptide_evidence,limmaout,by="Protein.IDs",all.x=T)
-	}
-	write.table(peptide_evidence,file=output_fname,sep="\t",row.names=F)
 }
 
 #GLOBAL variables
@@ -1288,18 +928,6 @@ addLabel<-function(lblname, lbl.Modifications){
     levellog(paste("addLabel: Error adding ",labeltxt," '",lblname,"': An existing ",labeltxt," with name '",lblname,"' (specification: ",paste(unlist(conditions.labels.Modifications[lblname_i]),collapse=", "),") already exists. Please try a different name.",sep=""), change=-1)
     return(FALSE)
   }
-
-#   i<-1
-#   for(lbl_i in conditions.labels.Modifications){
-#     for(mod_i in lbl.Modifications){
-#       lbl_i_matches<-which(grepl(paste("^",mod_i,"$",sep=""),lbl_i))
-#       if(length(lbl_i_matches) != 0){
-#         cat(paste("addLabel: Error adding label '",lblname,"': Existing label with name '",conditions.labels[i],"' has an identical modification (",mod_i,").",sep=""))
-#         return(FALSE)
-#       }
-#     }
-#     i<-i+1
-#   }
   
   conditions.labels<<-c(conditions.labels, lblname)
   j<-length(conditions.labels.Modifications)+1
@@ -1444,17 +1072,13 @@ perform_analysis<-function(){
   levellog("Reading input data ...")
   if(PDdata){
     protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
-    #protein_groups<<-read.pgroups_v2_PD(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
-    #do_generate_Venn3_data_quant_filter_2reps_PD(protein_groups,time.point,evidence_fname,outputFigsPrefix=outputFigsPrefix)
   }else{
     levellog("Removing double quotes from input data file #2 ...")
     tmpdata<-gsub("\"", "", readLines(pgroups_fname))
     pgroups_fname_cleaned<-file(pgroups_fname, open="w")
     writeLines(tmpdata, con=pgroups_fname_cleaned)
     close(pgroups_fname_cleaned)    
-    #protein_groups<<-read.pgroups_v2(pgroups_fname,evidence_fname,time.point,generateVenns=F)
     protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
-    #do_generate_Venn3_data_quant_filter_2reps(protein_groups,time.point,outputFigsPrefix=outputFigsPrefix)
   }
   
   setwd(limma_output)
@@ -1470,7 +1094,6 @@ perform_analysis<-function(){
   exp_design_fname<<-"curr_exp_design.txt"
   
   levellog("Performing the analysis ...")
-  #results<-do_analyse_all_2reps_v2(protein_groups,time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
   do_limma_analysis(prepare_working_pgroups(protein_groups),time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
   
   levellog("Data analysis finished.")
