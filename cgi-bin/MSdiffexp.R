@@ -509,7 +509,11 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 	write.table(blocking_var,file=paste(outputFigsPrefix,"_limma-blocking-variable_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
 	fit<-""
 	
-
+  if(.GlobalEnv[["LabelFree"]]){
+    fitMethod <- 'robust'
+  }else{
+    fitMethod <- 'ls'
+  }
   
 	levellog("Fitting the model ...")
   if(.GlobalEnv[["n_bioreps"]] > 1 & .GlobalEnv[["n_techreps"]] > 1){
@@ -517,9 +521,9 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
 		corfit <- duplicateCorrelation(t(norm.median.intensities), design=design, block = blocking_var, trim = duplicateCorrelation_trim)
 		# Fit the limma model to the data
 		# Pass the protein names/peptide sequences to limma as the genes option
-		fit <- lmFit(t(norm.median.intensities), design, genes=prot.names, block = blocking_var, cor = corfit$consensus)
+		suppressWarnings(fit <- lmFit(t(norm.median.intensities), design, genes=prot.names, block = blocking_var, cor = corfit$consensus, method=fitMethod))
 	}else{
-		fit <- lmFit(t(norm.median.intensities), design, genes=prot.names)
+	  suppressWarnings(fit <- lmFit(t(norm.median.intensities), design, genes=prot.names, method=fitMethod))
 	}
 
 	# Setup contrast matrix
