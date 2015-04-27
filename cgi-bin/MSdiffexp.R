@@ -13,6 +13,7 @@ options(warn=1)
 #if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
 #if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
 #if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+#if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
 
 library(limma)
 library(statmod)
@@ -22,6 +23,8 @@ library(ggplot2)
 library(labeling)
 library(gtools)
 library(data.table)
+library(outliers)
+
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)
 debuglog <- 10
@@ -807,29 +810,27 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # E.g. 4: with 3 replicates, a protein that was quantified by two peptides (in total) in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
   
   #Protein.IDs.quant = evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T][! Protein.IDs %like% '(K|k)eratin']$Protein.IDs
-  Protein.IDs.quant = evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
+  Protein.IDs.quant <- evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
   levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
   evidence.dt[,nQuantPeps := n-nas]
-  
-  
-  ## Experimental filter based on sd of protein intensities
-#   if(LabelFree){
-#     stdthresp <- 0.8
-#     cond_i<-conditions.labels[1]
-#     n<-length(unique(evidence.dt$Protein.IDs))
-#     tmp.dt<-evidence.dt[, .(avg=mean(get(paste0('Intensity.',cond_i)), na.rm=T), std=sd(get(paste0('Intensity.',cond_i)), na.rm=T), n=.N),by=.(Protein.IDs)]
-#     f<-sort(unique(tmp.dt[,.(f=abs(avg/std))]$f))
-#     stdthres <- max(f[1:as.integer(round(stdthresp*length(f)))])
-#     Protein.IDs.stdOK<-tmp.dt[,.(Protein.IDs, f=abs(avg/std))][f < stdthres]$Protein.IDs
-#     for(cond_i in conditions.labels[-1]){
-#       tmp.dt<-evidence.dt[, .(avg=mean(get(paste0('Intensity.',cond_i)), na.rm=T), std=sd(get(paste0('Intensity.',cond_i)), na.rm=T), n=.N),by=.(Protein.IDs)]
-#       # Get proteins with a avg/std ratio < 1
-#       Protein.IDs.stdOK<-Protein.IDs.stdOK[Protein.IDs.stdOK %in% tmp.dt[,.(Protein.IDs, f=abs(avg/std))][f < stdthres]$Protein.IDs]
-#     }
-#     levellog(paste0("read.pgroups_v3: Filtered out ", n - length(Protein.IDs.stdOK)," proteins with an Intensity std < ", stdthres," between replicates and for each codition."));
-#     Protein.IDs.quant <- Protein.IDs.quant[Protein.IDs.quant %in% Protein.IDs.stdOK]
-#   }
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
+  
+  ## Experimental filter based on outlier removal (grubbs method) based on the first condition specified.
+  ## NOTE: It is applied when there are no technical replicates in Label-free data, where variability is expected to be very high.
+  # If a protein intensity in condition i and biological replicate j is found to be an outlier based on the distribution
+  # of intensities from all biological replicates, then
+  # the biological replicate j is removed for that particular protein in all conditions.
+  if(LabelFree && .GlobalEnv[["n_techreps"]] < 2){
+    evidence.dt.bad <- suppressWarnings(evidence.dt[, lapply(.SD, function(x){p.val = grubbs.test(x)$p.value; if(!is.na(p.val) && p.val < 0.05){outlier.true <- T}else{outlier.true <- F}; if(outlier.true){return(.I[outlier(x, logical=T)][1] )}else{return(as.integer(0))} }),by=.(Protein.IDs),.SDcols=paste0('Intensity.',conditions.labels[1])][,get(paste0('Intensity.',conditions.labels[1]))])
+    evidence.dt.bad <- evidence.dt.bad[evidence.dt.bad > 0]
+    evidence.dt<-evidence.dt[! evidence.dt.bad]
+    levellog(paste0("read.pgroups_v3: Filtered out ", length(evidence.dt.bad)," protein intensities based on outlier detection on condition '",conditions.labels[1],"'."));
+    Protein.IDs.quant <- evidence.dt[, .(c1 = sum(n-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
+    levellog(paste0("read.pgroups_v3: Filtered out another ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
+    evidence.dt[,nQuantPeps := n-nas]
+    evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
+  }
+  
   
   
   ## Generate Venn data for the identified proteins and output to a file
