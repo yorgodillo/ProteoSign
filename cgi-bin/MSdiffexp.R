@@ -14,6 +14,7 @@ options(warn=1)
 #if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
 #if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
 #if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
+#if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
 
 library(limma)
 library(statmod)
@@ -24,17 +25,46 @@ library(labeling)
 library(gtools)
 library(data.table)
 library(outliers)
-
+library(pryr)
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)
 debuglog <- 10
 # DEBUGGING log indentation level (psoitive int, global) for levellog function
 loglvl <- 0
+lastSysTime <- NA
+firstSysTime <- NA
 #  Print msg with specific indentation (loglvl*3)
 #  - change [int]: change previous indentation level by <change> amount
 #  - reset [bool]: reset indentation level to 0 (no indentation)
 #  - after [bool]: change indentation after printing msg
 levellog <- function (msg, change=0, reset=F,after=F, supression=debuglog){
+  currSysTime<-Sys.time()
+  if(is.na(firstSysTime)){
+    firstSysTime <<- currSysTime
+  }
+  if(is.na(lastSysTime)){
+    lastSysTime <<- currSysTime
+    td <- 0
+  }else{
+    td <- difftime(currSysTime, lastSysTime, unit='secs')
+    if(td < 0.1){
+      td <- 0
+    }
+    lastSysTime <<- currSysTime
+  }
+  if(td > 0){
+    tdstr <- sprintf('+%.1fs, ', td)
+  }else{
+    tdstr <- ''
+  }
+  tdt <- difftime(currSysTime, firstSysTime, unit='secs')
+  if(tdt < 0.1){
+    tdt <- 0
+  }
+  if(tdt > 0){
+    tdstr<-paste0(tdstr, sprintf('%.1fs elapsed, ', tdt))
+  }
+  
 	prev_loglvl <- loglvl
 	if(reset){
 		loglvl <<- 0
@@ -50,9 +80,9 @@ levellog <- function (msg, change=0, reset=F,after=F, supression=debuglog){
 	}
 	if(nchar(msg)>0 && ifelse(after , prev_loglvl<supression , loglvl<supression)){
 		if(after){
-			cat(paste(paste(rep(" ",times=prev_loglvl*3),collapse="")," +-- ",msg," [",Sys.time(),"]\n"))
+			cat(paste0(paste0(rep(" ",times=prev_loglvl*3),collapse="")," +-- ",msg," [ ", tdstr, round(mem_used()/(1000*1000), digits=1)," MB used ]\n"))
 		}else{
-			cat(paste(paste(rep(" ",times=loglvl*3),collapse="")," +-- ",msg," [",Sys.time(),"]\n"))
+			cat(paste0(paste0(rep(" ",times=loglvl*3),collapse="")," +-- ",msg," [ ", tdstr, round(mem_used()/(1000*1000), digits=1)," MB used ]\n"))
 		}
 	}
 }
