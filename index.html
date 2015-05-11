@@ -3,6 +3,7 @@
    <head>
       <title>ProteoSign</title>
       <link rel="stylesheet" type="text/css" href="css/style.css">
+      <link rel="stylesheet" type="text/css" href="css/jquery.dataTables.min.css">
       <meta name="keywords" content="ProteoSign, mass spectrometry, proteomics, data, statistics, statistical analysis, bioinformatics, limma, comparative proteomics, silac, labeling, differential expression">
       <meta charset="UTF-8">
    </head>
@@ -56,38 +57,38 @@
          <div class="main_div main_section hidden" id="s22div">
             <h2>Step 2</h2>
             <p style="color: #000000">Please define the experimental design by assigning to each raw file the appropriate location coordinate in the experimental structure. 
-            <p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Ctrl</em> key and click to select individual items. Hold down the <em>Shift</em> and click to select a range of items.</p>
+            <p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Shift</em> and click to select a range of items.</p>
             <ul style="font-size: 14px;"><li>To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank.</li><li>To assign fractions, specify both the biological and the technical replicate.</li></ul>
             <hr class="style-one">
-            <div style="text-align: center; height: 50%;">
-               <div style="max-width: 50%; position:relative; display: inline-block; vertical-align:top;">
-                  <div style="overflow:auto; height: 200px; margin-top: 1em;">
-                     <table class="rawfiles_tbl" id="rawfiles_tbl_allfiles" style="margin-top: 0;">
+            <div style="text-align: center; height: 50%; width: 100%; display: -webkit-flex; display: inline-flex;">
+               <div class="expstructcoord_tbl" style="width: 50%;">
+                  <div style="overflow:auto; margin-top: 1em;">
+                     <table class="compact row-border rawfiles_tbl" cellspacing="0" width="100%" id="rawfiles_tbl_allfiles">
                         <thead>
                            <tr>
-                              <th><span style="position: absolute; left: 8%; top: 0; cursor: pointer;" onclick="rawfiles.sort(); reset_reps();">Raw files</span></th>
+                              <th>Raw file</th><th>#B</th><th>#T</th><th>#F</th>
                            </tr>
                         </thead>
                         <tbody>
                         </tbody>
                      </table>
+                     <div style="margin-top: 1em; margin-bottom: 0.5em;">
+                        <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnRawfilesTblSelectAll">Select All</button>
+                        <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnRawfilesTblSelectNone">Clear</button>                     
+                     </div>
                   </div>
                </div>
-               <table class="expstructcoord_tbl" id="expstructcoord" style="display: inline-block; vertical-align:top;">
-                  <tr>
-                     <td colspan="2" style="padding: 15px 5px 6px 5px;">Experimental structure coordinate</td>
-                  </tr>
-                  <tr>
-                     <td colspan="2" style="padding: 5px 0 0 0;"><input id="expstructcoord_biorep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)"/></td>
-                  </tr>
-                  <tr>
-                     <td colspan="2" style="padding: 5px 0 10px 0;"><input id="expstructcoord_techrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)"/></td>
-                  </tr>
-                  <tr>
-                     <td><button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnAssignExpStructCoord">Assign</button></td>
-                     <td><button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnResetExpStructCoord" disabled>Reset</button></td>
-                  </tr>					
-               </table>
+               <div id="expstructcoord" style="width: 50%; position: relative;" class="expstructcoord_tbl">
+                  <div style="margin-top: 1em">Experimental structure coordinate</div>
+                  <div style="position: absolute; top: 40%; left: 0; right: 0;">
+                     <input id="expstructcoord_biorep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)">
+                     <input id="expstructcoord_techrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)">
+                  </div>
+                  <div style="position: absolute; bottom: 1em; left: 0; right: 0;">
+                     <button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnAssignExpStructCoord">Assign</button>
+                     <button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnResetExpStructCoord" disabled="">Reset</button>
+                  </div>
+               </div>
             </div>
             <div class="buttonbar">
                <button type="button" class="main" id="s22btnb">Back</button>
@@ -145,7 +146,7 @@
                   <tr>
                      <td>&#8212 Species label #1</td>
                      <td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.</span></span></td>
-                     <td><select data-required="true" id="explbl1name_" name="explbl1name" type="text" placeholder="Name"></select></td>
+                     <td><select data-required="true" id="explbl1name_" name="explbl1name"></select></td>
                      <td><input data-required="true" id="explbl1definition" name="explbl1def" type="text" placeholder="Definition" readonly class='hidden'/></td>
                      <td><button type="button" class="main inline" id="btnAddLabel">+</button></td>
                      <td><button type="button" class="main inline" id="btnRemLabel" disabled>&#8211</button></td>
@@ -223,39 +224,39 @@
                <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=ProteoSign%3A+An+end-user+online+service+offering+automated+protein+differential+expression+analysis+given+pre-processed+quantitative+proteomics+datasets." target="_blank"><strong>Efstathiou G., Trudgian D. C., Thomas B., Pavlopoulos G., Papanikolaou N., Acuto O. and Iliopoulos I.<br>ProteoSign: An end-user online service offering automated protein differential expression analysis given pre-processed quantitative proteomics datasets.</strong><br></a>
             <p>
                <span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
-               <span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
+               <span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"/></a></span>
                <span style='font-family: "Courier New"; display: block; float: right'><a id='contact' onclick='$("#contact").attr("href", "mailto:msdiffexp@gmail.com?Subject=Session%20" + sessionid);
-                  return true;' target='_blank'><u>Contact</u></a></span>
+                     return true;' target='_blank'><u>Contact</u></a></span>
          </div>
-         <div>
 
-            <div class="expparamsDlg" id="s3expparamsDlgLabels">
-               <div style="text-align: center">
-                  <span style="font-size: 80%">Select one or more (by holding the <em>Ctrl</em> key).</span>
-                  <select id="s3expparamsDlgLabelsSelection" style="min-width:90%" multiple>
-                  </select>
-               </div>
-               <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
-                  <button type="button" class="main inline" style="min-width: 4.2em" id="dlglabelsBtnOK">OK</button>
-                  <button type="button" class="main inline" style="min-width: 4.2em; margin-left: 1em" id="dlglabelsBtnCancel">Cancel</button>
-                  <button type="button" class="main inline unrelated" style="min-width: 4.2em; margin-left: 1em" id="dlglabelsBtnInvertSel">Invert selection</button>
-               </div>			
+         <div class="expparamsDlg" id="s3expparamsDlgLabels">
+            <div style="text-align: center">
+               <span style="font-size: 80%">Select one or more (by holding the <em>Ctrl</em> key).</span>
+               <select id="s3expparamsDlgLabelsSelection" style="min-width:90%" multiple>
+               </select>
             </div>
+            <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+               <button type="button" class="main inline" style="min-width: 4.2em" id="dlglabelsBtnOK">OK</button>
+               <button type="button" class="main inline" style="min-width: 4.2em; margin-left: 1em" id="dlglabelsBtnCancel">Cancel</button>
+               <button type="button" class="main inline unrelated" style="min-width: 4.2em; margin-left: 1em" id="dlglabelsBtnInvertSel">Invert selection</button>
+            </div>			
+         </div>
 
-            <div class="expparamsDlg" id="s1TestDatasets">
-               <div style="text-align: center;">
-                  <span style="font-size: 85%;">Select a dataset and press <strong>OK</strong>.<br>You can also <strong>download</strong> it to your machine.<br></span>
-                  <select id="s1TestDatasetsSelection" style="min-width:90%">
-                  </select>
-               </div>
-               <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
-                  <button type="button" class="main inline" style="font-size: 80%;" id="dlgTestDatasetsBtnOK">OK</button>
-                  <button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="dlgTestDatasetsBtnCancel">Cancel</button>
-                  <button type="button" class="main inline unrelated" style="font-size: 80%; margin-left: 1em;" id="dlgTestDatasetsBtnDownload">Download</button>
-               </div>			
-            </div>		
-
-            <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
-            <script src="js/script.js"></script>
-            </body>
-            </html>
+         <div class="expparamsDlg" id="s1TestDatasets">
+            <div style="text-align: center;">
+               <span style="font-size: 85%;">Select a dataset and press <strong>OK</strong>.<br>You can also <strong>download</strong> it to your machine.<br></span>
+               <select id="s1TestDatasetsSelection" style="min-width:90%">
+               </select>
+            </div>
+            <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+               <button type="button" class="main inline" style="font-size: 80%;" id="dlgTestDatasetsBtnOK">OK</button>
+               <button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="dlgTestDatasetsBtnCancel">Cancel</button>
+               <button type="button" class="main inline unrelated" style="font-size: 80%; margin-left: 1em;" id="dlgTestDatasetsBtnDownload">Download</button>
+            </div>			
+         </div>		
+      </div>
+      <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+      <script src="js/script.js"></script>
+      <script src="js/jquery.dataTables.min.js"></script>
+   </body>
+</html>

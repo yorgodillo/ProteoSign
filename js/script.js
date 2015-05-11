@@ -2,7 +2,6 @@ var sessionid = new Date().getTime();
 var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
-
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -31,54 +30,11 @@ function shuffle(o) {
    return o;
 }
 ;
-
 File.prototype.toString = function getFileName() {
    return this.name;
 }
 
-//modified from http://stackoverflow.com/questions/17964108/select-multiple-html-table-rows-with-ctrlclick-and-shiftclick
-var lastSelectedRow;
-var trs;
-
-function RowClick(e) {
-   var event = e || window.event;
-   var currenttr = (event.target ? event.target : event.srcElement);
-   var lock = false;
-   if (event.ctrlKey) {
-      toggleRow(currenttr);
-   }
-   if (event.button === 0) {
-      if (!event.ctrlKey && !event.shiftKey) {
-         clearAll();
-         toggleRow(currenttr);
-      }
-
-      if (event.shiftKey) {
-         selectRowsBetweenIndexes([lastSelectedRow.parentNode.rowIndex, currenttr.parentNode.rowIndex])
-      }
-   }
-}
-
-function toggleRow(row) {
-   row.className = row.className == 'rawfiles_tbl_td_selected' ? 'rawfiles_tbl_td_not_selected' : 'rawfiles_tbl_td_selected';
-   lastSelectedRow = row;
-}
-
-function selectRowsBetweenIndexes(indexes) {
-   indexes.sort(function (a, b) {
-      return a - b;
-   });
-
-   for (var i = indexes[0]; i < indexes[1]; i++) {
-      trs[i].className = 'rawfiles_tbl_td_selected';
-   }
-}
-
-function clearAll() {
-   for (var i = 0; i < trs.length; i++) {
-      trs[i].className = 'rawfiles_tbl_td_not_selected';
-   }
-}
+var rawfiles_tbl_allfiles_DT;
 
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
@@ -327,7 +283,7 @@ var postParameters = function (params) {
       cache: false,
       contentType: false
    }).done(function (data, textStatus, jqXHR) {
-      //if there was a server-side error alert.
+//if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
       } else {
@@ -373,7 +329,6 @@ var peptideLabelsFromFileCombs = [];
 var nFormLabels = 1;
 var nToUpload;
 var debug_ajax_data;
-
 // Return false if at least one required parameter (existence of data-required attr) is not set (empty text field)
 // Mark invalid parameters with a red border color (currently tested on input fields)
 // Marked fields are reset through the 'focusout' event (see respective binding in function document.ready)
@@ -416,7 +371,7 @@ var resetState = function () {
    if (!$("#explbl1definition").hasClass("hidden")) {
       $("#explbl1definition").addClass("hidden");
    }
-   //remove progress bar(s)
+//remove progress bar(s)
    $("#s2uluploaders > table").empty();
    nUploaded = 0;
    sessionid = new Date().getTime();
@@ -482,8 +437,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
          }
       }}).done(function (data, textStatus, jqXHR) {
-      //debug_ajax_data = data;
-      //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
+//debug_ajax_data = data;
+//If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
       uploadFinished(data.success, idx, file);
       //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
       if (data.success) {
@@ -492,12 +447,12 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          for (var i = 0; i < data.raw_filesnames.length; i++) {
             tmp_rawfiles.push(data.raw_filesnames[i]);
          }
-         // If we have info regarding rawdata files names, save it					
+// If we have info regarding rawdata files names, save it					
          if (tmp_rawfiles.length > 0) {
             rawfiles = tmp_rawfiles;
             reset_reps();
          }
-         // If we have info regarding peptide labels and such info has not been available in previous upload
+// If we have info regarding peptide labels and such info has not been available in previous upload
          if (peptideLabelsNamesFromFile.length == 0 && (data.peptide_labels_names.length > 0 || data.peptide_labels.length > 0)) {
             peptideLabelsFromFile = data.peptide_labels.sort();
             peptideLabelsNamesFromFile = data.peptide_labels_names.sort();
@@ -516,7 +471,7 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             var item6 = $("#explbl1definition");
             // if not label-free data
             if (peptideLabelsNamesFromFile.length > 0) {
-               // Set states of parameters relevant to labelled experiments accordingly
+// Set states of parameters relevant to labelled experiments accordingly
                $(item1).prop('disabled', false);
                $(item2).prop('disabled', false);
                $(item3).html('&#8212 Species label #1');
@@ -529,7 +484,7 @@ var postFile = function (idx, file, serverSide, postSuccess) {
                $(item5).removeClass('hidden');
                $(item6).attr('placeholder', 'Definition');
             } else {
-               //label-free case (disable non-applicable parameters and rename others accordingly)
+//label-free case (disable non-applicable parameters and rename others accordingly)
                $(item1).prop('disabled', true);
                $(item2).prop('disabled', true);
                $(item3).html('&#8212 Biological condition #1');
@@ -607,7 +562,7 @@ var addFormLabel = function () {
          $("#explbl" + nFormLabels + "name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
       });
    } else {
-      //label-free case
+//label-free case
       if (peptideLabelsFromFile.length > 0) {
          $(last_tr_of_table).after("<tr><td>&#8212 Biological condition #" + nFormLabels + "</td><td></td><td><input data-required='true' id='explbl" + nFormLabels + "name_' name='explbl" + nFormLabels + "name' type='text' onkeypress='inputChCheck(event,\"^(?!_)[a-zA-Z0-9_]+$\",20)' placeholder='Character rules apply'></input></td><td><input data-required='true' id='explbl" + nFormLabels + "definition' name='explbl" + nFormLabels + "def' type='text' placeholder='Raw file' readonly" + (peptideLabelsFromFile.length > 0 ? "" : " class='hidden'") + "/></td></tr>");
          bind_explbldefinition_focus("#explbl" + nFormLabels + "definition");
@@ -667,13 +622,13 @@ var postTestDatasetInfo = function (dataset_desc) {
       cache: false,
       contentType: false
    }).done(function (data, textStatus, jqXHR) {
-      //if there was a server-side error alert.
+//if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
       } else {
          uploadingFiles = data.queryres.file;
          if (data.queryres.file.length > 0) {
-            //Start uploading ...
+//Start uploading ...
             uploadFiles(data.queryres.file, true, function () {
                if (++nUploaded < uploadingFiles.length) {
                   return;
@@ -701,89 +656,14 @@ var postTestDatasetInfo = function (dataset_desc) {
                         break;
                   }
                });
-               // simulate user-based experimental structure building via the GUI
-               var i;
-               var tmp_map = [];
-               for (i = 0; i < trs.length; i++) {
-                  tmp_map[trs[i].childNodes[0].nodeValue] = i;
+               for (var i = 0; i < data.queryres.raw_file.length; i++) {
+                  rawfiles_structure.push({rawfile: data.queryres.raw_file[i], biorep: data.queryres.brep[i], techrep: data.queryres.trep[i], fraction: data.queryres.frac[i]});
+                  var tds = $('tr[id="tr_' + data.queryres.raw_file[i] + '"] td');
+                  $(tds[1]).text(data.queryres.brep[i] == 0 ? '-' : data.queryres.brep[i]);
+                  $(tds[2]).text(data.queryres.trep[i] == 0 ? '-' : data.queryres.trep[i]);
+                  $(tds[3]).text(data.queryres.frac[i] == 0 ? '-' : data.queryres.frac[i]);
                }
-               var n_rawfiles = data.queryres.raw_file.length;
-               var n_breps = data.queryres.brep.unique().length;
-               var n_treps = data.queryres.trep.unique().length;
-               var n_frac = data.queryres.frac.unique().length;
-               if (n_treps > 1) {
-                  if (n_frac > 1) {
-                     // raw files correpsond to fractions
-                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                        for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
-                           //select multiple trs
-                           clearAll();
-                           for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                              if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
-                                 trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
-                              }
-                           }
-                           //define coords
-                           $('#expstructcoord_biorep').val(brep_i);
-                           $('#expstructcoord_techrep').val(trep_i);
-                           //trigger
-                           $('#btnAssignExpStructCoord').click();
-                        }
-                     }
-                  } else {
-                     // raw files correpsond to technical replicates
-                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                        //select multiple trs
-                        clearAll();
-                        for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                           if (data.queryres.brep[j] == brep_i) {
-                              trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
-                           }
-                        }
-                        //define coords
-                        $('#expstructcoord_biorep').val(brep_i);
-                        $('#expstructcoord_techrep').val('');
-                        //trigger
-                        $('#btnAssignExpStructCoord').click();
-                     }
-                  }
-               } else {
-                  if (n_frac > 1) {
-                     // raw files correpsond to fractions
-                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                        for (var trep_i = 1; trep_i <= n_treps; trep_i++) {
-                           //select multiple trs
-                           clearAll();
-                           for (var j = 0; j < data.queryres.raw_file.length; j++) {
-                              if (data.queryres.brep[j] == brep_i && data.queryres.trep[j] == trep_i) {
-                                 trs[tmp_map[data.queryres.raw_file[j]]].className = 'rawfiles_tbl_td_selected';
-                              }
-                           }
-                           //define coords
-                           $('#expstructcoord_biorep').val(brep_i);
-                           $('#expstructcoord_techrep').val(trep_i);
-                           //trigger
-                           $('#btnAssignExpStructCoord').click();
-                        }
-                     }
-                  } else {
-                     // raw files correpsond to breps
-                     for (var brep_i = 1; brep_i <= n_breps; brep_i++) {
-                        //select tr
-                        clearAll();
-                        trs[tmp_map[data.queryres.raw_file[data.queryres.brep.indexOf(brep_i)]]].className = 'rawfiles_tbl_td_selected';
-                        //define coords
-                        $('#expstructcoord_biorep').val(brep_i);
-                        $('#expstructcoord_techrep').val('');
-                        //trigger
-                        $('#btnAssignExpStructCoord').click();
-                     }
-                  }
-               }
-               clearAll();
-               $('#expstructcoord_biorep').val('');
-               $('#expstructcoord_techrep').val('');
-               //
+               set_reps();
                $("#s3expparams").animate({scrollTop: 0}, "slow");
             });
          } else {
@@ -809,7 +689,7 @@ var postTestDatasetsInfo = function () {
       cache: false,
       contentType: false
    }).done(function (data, textStatus, jqXHR) {
-      //if there was a server-side error alert.
+//if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
       } else {
@@ -830,18 +710,84 @@ var fractions;
 var rawfiles;
 var rawfiles_structure;
 var rep_counts;
-
+var lastclicked_rawfiles_tbl_tr = null;
 var reset_reps = function () {
    bioreps = 0;
    techreps = 0;
    fractions = 0;
    rawfiles_structure = [];
    rep_counts = {biorep: []};
-   $('#rawfiles_tbl_allfiles td').parent().remove();
+   rawfiles_tbl_allfiles_DT.clear();
    $.each(rawfiles, function (idx, filename_i) {
-      $('#rawfiles_tbl_allfiles > tbody:last').append('<tr><td onmousedown="RowClick(event);" class="rawfiles_tbl_td_not_selected">' + filename_i + '</td></tr>');
+      rawfiles_tbl_allfiles_DT.row.add(
+              {
+                 'fname': filename_i,
+                 'brep': '-',
+                 'trep': '-',
+                 'frac': '-',
+                 'DT_RowClass': "rawfiles_tbl_td_not_selected",
+                 'DT_RowId': 'tr_' + filename_i
+              }
+      );
    });
-   trs = document.getElementById('rawfiles_tbl_allfiles').tBodies[0].getElementsByTagName('td');
+   rawfiles_tbl_allfiles_DT.draw();
+   $('#rawfiles_tbl_allfiles tbody tr').click(function (event) {
+      if (event.shiftKey) {
+         if (lastclicked_rawfiles_tbl_tr !== null) {
+            var i1 = $('#rawfiles_tbl_allfiles tbody tr').index(lastclicked_rawfiles_tbl_tr);
+            var i2 = $('#rawfiles_tbl_allfiles tbody tr').index(this);
+            var trs = $('#rawfiles_tbl_allfiles tbody tr');
+            if (i2 > i1) {
+               for (var i = (i1 + 1); i <= i2; i++) {
+                  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+               }
+            } else {
+               for (var i = (i1 - 1); i >= i2; i--) {
+                  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+               }
+            }
+         }
+      } else {
+         $(this).toggleClass('rawfiles_tbl_td_selected');
+      }
+      lastclicked_rawfiles_tbl_tr = this;
+   });
+}
+
+
+function set_reps() {
+   for (var i = 0; i < rawfiles_structure.length; i++) {
+      var rep = "biorep";
+      var max_level = 0;
+      if (rawfiles_structure[i][rep] != 0) {
+         if (!(rawfiles_structure[i][rep] in rep_counts[rep])) {
+            rep_counts[rep][rawfiles_structure[i][rep]] = {techrep: []};
+            bioreps++;
+         }
+      }
+      rep = "techrep";
+      if (rawfiles_structure[i][rep] != 0) {
+         if (!(rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep])) {
+            rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep][rawfiles_structure[i][rep]] = {fraction: []};
+            techreps++;
+         }
+         max_level = 1;
+      }
+      rep = "fraction";
+      if (rawfiles_structure[i][rep] != 0) {
+         if (!(rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"])) {
+            rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"][rawfiles_structure[i][rep]] = 1;
+            fractions++;
+         }
+         max_level = 2;
+      }
+   }
+//console.log(rep_counts);
+//console.log([bioreps, techreps, fractions]);
+   if (rawfiles_structure.length == rawfiles.length) {	//if all files have been assigned something
+      $("#s22btnf").prop('disabled', false);
+   }
+   $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
 }
 
 var gen_expdesign = function (struct) {
@@ -852,9 +798,7 @@ var gen_expdesign = function (struct) {
    return ret;
 }
 
-
 var rss_i;
-
 var renderRSSData = function (data, renderelem) {
    var prev_html = "<notset>";
    rss_i = 0;
@@ -940,7 +884,7 @@ $(document).ready(function () {
       var fnames = "";
       $("#s2uluploaders > table").empty();
       if (this.files.length > 0) {
-         //Start uploading ...
+//Start uploading ...
          uploadFiles(this.files, false, function () {
             if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
                $("#s2btnf").prop('disabled', false);
@@ -973,17 +917,19 @@ $(document).ready(function () {
       });
    });
    $("#dlglabelsBtnInvertSel").on("click", function () {
-      var allOptions = $.map($("#s3expparamsDlgLabelsSelection option"), function(v, i){return $(v).val();});
+      var allOptions = $.map($("#s3expparamsDlgLabelsSelection option"), function (v, i) {
+         return $(v).val();
+      });
       var selection = $("#s3expparamsDlgLabelsSelection").val();
       if (selection != null) {
-         var invOptions = allOptions.filter(function(elem){
+         var invOptions = allOptions.filter(function (elem) {
             return selection.indexOf(elem) == -1;
          });
          $("#s3expparamsDlgLabelsSelection").val(invOptions);
-      }else{
+      } else {
          $("#s3expparamsDlgLabelsSelection").val(allOptions);
       }
-   });   
+   });
    //Toggle visibility on inputs that are dependent to each other
    // #1: dependency between quantitation filtering settings
    $("#s3advparams input[name='expquantfilt']").on("click", function () {
@@ -998,7 +944,6 @@ $(document).ready(function () {
       }
       ;
    });
-
    // #2: dependency between PD data and label definitions.
    $("#s3expparams input[name='exppddata']").on("click", function () {
    });
@@ -1032,7 +977,7 @@ $(document).ready(function () {
       resetCssStyles(this);
    });
    // Display chopped long raw file name on a tooltip
-   $('.rawfiles_tbl').delegate('td', 'mouseenter', function () {
+   $('#rawfiles_tbl_allfiles').delegate('td', 'mouseenter', function () {
       var $this = $(this);
       if (this.offsetWidth < this.scrollWidth && !$this.attr('title')) {
          $this.attr('title', $this.text());
@@ -1041,7 +986,7 @@ $(document).ready(function () {
    //
 
    $('#btnAssignExpStructCoord').on("click", function () {
-      var items = $('.rawfiles_tbl').find('.rawfiles_tbl_td_selected');
+      var items = $('#rawfiles_tbl_allfiles').find('.rawfiles_tbl_td_selected');
       var def_biorep = Number($('#expstructcoord_biorep').val());
       var def_techrep = Number($('#expstructcoord_techrep').val());
       var curr_biorep = def_biorep;
@@ -1063,18 +1008,21 @@ $(document).ready(function () {
       }
       $("#btnResetExpStructCoord").prop('disabled', false);
       for (var i = 0; i < items.length; i++) {
-         var curr_str = $(items[i]).html();
-         if (curr_str.match(/\|/) == null) {
+         var items_tds = $(items[i]).find('td');
+         var items_biorep = items_tds[1];
+         var items_techrep = items_tds[2];
+         var items_frac = items_tds[3];
+         if ($(items_biorep).text() == '-' && $(items_techrep).text() == '-' && $(items_frac).text() == '-') {
             if (def_biorep > 0) { // i.e. non-blank
                if (def_techrep == 0) { // blank
-                  //techreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+//techreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
                   if (def_biorep in rep_counts["biorep"] && peptideLabelsNamesFromFile.length > 0) {
                      curr_techrep = (rep_counts["biorep"][def_biorep].techrep.length - 1) + rep_offset++;
                   } else {
                      curr_techrep = rep_offset++;
                   }
                } else {
-                  // fractions, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+// fractions, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
                   if (def_biorep in rep_counts["biorep"] && def_techrep in rep_counts["biorep"][def_biorep].techrep && peptideLabelsNamesFromFile.length > 0) {
                      curr_fraction = (rep_counts["biorep"][def_biorep].techrep[def_techrep].fraction.length - 1) + rep_offset++;
                   } else {
@@ -1083,69 +1031,37 @@ $(document).ready(function () {
                }
             } else {
                if (def_techrep == 0) { // blank
-                  // bioreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
+// bioreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
                   if (peptideLabelsNamesFromFile.length > 0) {
                      curr_biorep = rep_counts["biorep"].length + rep_offset++;
                   } else {
                      curr_biorep = rep_offset++;
                   }
                } else {
-                  // error, a biorep must be specified
+// error, a biorep must be specified
                   if (rawfiles_structure.length == 0) {
                      $("#btnResetExpStructCoord").prop('disabled', true);
                   }
                   return;
                }
             }
-            rawfiles_structure.push({rawfile: curr_str, biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
-            curr_str = (curr_biorep == 0 ? '-' : curr_biorep) + ',' + (curr_techrep == 0 ? '-' : curr_techrep) + ',' + (curr_fraction == 0 ? '-' : curr_fraction) + ' | ' + curr_str;
-            $(items[i]).html(curr_str);
+            rawfiles_structure.push({rawfile: $(items_tds[0]).text(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
+            $(items_biorep).text(curr_biorep == 0 ? '-' : curr_biorep);
+            $(items_techrep).text(curr_techrep == 0 ? '-' : curr_techrep);
+            $(items_frac).text(curr_fraction == 0 ? '-' : curr_fraction);
          }
       }
-
-      for (var i = 0; i < rawfiles_structure.length; i++) {
-         var rep = "biorep";
-         var max_level = 0;
-         if (rawfiles_structure[i][rep] != 0) {
-            if (!(rawfiles_structure[i][rep] in rep_counts[rep])) {
-               rep_counts[rep][rawfiles_structure[i][rep]] = {techrep: []};
-               bioreps++;
-            }
-         }
-         rep = "techrep";
-         if (rawfiles_structure[i][rep] != 0) {
-            if (!(rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep])) {
-               rep_counts["biorep"][rawfiles_structure[i]["biorep"]][rep][rawfiles_structure[i][rep]] = {fraction: []};
-               techreps++;
-            }
-            max_level = 1;
-         }
-         rep = "fraction";
-         if (rawfiles_structure[i][rep] != 0) {
-            if (!(rawfiles_structure[i][rep] in rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"])) {
-               rep_counts["biorep"][rawfiles_structure[i]["biorep"]]["techrep"][rawfiles_structure[i]["techrep"]]["fraction"][rawfiles_structure[i][rep]] = 1;
-               fractions++;
-            }
-            max_level = 2;
-         }
-      }
-      //console.log(rep_counts);
-      //console.log([bioreps, techreps, fractions]);
-      if (rawfiles_structure.length == rawfiles.length) {	//if all files have been assigned something
-         $("#s22btnf").prop('disabled', false);
-      }
+      set_reps();
    });
    $('#btnResetExpStructCoord').on("click", function () {
       reset_reps();
       $("#btnResetExpStructCoord").prop('disabled', true);
    });
-
    // CSS
    $(".tooltip").hover(function () {
       $(".tooltip span").css({"margin-left": -$(".tooltip span").width() / 2 + 9});
       $(".callout").css({"left": $(".tooltip span").width() / 2});
    });
-
    // Bind test datasets dialog buttons
    $("#dlgTestDatasetsBtnOK").on("click", function () {
       dlgFadeout();
@@ -1158,8 +1074,41 @@ $(document).ready(function () {
       dlgFadeout();
       downloadTestDataset($("#s1TestDatasetsSelection option:selected").text());
    });
-
-
+   // Initialize Raw file DataTable
+   rawfiles_tbl_allfiles_DT = $('#rawfiles_tbl_allfiles').DataTable({
+      paging: false,
+      bInfo: false,
+      "columnDefs": [
+         {
+            targets: [1, 2, 3],
+            width: '5%',
+            className: "dt-center"
+         },
+         {
+            targets: 0,
+            width: '80%',
+            className: "dt-left"
+         }
+      ],
+      "dom": '<"top ibvspace"f>rtT',
+      "oLanguage": {
+         "sSearch": "Filter"
+      },
+      "aoColumns": [
+         {"mData": "fname"},
+         {"mData": "brep"},
+         {"mData": "trep"},
+         {"mData": "frac"}
+      ]
+   });
+   $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
+   $('#rawfiles_tbl_allfiles').css({'border-bottom': 'none'});
+   $('#btnRawfilesTblSelectAll').on("click", function () {
+      $('#rawfiles_tbl_allfiles tbody tr').addClass('rawfiles_tbl_td_selected');
+   });
+   $('#btnRawfilesTblSelectNone').on("click", function () {
+      $('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
+   });
    // TEST DATA INIT
    postTestDatasetsInfo();
    //

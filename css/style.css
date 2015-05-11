@@ -654,11 +654,9 @@
 	
 	.rawfiles_tbl_td_not_selected {
 		padding: 4px;
-		min-width: 200px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		text-align: left;
 		border-top: 1px solid #ffffff;
 		border-bottom:1px solid #e0e0e0;
 		border-left: 1px solid #e0e0e0;
@@ -670,16 +668,6 @@
 	}
 	
 	.rawfiles_tbl_td_selected {
-		padding: 4px;
-		min-width: 200px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-align: left;
-		border-top: 1px solid #ffffff;
-		border-bottom:1px solid #e0e0e0;
-		border-left: 1px solid #e0e0e0;
-
 		background: #B0C4DE;
 		background: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#B0C4DE));
 		background: -moz-linear-gradient(top,  #fbfbfb,  #B0C4DE);
@@ -705,3 +693,7 @@
 		-webkit-user-select: none;	
 	}
 	
+   .ibvspace {
+      display: inline-block;
+      padding-bottom: 1em;
+   }
