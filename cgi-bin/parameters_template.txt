@@ -1,9 +1,0 @@
-Proteome Discoverer data?	REPLACE1
-Experiment ID?	REPLACE2
-Time point?	REPLACE3
-#Modification	oxM	Oxidation
-Protein (as opposed to peptide) quantitation?	REPLACE4
-Enable quantitation filtering?	REPLACE5
-If the above two are enabled, peptide-level (as opposed to protein-level) filtering?	REPLACE6
-If filtering is enabled, based on which label?	REPLACE7
-Label-free experiment?	REPLACE8

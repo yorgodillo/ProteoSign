@@ -58,44 +58,52 @@ if (isset($name)) {
       }
       $handle = null;
       if ($file_copied_successfully && ($handle = fopen($location . '/' . $name, "r"))) {
-         $tmp = preg_grep("/Spectrum File/", fgetcsv($handle, 0, "\t"));
-         $dtype = (count($tmp) > 0 ? 'PD' : 'MQ');
+         $first_line = fgetcsv($handle, 0, "\t");
          fclose($handle);
-         $get_labels_aguments_sets = array_merge(array_values($_get_labels_aguments_sets[$dtype]['L']), array_values($_get_labels_aguments_sets[$dtype]['LF']));
-         $get_labels_aguments_sets_labelfree_flag = array_merge(array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['L']), false)), array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['LF']), true)));
-         // Keep calling "get_labels" till you get some labels (validity criteria for labelled experiments: 1: # of label names > 0. 2: if # of label definitions > 0 then label definitions cannot contain white-space characters)
-         for ($i = 0; $i < count($get_labels_aguments_sets); $i++) {
-            $argset = $get_labels_aguments_sets[$i];
-            $tmp = get_labels($location . '/' . $name, $argset[0], $argset[1], $argset[2]);
-            if (count($tmp[0]) > 0 || $get_labels_aguments_sets_labelfree_flag[$i]) {
-               if (count($tmp[1]) > 0) {
-                  //error_log("# of label defs (set $i): " . count($tmp[1]));
-                  $okdefs = 0;
-                  foreach ($tmp[1] as $lbldef) {
-                     if (preg_match('/[\s,;\:]/', $lbldef) == 0) {
-                        $okdefs++;
-                     } else {
-                        array_push($server_response['skipped_labels'], $lbldef);
+         $tmp = preg_grep("/Spectrum File/", $first_line);
+         if (count($tmp) > 0) {
+            $dtype = 'PD';
+         } else {
+            $tmp = preg_grep("/Raw file/", $first_line);
+            $dtype = (count($tmp) > 0 ? 'MQ' : 'MQP');
+         }
+         if ($dtype != 'MQP') {
+            $get_labels_aguments_sets = array_merge(array_values($_get_labels_aguments_sets[$dtype]['L']), array_values($_get_labels_aguments_sets[$dtype]['LF']));
+            $get_labels_aguments_sets_labelfree_flag = array_merge(array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['L']), false)), array_values(array_fill(0, count($_get_labels_aguments_sets[$dtype]['LF']), true)));
+            // Keep calling "get_labels" till you get some labels (validity criteria for labelled experiments: 1: # of label names > 0. 2: if # of label definitions > 0 then label definitions cannot contain white-space characters)
+            for ($i = 0; $i < count($get_labels_aguments_sets); $i++) {
+               $argset = $get_labels_aguments_sets[$i];
+               $tmp = get_labels($location . '/' . $name, $argset[0], $argset[1], $argset[2]);
+               if (count($tmp[0]) > 0 || $get_labels_aguments_sets_labelfree_flag[$i]) {
+                  if (count($tmp[1]) > 0) {
+                     //error_log("# of label defs (set $i): " . count($tmp[1]));
+                     $okdefs = 0;
+                     foreach ($tmp[1] as $lbldef) {
+                        if (preg_match('/[\s,;\:]/', $lbldef) == 0) {
+                           $okdefs++;
+                        } else {
+                           array_push($server_response['skipped_labels'], $lbldef);
+                        }
                      }
-                  }
-                  if ($okdefs == count($tmp[1])) {
+                     if ($okdefs == count($tmp[1])) {
+                        break;
+                     }
+                  } else {
                      break;
                   }
-               } else {
-                  break;
                }
             }
+            $server_response['peptide_labels_names'] = $tmp[0];
+            $server_response['peptide_labels'] = $tmp[1];
+            $server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name, '/file/i');
+            if (count($server_response['raw_filesnames']) == 0) {
+               error_log("Could not retrieve replicate information (raw files names) from data file " . $name);
+            }
+            rename($location . '/' . $name, $location . '/msdiffexp_peptide.txt');
+         } else {
+            rename($location . '/' . $name, $location . '/msdiffexp_protein.txt');
          }
-         $server_response['peptide_labels_names'] = $tmp[0];
-         $server_response['peptide_labels'] = $tmp[1];
          $server_response['success'] = true;
-         $server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name, '/file/i');
-         if (count($server_response['raw_filesnames']) == 0) {
-            error_log("Could not retrieve replicate information (raw files names) from data file " . $name);
-         }
-         //else{
-         //error_log("Retrieved replicate information (raw files names) from data file " . $name . ": " . print_r($server_response['raw_filesnames'], true));
-         //}
       } else {
          $server_response['msg'] = "The file $name could not be moved ('move_uploaded_file' returned FALSE).";
       }

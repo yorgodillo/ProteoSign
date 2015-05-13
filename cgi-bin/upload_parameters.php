@@ -6,24 +6,28 @@
 	$session_folder = $_POST["session_id"];
 	$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign";
 	$upload_dir = $document_root . "/uploads/" . $session_folder;
-	$upload_parameter_file = $upload_dir . "/parameters.txt";
+	$upload_parameter_file = $upload_dir . "/MSdiffexp_definitions.R";
 	$upload_experimental_structure_file = $upload_dir . "/exp_struct.txt";
-	$parameters_template = "parameters_template.txt";
+	$parameters_template = "parameters_template.R";
 
 	$the_parameters["REPLACE1"] = $_POST["exppddata"];
-	$the_parameters["REPLACE2"] = $_POST["expid"];
-	$the_parameters["REPLACE3"] = $_POST["exptpoint"];
+	$the_parameters["REPLACE2"] = "\"" . $_POST["expid"] . "\"";
+	$the_parameters["REPLACE3"] = "\"" . $_POST["exptpoint"] . "\"";
 	$the_parameters["REPLACE4"] = $_POST["expprotquant"];
 	$the_parameters["REPLACE5"] = $_POST["expquantfilt"];
 	$the_parameters["REPLACE6"] = $_POST["expquantfiltprot"];
-	$the_parameters["REPLACE7"] = $_POST["expquantfiltlbl"];
+	$the_parameters["REPLACE7"] = "\"" . $_POST["expquantfiltlbl"] . "\"";
 	$the_parameters["REPLACE8"] = $_POST["labelfree"];
-	if($_POST["explbl00"] == "Yes" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
+   $the_parameters["REPLACE9"] = "\"" . $upload_dir . '/msdiffexp_wd' . "\"";
+	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "Label\t" . $_POST["explbl0"] . "\t";
 	}
 	$lbl_i = 1;
 	while(isset($_POST["explbl" . $lbl_i . "name"])){
-		$the_parameters["APPEND" . $lbl_i] = "Label\t" . $_POST["explbl" . $lbl_i . "name"] . "\t" . $_POST["explbl" . $lbl_i . "def"];
+		//$the_parameters["APPEND" . $lbl_i] = "Label\t" . $_POST["explbl" . $lbl_i . "name"] . "\t" . $_POST["explbl" . $lbl_i . "def"];
+      $tmp = explode(",", $_POST["explbl" . $lbl_i . "def"]);
+      $tmp = implode("\",\"", $tmp);
+      $the_parameters["APPEND" . $lbl_i] = "addLabel(\"" . $_POST["explbl" . $lbl_i . "name"] . "\",c(\"" . $tmp . "\"))";
 		$lbl_i++;
 	}
 	$parameters_file_contents = file_get_contents("$parameters_template") ;

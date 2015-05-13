@@ -48,7 +48,7 @@
 		background-color: #E4E4E4;
 		box-shadow: 0 0.1em 0.1em #B1B1B1;
 		border-radius: 0.15em;
-		height: 850px;
+		height: 900px;
 		width: 900px;
 	}
 	
@@ -97,7 +97,7 @@
 	
 	.main_div .main_nav{
 		margin: 1% auto 1% auto;
-		height: 2.3%;
+		height: 1.9%;
 		border-radius: 0.25em;
 		background-color: #2E2E2E;
 		color: white;

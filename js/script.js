@@ -258,7 +258,7 @@ var postParameters = function (params) {
       switch ($(param_i).attr('type')) {
          case "checkbox":
             // Here the on/off is transmitted Yes/No
-            var theval = ($(param_i).prop("checked") ? "Yes" : "No");
+            var theval = ($(param_i).prop("checked") ? "T" : "F");
             thedata.append($(param_i).attr('name'), theval);
             break;
          default:
@@ -271,7 +271,7 @@ var postParameters = function (params) {
       }
       //console.log($(param_i).attr('name')+" = "+theval);
    });
-   thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'Yes' : 'No'));
+   thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
@@ -785,7 +785,7 @@ function set_reps() {
 //console.log(rep_counts);
 //console.log([bioreps, techreps, fractions]);
    if (rawfiles_structure.length == rawfiles.length) {	//if all files have been assigned something
-      $("#s22btnf").prop('disabled', false);
+      $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
    }
    $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
 }
@@ -917,18 +917,9 @@ $(document).ready(function () {
       });
    });
    $("#dlglabelsBtnInvertSel").on("click", function () {
-      var allOptions = $.map($("#s3expparamsDlgLabelsSelection option"), function (v, i) {
-         return $(v).val();
-      });
-      var selection = $("#s3expparamsDlgLabelsSelection").val();
-      if (selection != null) {
-         var invOptions = allOptions.filter(function (elem) {
-            return selection.indexOf(elem) == -1;
-         });
-         $("#s3expparamsDlgLabelsSelection").val(invOptions);
-      } else {
-         $("#s3expparamsDlgLabelsSelection").val(allOptions);
-      }
+      var tmp = $("#s3expparamsDlgLabelsSelection option").not(".hidden").not(":selected");
+      $("#s3expparamsDlgLabelsSelection option").not(".hidden").filter(":selected").prop('selected','');
+      $(tmp).prop('selected','selected');
    });
    //Toggle visibility on inputs that are dependent to each other
    // #1: dependency between quantitation filtering settings
@@ -999,13 +990,6 @@ $(document).ready(function () {
       if (def_techrep > 0 && def_techrep > (techreps + 1)) {	// same as above but for techreps
          return;
       }
-      if (def_biorep > 0) {
-         if (def_techrep > 0) {
-            $('#expstructcoord_techrep').val(def_techrep + 1);
-         } else {
-            $('#expstructcoord_biorep').val(def_biorep + 1);
-         }
-      }
       $("#btnResetExpStructCoord").prop('disabled', false);
       for (var i = 0; i < items.length; i++) {
          var items_tds = $(items[i]).find('td');
@@ -1052,10 +1036,12 @@ $(document).ready(function () {
          }
       }
       set_reps();
+      $('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
    });
    $('#btnResetExpStructCoord').on("click", function () {
       reset_reps();
       $("#btnResetExpStructCoord").prop('disabled', true);
+      $("#s22btnf").prop('disabled', true);
    });
    // CSS
    $(".tooltip").hover(function () {
@@ -1108,6 +1094,34 @@ $(document).ready(function () {
    });
    $('#btnRawfilesTblSelectNone').on("click", function () {
       $('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
+   });
+   $('#btnRawfilesTblDelete').on("click", function () {
+      if ($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected').length == 0) {
+         return;
+      }
+      rawfiles_to_rem = $.map($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected'), function (val, i) {
+         return $(val).prop('id');
+      });
+      rawfiles = $.grep(rawfiles, function (n, i) {
+         return rawfiles_to_rem.indexOf('tr_' + n) == -1;
+      });
+      $("#s3expparamsDlgLabelsSelection .hidden").removeClass('hidden');
+      $("#s3expparamsDlgLabelsSelection option").each(function (i) {
+         if (rawfiles.indexOf($(this).val()) == -1) {
+            $(this).addClass('hidden');
+         }
+      });
+      if ($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected td:nth-child(2)').text().match(/[^-]+/g) != null) {
+         rawfiles_tbl_allfiles_DT.rows($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected')).remove();
+         reset_reps();
+      } else {
+         rawfiles_structure = $.grep(rawfiles_structure, function (n, i) {
+            return rawfiles_to_rem.indexOf('tr_' + n.rawfile) == -1;
+         });
+         rawfiles_tbl_allfiles_DT.rows($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected')).remove().draw();
+      }
+      $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
+      $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
    });
    // TEST DATA INIT
    postTestDatasetsInfo();

@@ -58,7 +58,11 @@
             <h2>Step 2</h2>
             <p style="color: #000000">Please define the experimental design by assigning to each raw file the appropriate location coordinate in the experimental structure. 
             <p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Hold down the <em>Shift</em> and click to select a range of items.</p>
-            <ul style="font-size: 14px;"><li>To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank.</li><li>To assign fractions, specify both the biological and the technical replicate.</li></ul>
+            <ul style="font-size: 14px;">
+               <li>To assign technical replicates, specify the biological replicate and leave the technical replicate ordinate field blank.</li>
+               <li>To assign fractions, specify both the biological and the technical replicate.</li>
+               <li>Assign all raw files a coordinate in order to proceed. If there are files that should be excluded from the analysis, select them and press the <em>Delete</em> button.</li>
+            </ul>
             <hr class="style-one">
             <div style="text-align: center; height: 50%; width: 100%; display: -webkit-flex; display: inline-flex;">
                <div class="expstructcoord_tbl" style="overflow: auto; max-height: 100%; width: 50%;">
@@ -74,7 +78,8 @@
                      </table>
                      <div style="margin-top: 1em; margin-bottom: 0.5em;">
                         <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnRawfilesTblSelectAll">Select All</button>
-                        <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnRawfilesTblSelectNone">Clear</button>                     
+                        <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnRawfilesTblSelectNone">Clear</button>
+                        <button type="button" style="font-size: 80%; padding: 5px 15px 6px 15px; background: #383838; color: #ffffff; border: 2px solid #737373;" id="btnRawfilesTblDelete">Delete</button>
                      </div>
                   </div>
                </div>
