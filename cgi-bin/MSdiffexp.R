@@ -8,6 +8,7 @@ options(warn=1)
 #if(!require("limma")){ biocLite("limma") }
 #if(!require("statmod")){ biocLite("statmod") }
 #if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
+#if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
 #if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
 #if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
 #if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
@@ -18,6 +19,7 @@ options(warn=1)
 
 library(limma)
 library(statmod)
+library(stringr)
 library(reshape)
 library(plyr)
 library(ggplot2)
@@ -26,6 +28,7 @@ library(gtools)
 library(data.table)
 library(outliers)
 library(pryr)
+
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)
 debuglog <- 10
@@ -636,8 +639,14 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
   if(!PDdata){
     ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
+    pgroups<-read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
+    # If there isn't a Protein.Names column (depends on MQ version), create one from the Fasta Headers column
+    col_Protein.names <- length(grep('Protein.Names',colnames(pgroups))) > 0
+    if(! col_Protein.names){
+      pgroups$Protein.names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
+    }
     # Construct a table, mapping the correct protein groups IDs (and the corresponding proteins names) to the evidence IDs
-    tmp.table.1<-data.table(do.call(rbind, apply(read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")[,c('Protein.IDs','Protein.names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
+    tmp.table.1<-data.table(do.call(rbind, apply(pgroups[,c('Protein.IDs','Protein.names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
     setnames(tmp.table.1, colnames(tmp.table.1), c('Protein.IDs', 'Protein.Names', 'id'))
     class(tmp.table.1$id)<-'integer'
     setkey(tmp.table.1, id)
@@ -670,8 +679,9 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   ## Assign defined labels (conditions), one for each PSM record
   levellog("read.pgroups_v3: Assigning labels ...")
   levellog("",change=1)
+  if(PDdata){ rawfile_col<-'Spectrum.File' }else{ rawfile_col<-'Raw.file' }
   if(LabelFree){
-    cond_spec_col<-"Spectrum.File"
+    cond_spec_col<-rawfile_col
   }else{
     if(PDdata){ cond_spec_col<-'Modifications' }else{ cond_spec_col<-'Labeling.State' }
   }
@@ -692,9 +702,16 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
         }
       }
     }else{
-      # MQ nomenclature for labels: 0 the first label, 1 the second etc ...
-      mi<-which(grepl((i-1), evidence[, cond_spec_col]))
-      evidence[mi,]$label_<-conditions.labels[i]
+      if(LabelFree){
+        for(cond_i_spec in conditions.labels.Modifications[[i]]){
+          mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
+          evidence[mi,]$label_<-conditions.labels[i]
+        }        
+      }else{
+        # MQ nomenclature for labels: 0 the first label, 1 the second etc ...
+        mi<-which(grepl((i-1), evidence[, cond_spec_col]))
+        evidence[mi,]$label_<-conditions.labels[i]
+      }
     }
     levellog(paste0("read.pgroups_v3: Assigned label '", conditions.labels[i],"'."))
   }
@@ -709,7 +726,6 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     evidence[mi,]$label_<-background_species_lbl
   }
   # Now add the experimental structure information
-  if(PDdata){ rawfile_col<-'Spectrum.File' }else{ rawfile_col<-'Raw.file' }
   evidence<-merge(evidence, .GlobalEnv[["rep_structure"]], by.x=c(rawfile_col), by.y=c('raw_file'))
   
   ## If we have fractionation, remake the rep_desc column and don't take into account the fraction number

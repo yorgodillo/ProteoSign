@@ -74,8 +74,9 @@ end:
 	error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	if(!$server_response['success']){
 		error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
-	}
-   exec('rm -Rf msdiffexp_wd');
+	}else{
+      exec('rm -Rf msdiffexp_wd');
+   }
 	//Send info back to the client
 	//error_log(json_encode($server_response));
 	header('Content-type: application/json');
