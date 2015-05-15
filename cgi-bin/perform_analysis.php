@@ -31,8 +31,18 @@
    rename('msdiffexp_peptide.txt', 'msdiffexp_wd/msdiffexp_peptide.txt');
    rename('msdiffexp_protein.txt', 'msdiffexp_wd/msdiffexp_protein.txt');
    chdir('msdiffexp_wd');
-   exec("R CMD BATCH --slave MSdiffexp.R msdiffexp_log.txt");
-	//exec("perl proteosign_dispatcher.pl \"$upload_dir/parameters.txt\" 2>&1", $server_response['dispatcher_dump']);
+   // Keep waiting, for longer and longer time periods if there isn't enough memory (empirically determined to be at least double the size of the PSMs file) to do the analysis
+   $free_mem_kB = 0;
+   $sleep_time_secs = 0;
+   $free_mem_required_kB = filesize('msdiffexp_wd/msdiffexp_peptide.txt') * 0.002;
+   do{
+      sleep($sleep_time_secs++);
+      $tmp = [];
+      exec("cat /proc/meminfo | grep 'MemFree:' | sed -r 's/.*\s([0-9]+)\s.*/\1/'", $tmp);
+      $free_mem_kB = intval($tmp[0]);
+   } while($free_mem_kB < $free_mem_required_kB);
+   
+   exec('R CMD BATCH --slave MSdiffexp.R msdiffexp_log.txt');
 	// Determine success of R run by search for 'error' occurrences in msdiffexp_log.txt
 	$R_logfile = file_get_contents("msdiffexp_log.txt");
 	if($R_logfile){

@@ -16,6 +16,8 @@ options(warn=1)
 #if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
 #if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
 #if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
+##if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
+##if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
 
 library(limma)
 library(statmod)
@@ -28,6 +30,8 @@ library(gtools)
 library(data.table)
 library(outliers)
 library(pryr)
+#library(devtools)
+#library(lineprof)
 
 
 # DEBUGGING log flag/level (0 translates to no debugging log at all)
