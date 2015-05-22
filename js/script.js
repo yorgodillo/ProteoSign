@@ -318,6 +318,12 @@ var executeStage = function (stageIndex) {
 // Executed when a "Back" type of button is clicked
 var rollbackStage = function (stageIndex) {
    var ret = true;
+   stageIndex = getItems("button.main", /s[0-9]+btnb/).length - stageIndex - 1;
+   switch (stageIndex) {
+      case 1:
+         resetState();
+      default:
+   }   
    return ret;
 }
 
