@@ -1118,7 +1118,8 @@ $(document).ready(function () {
          rawfiles_structure = $.grep(rawfiles_structure, function (n, i) {
             return rawfiles_to_rem.indexOf('tr_' + n.rawfile) == -1;
          });
-         rawfiles_tbl_allfiles_DT.rows($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected')).remove().draw();
+         rawfiles_tbl_allfiles_DT.rows($('#rawfiles_tbl_allfiles .rawfiles_tbl_td_selected')).remove();
+         rawfiles_tbl_allfiles_DT.draw();
       }
       $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
       $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);

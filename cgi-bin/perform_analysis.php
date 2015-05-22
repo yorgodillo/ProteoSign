@@ -35,18 +35,18 @@ chdir('msdiffexp_wd');
 // Keep waiting, for longer and longer time periods if there isn't enough memory (empirically determined to be at least double the size of the PSMs file) to do the analysis
 $free_mem_kB = 0;
 $sleep_time_secs = 0;
-$free_mem_required_kB = filesize('msdiffexp_wd/msdiffexp_peptide.txt') * 0.002;
+$free_mem_required_kB = filesize('msdiffexp_peptide.txt') * 0.002;
 $ntrials = 0;
 $ntrials_max = 20;
 do {
    sleep($sleep_time_secs++);
    $tmp = [];
-   exec("cat /proc/meminfo | grep 'MemFree:' | sed -r 's/.*\s([0-9]+)\s.*/\1/'", $tmp);
+   exec('cat /proc/meminfo | grep \'MemFree:\' | sed -r \'s/.*\s([0-9]+)\s.*/\1/\'', $tmp);
    $free_mem_kB = intval($tmp[0]);
-} while ($free_mem_kB < $free_mem_required_kB || ++$ntrials <= $ntrials_max);
+} while ($free_mem_kB < $free_mem_required_kB && ++$ntrials <= $ntrials_max);
 
 if ($ntrials > $ntrials_max) {
-   $server_response['msg'] = "Not enough server free memory to perfrom the analysis: $free_mem_required_kB kB required, $free_mem_kB kB available.";
+   $server_response['msg'] = "Not enough server free memory: $free_mem_required_kB kB required, $free_mem_kB kB available.";
 } else {
    exec('R CMD BATCH --slave MSdiffexp.R msdiffexp_log.txt');
    // Determine success of R run by search for 'error' occurrences in msdiffexp_log.txt
