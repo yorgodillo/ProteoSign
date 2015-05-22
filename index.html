@@ -29,7 +29,7 @@
          </div>
          <div class="main_div main_section hidden" id="s2div">
             <h2>Step 1</h2>
-            <p style="color: #000000">Please read below first. When ready, upload your dataset and click <em>Next</em>. Alternatively, you could <a href="#" onclick="onChooseFromTestDatasets();"><u>choose</u></a> from available test datasets.</p>
+            <p style="color: #000000">Please read below first. When ready, upload your dataset and click <em>Next</em>. Alternatively, you could <a href="#" onclick="onShowDialog('#s1TestDatasets');"><u>choose</u></a> from available test datasets.</p>
             <dl style="font-family: 'Courier New'; font-size: 75%; padding-left: 5%;">
                <dt>Input file support:</dt>
                <dd>&#8212 <a href="http://www.google.com/search?q=Thermo%20Proteome%20Discoverer&btnI" target="_blank">Proteome Discoverer&#8482</a> (PD) v1.4+ PSM file.<div class="tooltip" style="position: relative; display: inline;">?<div style="left: -25em; min-width: 50em;"><img class="callout" src="images/callout_black.gif" style="margin-left: 24.3em"/>The <em>peptide spectrum match</em> (PSM) file, comprising the necessary information required for protein quantitation, has to be produced manually through the PD desktop application (see the <em>Export&#x2192;To Text</em> option under the <em>File</em> menu).<p>The PSM file must be created from within a PD report which combines the information from all relevant MS analyses (i.e. replicates, conditions etc). Such a PD report is sometimes required to be created based on separate reports and is referred to as a multi-consensus report.</p><p>Before exporting the information, one <strong>must</strong> first disable peptide grouping and second edit the report's <em>Quantification&nbsp;Method</em> by configuring the <em>Ratio&nbsp;Calculation</em> parameters as shown below. The following screen-shots show where the aforementioned changes can be made from within the PD application.</p><figure style="float: left; width: 49%; margin: 0 auto;"><img src="images/pdpepgroup.png" style="width: 100%;"/><figcaption style="text-align: center;">Disabling peptide grouping.</figcaption></figure><figure style="float: right; width: 49%; margin: 0 auto;"><img src="images/pdquantmeth.png" style="width: 100%;"/><figcaption style="text-align: center;">Editing ratio calculation parameters.</figcaption></figure></div></div></dd>
@@ -258,7 +258,23 @@
                <button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="dlgTestDatasetsBtnCancel">Cancel</button>
                <button type="button" class="main inline unrelated" style="font-size: 80%; margin-left: 1em;" id="dlgTestDatasetsBtnDownload">Download</button>
             </div>			
-         </div>		
+         </div>
+         <div class="expparamsDlg" id="tourModeDlg1" style="max-width: 50%;">
+            <div style="text-align: center;">
+               <span style="font-size: 85%;">On this page, the experimental design, in terms of replicates and fractions, has to be defined.<br> This is done for you now, since you have chosen a demo dataset.<br> Please click <strong>Next</strong> to proceed.</span>
+            </div>
+            <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+               <button type="button" class="main inline" style="font-size: 80%;" onclick="dlgFadeout();">Dismiss</button>
+            </div>			
+         </div>
+         <div class="expparamsDlg" id="tourModeDlg2" style="max-width: 50%;">
+            <div style="text-align: center;">
+               <span style="font-size: 85%;">On this page, various experimental parameters have to be defined as well as meta information be added.<br> Again, this is done for you now.<br> Please click <strong>Submit</strong> to start the analysis.</span>
+            </div>
+            <div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+               <button type="button" class="main inline" style="font-size: 80%;" onclick="dlgFadeout();">Dismiss</button>
+            </div>			
+         </div>
       </div>
       <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
       <script src="js/script.js"></script>

@@ -135,7 +135,12 @@ var toggleNextClass = function (itms, className, _removeClass, toggleFun) {
 // Get array of items from the DOM using a selector and id pattern
 var getItems = function (className, id_pattern) {
    return $(className).toArray().filter(function (element) {
-      var match = ($(element).attr("id")).match(id_pattern);
+      var match;
+      if($(element).attr("id")){
+         match = ($(element).attr("id")).match(id_pattern);
+      }else{
+         match = null;
+      }
       return (match == null ? false : true);
    });
 }
@@ -297,6 +302,10 @@ var executeStage = function (stageIndex) {
    var ret = true;
    switch (stageIndex) {
       case 1:
+         onShowDialog("#tourModeDlg1");
+         break;
+      case 2:
+         onShowDialog("#tourModeDlg2");
          break;
       case 3:
          var parameterObjs = $("#s3expparams input,#s3expparams select");
@@ -335,6 +344,7 @@ var peptideLabelsFromFileCombs = [];
 var nFormLabels = 1;
 var nToUpload;
 var debug_ajax_data;
+var tour_mode = false;
 // Return false if at least one required parameter (existence of data-required attr) is not set (empty text field)
 // Mark invalid parameters with a red border color (currently tested on input fields)
 // Marked fields are reset through the 'focusout' event (see respective binding in function document.ready)
@@ -380,12 +390,14 @@ var resetState = function () {
 //remove progress bar(s)
    $("#s2uluploaders > table").empty();
    nUploaded = 0;
+   tour_mode = false;
    sessionid = new Date().getTime();
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
 var uploadFiles = function (uploadingFiles, serverSide, postSuccess) {
    resetState();
+   tour_mode = serverSide;
    nToUpload = uploadingFiles.length;
    $("#s2btnf").prop('disabled', true);
    $.each(uploadingFiles, function (idx, file_i) {
@@ -545,11 +557,11 @@ var bind_explbldefinition_focus = function (explbldefinition) {
    });
 }
 
-var onChooseFromTestDatasets = function () {
-   $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s1TestDatasets").width() / 2)});
+var onShowDialog = function (selector){
+   $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($(selector).width() / 2)});
    $('body').append('<div id="mask"></div>');
-   $("#s1TestDatasets").fadeIn(300);
-   $('#mask').fadeIn(300);
+   $(selector).fadeIn(300);
+   $('#mask').fadeIn(300);   
 }
 
 var addFormLabel = function () {
