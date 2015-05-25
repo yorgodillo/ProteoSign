@@ -276,6 +276,7 @@ var postParameters = function (params) {
       }
       //console.log($(param_i).attr('name')+" = "+theval);
    });
+   return;
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    $.ajax({

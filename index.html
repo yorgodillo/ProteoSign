@@ -165,6 +165,17 @@
                      <td><input name="expprotquant" type="checkbox" checked/></td>
                   </tr>
                   <tr>
+                     <td>&#8212 Non-labelled "background" species present?</td>
+                     <td></td>
+                     <td><input name="explbl00" type="checkbox"/></td>
+                  </tr>
+                  <tr class='hidden'>
+                     <td>&#8212 "Background" species</td>
+                     <td></td>
+                     <td><select id="explbl0name_" name="explbl0"></select></td>
+                  </tr>						
+                  
+                  <tr>
                      <td>&#8212 Quantitation filtering?</td>
                      <td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>For labelled experiments only</u>. If enabled, two options will become available: <strong>a)</strong> singlets (peptides with no signal at the MS level in all but one labelled version) can be excluded from protein quantitation (this is referred to as <u>peptide-level filtering</u>).<br><strong>b)</strong> Proteins identified just by peptides with a certain label can be excluded from the analysis (this is referred to as <u>protein-level filtering</u>).</span></span></td>
                      <td><input name="expquantfilt" type="checkbox"/></td>
@@ -175,20 +186,10 @@
                      <td><select name="expquantfiltlbl"></select></td>
                   </tr>
                   <tr class='hidden'>
-                     <td>&#8212 Type of filtering: Peptide-level (as opposed to protein-level)?</td>
-                     <td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>Peptide-level filtering currently supported just for PD data</u>.</span></span></td>
+                     <td>&#8212 Type of filtering: Protein-level (as opposed to peptide-level)?</td>
+                     <td></td>
                      <td><input name="expquantfiltprot" type="checkbox"/></td>
                   </tr>
-                  <tr>
-                     <td>&#8212 Non-labelled "background" species present?</td>
-                     <td></td>
-                     <td><input name="explbl00" type="checkbox"/></td>
-                  </tr>
-                  <tr class='hidden'>
-                     <td>&#8212 "Background" species</td>
-                     <td></td>
-                     <td><select id="explbl0name_" name="explbl0"></select></td>
-                  </tr>						
                </table>					
             </div>
             <div class="buttonbar">
