@@ -255,28 +255,61 @@ var postClientServerClientInfo = function () {
    });
 }
 
+function dumpExpParamSQL(tmp){
+   //Dump to a .sql the exp. params for DB import
+   var sqlscript = [];
+   var expdesc = $('input[name="expid"]').val();
+   sqlscript.push("insert into dataset (desc) values ('" + expdesc + "');");
+   var filesvaluesstr = $.map(uploadingFiles, function(i, v){return i.name;}).join("','");
+   $.each(uploadingFiles, function (i, v){
+      sqlscript.push("insert into files (file) values ('" + v.name + "');");
+   });   
+   var procfilesvaluesstr = $.map(rawfiles_structure, function(i, v){ return i.rawfile; }).join("','");
+   $.each(rawfiles_structure, function (i, v){
+      sqlscript.push("insert into processed_files (name) values ('" + v.rawfile + "');");
+   });
+   sqlscript.push("insert into dataset_files (dataset_id, file_id) select (select id from dataset where desc = '" + expdesc + "') as dataset_id, id as file_id from files where file in ('" + filesvaluesstr + "');");
+   $.each(tmp, function (key, val){ 
+      sqlscript.push("insert into param_value (param_id,value,dataset_id) select id,'" + val + "' as value,(select id from dataset where desc = '" + expdesc + "') as dataset_id from param where selector like '%" + key + "%';");
+   });
+   $.each(rawfiles_structure, function (key, val){ 
+      sqlscript.push("insert into experimental_structure (processed_file_id,brep,trep,frac,dataset_id) values ('" + val.rawfile + "', '" + val.biorep + "', '" + val.techrep + "', '" + val.fraction + "', '0');");
+   });
+   sqlscript.push("update experimental_structure set dataset_id select id from dataset where dataset.desc = '" + expdesc + "' and experimental_structure.dataset_id = 0;");
+   sqlscript.push("update experimental_structure set processed_file_id select id from processed_files where processed_files.name in ('" + procfilesvaluesstr + "') and experimental_structure.processed_file_id = 0;");
+   //
+   var link = document.getElementById('github');
+   link.href = window.URL.createObjectURL(new Blob([sqlscript.join("\n")], {type: 'text/plain'}));
+   link.click();
+}
+
 var postParameters = function (params) {
+   var tmp = {};
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
    $.each(params, function (idx, param_i)
    {
+      var theval = $(param_i).val();
       switch ($(param_i).attr('type')) {
          case "checkbox":
+            theval = ($(param_i).prop("checked") ? 1 : 0);
             // Here the on/off is transmitted Yes/No
-            var theval = ($(param_i).prop("checked") ? "T" : "F");
-            thedata.append($(param_i).attr('name'), theval);
+            thedata.append($(param_i).attr('name'), (theval ? "T" : "F"));
             break;
          default:
-            var theval = $(param_i).val();
             if (theval == null) {
                theval = '';
             }
             thedata.append($(param_i).attr('name'), theval);
             break;
       }
-      //console.log($(param_i).attr('name')+" = "+theval);
+      if($(param_i).attr('id')){
+         tmp[$(param_i).attr('id')] = theval;
+      }else{
+         tmp[$(param_i).attr('name')] = theval;
+      }
    });
-   return;
+   dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    $.ajax({
@@ -303,10 +336,14 @@ var executeStage = function (stageIndex) {
    var ret = true;
    switch (stageIndex) {
       case 1:
-         onShowDialog("#tourModeDlg1");
+         if(tour_mode){
+            onShowDialog("#tourModeDlg1");
+         }
          break;
       case 2:
-         onShowDialog("#tourModeDlg2");
+         if(tour_mode){
+            onShowDialog("#tourModeDlg2");
+         }
          break;
       case 3:
          var parameterObjs = $("#s3expparams input,#s3expparams select");
@@ -396,7 +433,7 @@ var resetState = function () {
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
-var uploadFiles = function (uploadingFiles, serverSide, postSuccess) {
+var uploadFiles = function (serverSide, postSuccess) {
    resetState();
    tour_mode = serverSide;
    nToUpload = uploadingFiles.length;
@@ -646,9 +683,9 @@ var postTestDatasetInfo = function (dataset_desc) {
          alert("ERROR on SERVER: " + data.msg);
       } else {
          uploadingFiles = data.queryres.file;
-         if (data.queryres.file.length > 0) {
+         if (uploadingFiles && uploadingFiles.length > 0) {
 //Start uploading ...
-            uploadFiles(data.queryres.file, true, function () {
+            uploadFiles(true, function () {
                if (++nUploaded < uploadingFiles.length) {
                   return;
                }
@@ -711,7 +748,7 @@ var postTestDatasetsInfo = function () {
 //if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
-      } else {
+      } else if(data.queryres.desc) {
          var i = 1;
          $.each(data.queryres.desc, function (idx, dataset_desc)
          {
@@ -904,7 +941,8 @@ $(document).ready(function () {
       $("#s2uluploaders > table").empty();
       if (this.files.length > 0) {
 //Start uploading ...
-         uploadFiles(this.files, false, function () {
+         uploadingFiles = this.files;
+         uploadFiles(false, function () {
             if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
                $("#s2btnf").prop('disabled', false);
             }
@@ -1077,7 +1115,10 @@ $(document).ready(function () {
    });
    $("#dlgTestDatasetsBtnDownload").on("click", function () {
       dlgFadeout();
-      downloadTestDataset($("#s1TestDatasetsSelection option:selected").text());
+      var tdname = $("#s1TestDatasetsSelection option:selected").text();
+      if(tdname){
+         downloadTestDataset(tdname);
+      }
    });
    // Initialize Raw file DataTable
    rawfiles_tbl_allfiles_DT = $('#rawfiles_tbl_allfiles').DataTable({
