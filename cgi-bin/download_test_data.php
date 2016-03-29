@@ -6,7 +6,7 @@
 	$dataset_requested = "dimethyl 2-plex (PD)";
 	*/
 	$zipname = preg_replace("/[\s\?\\\$\:\(\):<>\|\*\/\"\']+/","_",$_GET["dataset_info_requested"]) . '.zip';
-	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/test data";
+	$test_data_dir = dirname(__DIR__) . "/test data";
 	
 	$server_response = [];
 	$server_response['success'] = false;

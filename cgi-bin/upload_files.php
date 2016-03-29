@@ -40,7 +40,7 @@ $server_response['peptide_labels'] = [];
 $server_response['peptide_labels_names'] = [];
 $server_response['skipped_labels'] = [];
 $server_response['raw_filesnames'] = [];
-$document_root = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign";
+$document_root = dirname(__DIR__);
 if (isset($name)) {
    if (!empty($name)) {
       $location = $document_root . '/uploads/' . $_POST["session_id"];

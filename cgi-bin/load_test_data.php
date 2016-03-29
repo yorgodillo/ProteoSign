@@ -6,7 +6,7 @@
 	$dataset_requested = "dimethyl 2-plex (PD)";
 	*/
 	
-	$test_data_dir = $_SERVER['DOCUMENT_ROOT'] . "/ProteoSign/test data";
+	$test_data_dir = dirname(__DIR__) . "/test data";
 	$descriptions_requested = ($_POST["descriptions_requested"] === "true");
 	
 	$server_response = [];
