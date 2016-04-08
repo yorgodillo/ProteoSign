@@ -175,21 +175,37 @@ var setItemAttrColor = function (selector, attr, hexcolor) {
       cssstr = $(selector).css(attr + "-left-color");
       $(selector).css(attr + "-left-color", cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g, hexcolor));
    } else {
-      alert(cssstr);
       $(selector).css(attr, cssstr.replace(/rgb\([0-9]+, [0-9]+, [0-9]+\)$/g, hexcolor));
    }
+}
+
+var sectionSpinnerOn = false;
+var sectionSpinnerText = "";
+
+var toggleCurrentSectionSpinner = function() {
+	if(sectionSpinnerOn)
+	{
+		$('.main_div .main_section:not(.hidden) h2').html(sectionSpinnerText);
+	}
+	else
+	{
+		sectionSpinnerText = $('.main_div .main_section:not(.hidden) h2').text();
+		$('.main_div .main_section:not(.hidden) h2').html(sectionSpinnerText + " <i class='fa fa-cog fa-spin'></i>");
+	}
+	sectionSpinnerOn = !sectionSpinnerOn;
 }
 
 // Clear areas where results information appears.
 var resetResultsInfoItms = function () {
    $("#server_feedback").empty();
    $("#dndres").empty();
-   $("#results_p").html("Plase wait (up to 5 minutes) for your results.");
+   $("#results_p").html("Now analysing your data. Plase wait for the results.");
 }
 
 var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
+   toggleCurrentSectionSpinner();
    $.ajax({
       url: cgi_bin_path + 'perform_analysis.php', //Server script to fire up data analysis
       type: 'POST',
@@ -205,6 +221,7 @@ var postFireUpAnalysisAndWait = function () {
          getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
+   	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
       if (data.success) {
@@ -228,6 +245,7 @@ var postFireUpAnalysisAndWait = function () {
          }
       }
    }).fail(function (jqXHR, textStatus, errorThrown) {
+   	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
       $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
    });
@@ -309,9 +327,10 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-   dumpExpParamSQL(tmp);
+   //dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
+   toggleCurrentSectionSpinner();
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -322,6 +341,7 @@ var postParameters = function (params) {
       cache: false,
       contentType: false
    }).done(function (data, textStatus, jqXHR) {
+   	toggleCurrentSectionSpinner();
 //if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
@@ -473,6 +493,7 @@ var postFile = function (idx, file, serverSide, postSuccess) {
                if (e.lengthComputable) {
                   if (e.loaded / e.total == 1.0) {
                      $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>Processing, please wait ...<em><strong></span>");
+                     toggleCurrentSectionSpinner();
                   } else {
                      helper_setItemAttr("#uploadfile" + idx, {value: e.loaded, max: e.total});
                   }
@@ -493,6 +514,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
          }
       }}).done(function (data, textStatus, jqXHR) {
+      	if(sectionSpinnerOn)
+	      	toggleCurrentSectionSpinner();
 //debug_ajax_data = data;
 //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
       uploadFinished(data.success, idx, file);
@@ -571,6 +594,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          postSuccess();
       }
    }).fail(function (jqXHR, textStatus, errorThrown) {
+   	if(sectionSpinnerOn)
+	   	toggleCurrentSectionSpinner();
       $(progresstditm).empty();
       $(progresstditm).html("<span class='uploadErrorMsg'><strong><em>An AJAX error occurred: " + errorThrown + "<em><strong></span>");
       uploadFinished(false, idx, file);
@@ -942,11 +967,29 @@ $(document).ready(function () {
       if (this.files.length > 0) {
 //Start uploading ...
          uploadingFiles = this.files;
-         uploadFiles(false, function () {
-            if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
-               $("#s2btnf").prop('disabled', false);
-            }
-         });
+			if (window.File && window.FileReader && window.FileList && window.Blob) {
+				oversized_files_idxs = [];
+		      $.each(uploadingFiles, function (idx, file_i)
+		      {
+		      	if(file_i.size > 2147483648)
+		      	{
+		      		oversized_files_idxs.push(idx);
+		      	}
+		      });				
+			}
+			if(oversized_files_idxs.length == 0)
+			{
+		      uploadFiles(false, function () {
+		         if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
+		            $("#s2btnf").prop('disabled', false);
+		         }
+		      });				
+			}
+			else
+			{
+				alert("WARNING: At least one of the files chosen is oversized, we are sorry to inform you that it impossible to proceed.");
+	         $("#s2btnf").prop('disabled', true);
+			}
       } else {
          $("#s2btnf").prop('disabled', true);
       }
