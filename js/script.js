@@ -327,7 +327,7 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-   //dumpExpParamSQL(tmp);
+   dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    toggleCurrentSectionSpinner();
