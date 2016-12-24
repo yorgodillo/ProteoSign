@@ -25,7 +25,10 @@ if (is_file($upload_dir . "/msdiffexp.zip")) {
 // Run analysis
 $cgibin_dir = getcwd();
 chdir($upload_dir);
+if (!file_exists("msdiffexp_wd"))
+{
 mkdir('msdiffexp_wd');
+}
 copy($cgibin_dir . '/MSdiffexp.R', $upload_dir . '/msdiffexp_wd/MSdiffexp.R');
 rename('MSdiffexp_definitions.R', 'msdiffexp_wd/MSdiffexp_definitions.R');
 rename('exp_struct.txt', 'msdiffexp_wd/exp_struct.txt');
@@ -49,6 +52,10 @@ if ($R_logfile) {
       $server_response['R_success'] = true;
    }
 }
+if (!file_exists("msdiffexp_out"))
+{
+	mkdir("msdiffexp_out");
+}
 rename('msdiffexp_log.txt', 'msdiffexp_out/log.txt');
 chdir($upload_dir);
 if ($server_response['R_success']) {
@@ -60,18 +67,17 @@ if ($server_response['R_success']) {
 // Determine success of analysis
 $server_response['success'] = $server_response['R_success'];
 if ($server_response['success']) {
-   //$server_response['results_url'] = $upload_dir . "/msdiffexp.zip";
+   // $server_response['results_url'] = $upload_dir . "/msdiffexp.zip";
    // NOT LOCALHOST DEPLOYMENT VERSION
-   $server_response['results_url'] = str_replace($document_root, '', $upload_dir . "/proteosign.zip");
-   //
+   $server_response['results_url'] = str_replace($document_root, '/ProteoSign', $upload_dir . "/proteosign.zip");
    $server_response['results_preview'] = [];
    $pngs = glob("*.png");
    // LOCALHOST DEPLOYMENT VERSION ONLY
-   //$server_response['results_preview'] = $dirs;
+   // $server_response['results_preview'] = $pngs;
    //
 		// NOT LOCALHOST DEPLOYMENT VERSION
    foreach ($pngs as $png_i) {
-      $server_response['results_preview'][] = str_replace($document_root, '', $upload_dir . "/" . $png_i);
+      $server_response['results_preview'][] = substr(str_replace($document_root, '', $upload_dir . "/" . $png_i), 1);
    }
    //
 }
@@ -80,7 +86,8 @@ error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($s
 if (!$server_response['success']) {
    error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
 } else {
-   exec('rm -Rf msdiffexp_wd');
+	   exec('rm -Rf msdiffexp_wd');
+   // exec('del -Rf msdiffexp_wd');
 }
 //Send info back to the client
 //error_log(json_encode($server_response));

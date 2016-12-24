@@ -5,11 +5,11 @@
 	
 	$session_folder = $_POST["session_id"];
 	$document_root = dirname(__DIR__);
-	$upload_dir = $document_root . "/uploads/" . $session_folder;
+	$upload_dir = $document_root . "/uploads//" . $session_folder;
 	$upload_parameter_file = $upload_dir . "/MSdiffexp_definitions.R";
 	$upload_experimental_structure_file = $upload_dir . "/exp_struct.txt";
 	$parameters_template = "parameters_template.R";
-
+	//WIN TODO: the next lines contain \\ and \ slashes to send paths to R change them to UNIX compatible format before uploading
 	$the_parameters["REPLACE1"] = $_POST["exppddata"];
 	$the_parameters["REPLACE2"] = "\"" . $_POST["expid"] . "\"";
 	$the_parameters["REPLACE3"] = "\"" . $_POST["exptpoint"] . "\"";
@@ -18,9 +18,9 @@
 	$the_parameters["REPLACE6"] = $_POST["expquantfiltprot"];
 	$the_parameters["REPLACE7"] = "\"" . $_POST["expquantfiltlbl"] . "\"";
 	$the_parameters["REPLACE8"] = $_POST["labelfree"];
-   $the_parameters["REPLACE9"] = "\"" . $upload_dir . '/msdiffexp_wd' . "\"";
+	$the_parameters["REPLACE9"] = "\"" . $upload_dir . '\\msdiffexp_wd' . "\"";
 	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
-		$the_parameters["APPEND0"] = "Label\t" . $_POST["explbl0"] . "\t";
+		$the_parameters["APPEND0"] = "addLabel(\"" . $_POST["explbl0"] . "\",c(\"\"))";
 	}
 	$lbl_i = 1;
 	while(isset($_POST["explbl" . $lbl_i . "name"])){

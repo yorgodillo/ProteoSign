@@ -4,21 +4,20 @@ options(warn=1)
 # WARNING: Make sure to install the following packages as administrator/root (for them to be available to all users)
 # ======================================
 
-# source("http://www.bioconductor.org/biocLite.R")
-# if(!require("limma")){ biocLite("limma") }
-# if(!require("statmod")){ biocLite("statmod") }
-# if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
-# if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
-# if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
-# if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
-# # WARNING! please install version 1.9.6 of data.table package!
-# if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
-# if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
-# if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
-# #if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
-# #if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
+#source("http://www.bioconductor.org/biocLite.R")
+#if(!require("limma")){ biocLite("limma") }
+#if(!require("statmod")){ biocLite("statmod") }
+#if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
+#if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
+#if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
+#if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
+#if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+#if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
+#if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
+##if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
+##if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
 
 library(limma)
 library(statmod)
@@ -708,7 +707,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
     pgroups<-read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
     # If there isn't a Protein.Names column (depends on MQ version), create one from the Fasta Headers column
-    col_Protein.names <- length(grep('Protein.Names',colnames(pgroups))) > 0
+    col_Protein.names <- length(grep('Protein.Names',colnames(pgroups), ignore.case=TRUE)) > 0
     if(! col_Protein.names){
       pgroups$Protein.Names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
     }
@@ -1160,21 +1159,17 @@ perform_analysis<-function(){
     if(length(unique(rep_structure$fraction)) > 1){
       # we have techreps and fractions
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       #we have bioreps and techreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
     }
   }else{
     if(length(unique(rep_structure$fraction)) > 1){
       # we have fractions but not techreps
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       # we just have bioreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
       # it should be like below, but for backward compatibility with other parts of the code, we keep the convention that in the rep. description, we will always have the terms 'b' (i.e. bio-rep) and 't', even if we don't have tech-reps ...
       # rep_structure$rep_desc<-paste('b',rep_structure$biorep,sep='')
     }
@@ -1236,13 +1231,12 @@ perform_analysis<-function(){
   }
   colnames(expdesign)<-c("Sample","Category")
   temp_vector <- sub("(.*)\\.","", expdesign[,1])
-  temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
+  temp_vector <- original_rep_structure$rep_desc[match(temp_vector, rep_structure$rep_desc)]
   tmp_counter <- 0
   for (expdesign_i in expdesign[,1]){
     expdesign[tmp_counter + 1,1] <- sub("\\..*",paste0(".", temp_vector[tmp_counter + 1]), expdesign_i)
     tmp_counter <- tmp_counter + 1
   }
-  expdesign <- sub("f.*", "", expdesign)
   write.table(expdesign,file="curr_exp_design.txt",row.names=F,quote=F,sep = "\t")
   exp_design_fname<<-"curr_exp_design.txt"
   

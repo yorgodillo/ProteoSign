@@ -4,21 +4,20 @@ options(warn=1)
 # WARNING: Make sure to install the following packages as administrator/root (for them to be available to all users)
 # ======================================
 
-# source("http://www.bioconductor.org/biocLite.R")
-# if(!require("limma")){ biocLite("limma") }
-# if(!require("statmod")){ biocLite("statmod") }
-# if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
-# if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
-# if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
-# if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
-# # WARNING! please install version 1.9.6 of data.table package!
-# if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
-# if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
-# if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
-# #if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
-# #if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
+#source("http://www.bioconductor.org/biocLite.R")
+#if(!require("limma")){ biocLite("limma") }
+#if(!require("statmod")){ biocLite("statmod") }
+#if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
+#if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
+#if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
+#if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
+#if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+#if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
+#if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
+##if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
+##if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
 
 library(limma)
 library(statmod)
@@ -489,20 +488,8 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     colnames(diffexp)[grep("^Protein\\.IDs$",colnames(diffexp))]<-"Protein"
   }
   dec <- "."
-  #Restore original rep description for output
-  newcolumns <- names(diffexp[signTruth,])
-  oldcolumns <- newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(diffexp) <- newcolumns
   write.table(diffexp[signTruth,],dec=dec,file=paste(outputFigsPrefix,"_diffexp_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
-  colnames(diffexp) <- oldcolumns
+  
   diffexp<-merge(diffexp,results[,-grep("^(avg log2|P-value adjusted)",colnames(results))],by.x=c(quantitated_items_lbl),by.y=c("ID"),all.x=T)
   write.table(diffexp,dec=dec,file=paste(outputFigsPrefix,"_results_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
   
@@ -539,23 +526,9 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   
   setwd(limma_output)
   
-  #rename the column names to their original ones to display to the graph
-  names(log.intensities) <- rownames(sample.key)
   levellog("Saving limma input frame ...")
-  #also restore original repdesc to output to the limma-input file
-  newcolumns <- names(working_pgroups)
-  oldcolumns <- newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(working_pgroups) <- newcolumns
   write.table(working_pgroups,file=paste(outputFigsPrefix,"_limma-input_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
-  colnames(working_pgroups) <- oldcolumns
+  
   if(exportFormat == "pdf"){
     pdf(file=paste(outputFigsPrefix,"_limma-graphs_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
   }
@@ -708,7 +681,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
     pgroups<-read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
     # If there isn't a Protein.Names column (depends on MQ version), create one from the Fasta Headers column
-    col_Protein.names <- length(grep('Protein.Names',colnames(pgroups))) > 0
+    col_Protein.names <- length(grep('Protein.Names',colnames(pgroups), ignore.case=TRUE)) > 0
     if(! col_Protein.names){
       pgroups$Protein.Names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
     }
@@ -1132,10 +1105,14 @@ perform_analysis<-function(){
   setwd(working_directory)
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
-  #we will keep a copy of the original rep_structure to display in the graphs
-  original_rep_structure <- rep_structure
   #we are not sure if the biorep and techrep numbers the user typed are sequential, the following code converts them to sequential numbers
   unique_reps <- unique(rep_structure$biorep)
+  # counter = 1
+  # for(rep_i in unique_reps){
+  #   mi <- which(rep_structure$techrep == rep_i)
+  #   rep_structure$techrep[mi] <- counter
+  #   counter++
+  # }
   counter <- 1
   for(rep_i in unique_reps){
     mi <- which(rep_structure$biorep == rep_i)
@@ -1149,8 +1126,6 @@ perform_analysis<-function(){
       counter2 <- counter2 + 1
     }
   }
-  original_rep_structure$rep_desc<-paste(paste(paste('b',original_rep_structure$biorep,sep=''),'t',original_rep_structure$techrep,sep=''))
-  
   if(length(unique(rep_structure$biorep)) == 1){
     levellog("Error: Cannot accept dataset with just one biological replicate. Aborting ...")
     return(F)
@@ -1160,28 +1135,23 @@ perform_analysis<-function(){
     if(length(unique(rep_structure$fraction)) > 1){
       # we have techreps and fractions
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       #we have bioreps and techreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
     }
   }else{
     if(length(unique(rep_structure$fraction)) > 1){
       # we have fractions but not techreps
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       # we just have bioreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
       # it should be like below, but for backward compatibility with other parts of the code, we keep the convention that in the rep. description, we will always have the terms 'b' (i.e. bio-rep) and 't', even if we don't have tech-reps ...
       # rep_structure$rep_desc<-paste('b',rep_structure$biorep,sep='')
     }
   }
   
   .GlobalEnv[["rep_structure"]]<-rep_structure
-  .GlobalEnv[["original_rep_structure"]]<-original_rep_structure
   .GlobalEnv[["n_bioreps"]]<-max(rep_structure$biorep)
   .GlobalEnv[["n_techreps"]]<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
   
@@ -1214,35 +1184,16 @@ perform_analysis<-function(){
     }
     protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
   }
-  #Restore the original rep descriptions to add to the graph
-  newcolumns <- names(protein_groups)
-  oldcolumns = newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(protein_groups) <- newcolumns
+  
   setwd(limma_output)
   write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   setwd("..")
-  colnames(protein_groups) <- oldcolumns
+  
   expdesign<-c()
   for(cond_i in conditions.labels){
     expdesign<-rbind(expdesign,cbind(paste(sub("Intensity\\.","",sort(colnames(protein_groups)[grep(paste("Intensity.",cond_i,".b",sep=""),colnames(protein_groups))]))),cond_i))  
   }
   colnames(expdesign)<-c("Sample","Category")
-  temp_vector <- sub("(.*)\\.","", expdesign[,1])
-  temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
-  tmp_counter <- 0
-  for (expdesign_i in expdesign[,1]){
-    expdesign[tmp_counter + 1,1] <- sub("\\..*",paste0(".", temp_vector[tmp_counter + 1]), expdesign_i)
-    tmp_counter <- tmp_counter + 1
-  }
-  expdesign <- sub("f.*", "", expdesign)
   write.table(expdesign,file="curr_exp_design.txt",row.names=F,quote=F,sep = "\t")
   exp_design_fname<<-"curr_exp_design.txt"
   
