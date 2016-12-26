@@ -2,16 +2,6 @@ var sessionid = new Date().getTime();
 var clientname = '';
 var softversion = '';
 var cgi_bin_path = 'cgi-bin/';
-var uploaded_files = 0;
-var upload_was_successful = false;
-var types_of_files_uploaded = [];
-var nToUpload = 0;
-var tmp_nToUpload = 0;
-var explblselected = [];
-var AddedLabels = false;
-var AppendNewLabels = false;
-//procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
-var procProgram = "";
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -32,17 +22,7 @@ Object.size = function (obj) {
    }
    return size;
 }
-// for filtering filetypes
-function filterFunction(value) {
-	if (procProgram == "MQ")
-	{
-		return (value == "MQ" || value == "MQP");
-	}
-	else if( procProgram == "PD")
-	{
-		return (value == "PD");
-	}
-}
+
 //http://dzone.com/snippets/array-shuffle-javascript
 function shuffle(o) {
    for (var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x)
@@ -62,12 +42,7 @@ var onChooseFromTestDatasets = function(){
 	$("#s1TestDatasets").fadeIn(300);
 	$('#mask').fadeIn(300);
 }
-
 	
-var onlistclick = function()
-{
-	setItemAttrColor("#conditions_list", "border", "#DDDDDD");
-}
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
    var key = theEvent.keyCode || theEvent.which;
@@ -121,7 +96,7 @@ var helper_setItemArrAttr = function (selector, idx, json) {
 
 // For a single item matched by "selector" set some attribute(s)
 var helper_setItemAttr = function (selector, json) {
-   var x = $(selector).attr(json);
+   $(selector).attr(json);
 }
 
 // Adds/Removes ("_removeClass" false/true) class "className" in succession (each time its called) for a list of items.
@@ -238,7 +213,6 @@ var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
    toggleCurrentSectionSpinner();
-   $("#s4btnf").prop('disabled', true);
    $.ajax({
       url: cgi_bin_path + 'perform_analysis.php', //Server script to fire up data analysis
       type: 'POST',
@@ -259,12 +233,10 @@ var postFireUpAnalysisAndWait = function () {
       $("#s4btnf").prop('disabled', !data.success);
       if (data.success) {
          $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
-		 //WIN TODO: \\ in next line
          $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("\\") + 1) + "</strong></a></span>");
          patt = new RegExp("limma\-graphs");
          $.each(data.results_preview, function (idx, path_to_img_i)
          {
-			//WIN TODO: \\ in next line
             var img_i = path_to_img_i.substr(data.results_url.lastIndexOf("\\") + 1);
             if (!patt.test(img_i)) {
                $("#server_feedback").append("<div class='resimg'><a href='" + path_to_img_i + "' target='_blank'><img src='" + path_to_img_i + "' width='120'></img></a></div>");
@@ -353,22 +325,7 @@ var postParameters = function (params) {
             if (theval == null) {
                theval = '';
             }
-			// console.log($(param_i).attr('name'));
-			if ($(param_i).attr('name') == "conditions_list")
-			{
-				var mytmp = "#" + $(param_i).attr('id') +  " option:selected";
-				var tmp_i = 0;
-				$(mytmp).map(function () {
-					thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
-					thedata.append("explbl" + (tmp_i + 1) + "def", "");
-					// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
-					tmp_i++;
-				});
-			}
-			else
-			{
-				thedata.append($(param_i).attr('name'), theval);
-			}
+            thedata.append($(param_i).attr('name'), theval);
             break;
       }
       if($(param_i).attr('id')){
@@ -377,12 +334,10 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-	for (var pair of thedata.entries()) {
-		// console.log(pair[0]+ ', ' + pair[1]); 
-	}
    dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
+   toggleCurrentSectionSpinner();
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -393,6 +348,7 @@ var postParameters = function (params) {
       cache: false,
       contentType: false
    }).done(function (data, textStatus, jqXHR) {
+   	toggleCurrentSectionSpinner();
 //if there was a server-side error alert.
       if (!data.success) {
          alert("ERROR on SERVER: " + data.msg);
@@ -431,7 +387,6 @@ var executeStage = function (stageIndex) {
          break;
       default:
    }
-
    return ret;
 }
 // Executed when a "Back" type of button is clicked
@@ -477,84 +432,53 @@ var validateParameters = function (params) {
             break;
       }
    });
-	var mytmp = "#conditions_list option:selected";
-	var tmp_i = 0;
-	$(mytmp).map(function () {
-		tmp_i++;
-	});
-	if (tmp_i <= 1)
-	{
-		setItemAttrColor("#conditions_list", "border", "#E60000");
-	}
-   return (nInvalid == 0 && tmp_i > 1);
+   return nInvalid == 0;
 }
 
 // reset "counters"/states
-var resetState = function (uploading_new_file = false) {
+var resetState = function () {
    unsuccessfullyUploadedFiles = {};
    uploadEfforts = {};
+   peptideLabelsFromFile = [];
+   peptideLabelsNamesFromFile = [];
+   peptideLabelsFromFileCombs = [];
+   rawfiles = undefined;
+   // Reset items that contained information from previous data input files (e.g. label information)
+   $("#s3expparamsDlgLabelsSelection").empty();
+   $("#explbl1name_").empty();
+   $("#explbl0name_").empty();
+   $("#s3advparams select[name='expquantfiltlbl']").empty();
+   $("#quantsoftdetectedspan").empty();
    if (!$("#explbl1definition").hasClass("hidden")) {
       $("#explbl1definition").addClass("hidden");
    }
-	if(uploading_new_file == false)
-	{
-		// Reset items that contained information from previous data input files (e.g. label information)
-		$("#s3expparamsDlgLabelsSelection").empty();
-		$("#s3div h2").html("Step 3 ");
-		$("#explbl1name_").empty();
-		$("#explbl0name_").empty();
-		$("#s3advparams select[name='expquantfiltlbl']").empty();
-		$("#quantsoftdetectedspan").empty();
-		rawfiles = undefined;
-		procProgram = "";
-		peptideLabelsFromFile = [];
-		peptideLabelsFromFileCombs = [];
-		peptideLabelsNamesFromFile = [];
-		$("#s2uluploaders > table").empty();
-		sessionid = new Date().getTime();
-		uploaded_files = 0;
-		upload_was_successful = false;
-		$("#s2btnf").prop('disabled', true);
-		types_of_files_uploaded = [];
-		nToUpload = 0;
-		AddedLabels = false;
-	}
-	
-   nUploaded = uploaded_files;
+//remove progress bar(s)
+   $("#s2uluploaders > table").empty();
+   nUploaded = 0;
    tour_mode = false;
+   sessionid = new Date().getTime();
 }
 
 // "uploadingFiles": Files (array returned by FileChooser) selected for upload in stage #2
 var uploadFiles = function (serverSide, postSuccess) {
-   resetState(true);
+   resetState();
    tour_mode = serverSide;
+   nToUpload = uploadingFiles.length;
    $("#s2btnf").prop('disabled', true);
-
    $.each(uploadingFiles, function (idx, file_i) {
-	  var temp_index = uploaded_files + nToUpload + idx;
-      $("#s2uluploaders table").append("<tr><td>" + file_i.toString() + "</td><td><progress max='100' value='0' id=uploadfile" + temp_index + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
-	  // console.log("	created table row for file: " + temp_index + file_i.toString());
+      $("#s2uluploaders table").append("<tr><td>" + file_i.toString() + "</td><td><progress max='100' value='0' id=uploadfile" + idx + "><div class='progress-bar'><span style='width: 80%;'></span></div></progress></td></tr>");
    });
-	// fire AJAX calls
+   // fire AJAX calls
    $.each(uploadingFiles, function (idx, file_i)
    {
-	  var temp_index = uploaded_files + nToUpload;
-      postFile(temp_index, file_i, serverSide, postSuccess);
-	  nToUpload++;
-	  tmp_nToUpload++;
-	  // console.log("	fired post file for file: " + temp_index);
+      postFile(idx, file_i, serverSide, postSuccess);
    });
-  }
+}
 
 // Called by respective AJAX event handlers (see postFile function below)
 var uploadFinished = function (success, idx, file) {
-	// console.log("	Upload Finished called for idx: " + idx + "nToUpload: " + nToUpload);
-	nToUpload = nToUpload - 1;
-	uploaded_files++;
-	// console.log("	uploaded files updated: " + uploaded_files);
    uploadEfforts[idx] = file;
    if (!success) {
-	  // console.log("unsuccessfullyUploadedFiles != 0");
       unsuccessfullyUploadedFiles[idx] = file;
    }
 }
@@ -579,8 +503,6 @@ var postFile = function (idx, file, serverSide, postSuccess) {
                      toggleCurrentSectionSpinner();
                   } else {
                      helper_setItemAttr("#uploadfile" + idx, {value: e.loaded, max: e.total});
-					 // console.log("#uploadfile" + idx + " new prog: " + e.loaded + "/"  +  e.total);
-					 // console.log("		#uploadfile" + idx + "value " + $("#uploadfile" + idx).attr("value") + "max: " + $("#uploadfile" + idx).attr("max"));
                   }
                }
             }, false); // For handling the progress of the upload
@@ -606,16 +528,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
       uploadFinished(data.success, idx, file);
       //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
       if (data.success) {
-types_of_files_uploaded.push(data.file_type);
-		  if (data.msg == "")
-		  {
-			$(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
-		  }
-		  else
-		  {
-			$(progresstditm).html("<span class='uploadWarningMsg'><strong><em>" + data.msg + "<em><strong></span>");
-		  }
-		  var tmp_rawfiles = [];
+         $(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
+         var tmp_rawfiles = [];
          for (var i = 0; i < data.raw_filesnames.length; i++) {
             tmp_rawfiles.push(data.raw_filesnames[i]);
          }
@@ -653,7 +567,6 @@ types_of_files_uploaded.push(data.file_type);
                $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
                //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
                $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
-               $("#quantitation_prog_lbl").text(peptideLabelsFromFile.length > 0 ? "\u2014 Raw data were quantified with Proteome Discoverer\u2122" : "\u2014 Raw data were quantified with MaxQuant");
                $(item5).removeClass('hidden');
                $(item6).attr('placeholder', 'Definition');
             } else {
@@ -666,30 +579,14 @@ types_of_files_uploaded.push(data.file_type);
                $(item6).attr('placeholder', 'Raw file');
             }
 
-            // $.each(peptideLabelsFromFile, function (idx, lbl_i) {
-			   // $("#conditions_list").append("<option value='" + lbl_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lbl_i + "</option>");
-               // $("#s3expparamsDlgLabelsSelection").append("<option value='" + lbl_i + "'>" + lbl_i + "</option>");
-            // });
-			if (AddedLabels == false)
-			{
-				if (AppendNewLabels == false)
-			   {
-				   $('#conditions_list').empty();
-			   }
-			   else
-			   {
-				   AppendNewLabels = false;
-			   }
-			   $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
-					// $("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
-				   // // $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-				   // // $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-				   $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-               });
-				addFormLabel();
-			   AddedLabels = true;
-			}
-
+            $.each(peptideLabelsFromFile, function (idx, lbl_i) {
+               $("#s3expparamsDlgLabelsSelection").append("<option value='" + lbl_i + "'>" + lbl_i + "</option>");
+            });
+            $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+               $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+               $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+               $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+            });
             if (peptideLabelsFromFile.length > 0) {
                $("#explbl1definition").removeClass("hidden");
             }
@@ -737,66 +634,41 @@ var onShowDialog = function (selector){
    //$('#mask').fadeIn(300);   
 }
 
-var addFormLabel = function()
-{
-	nFormLabels++;
-   var thedata = new FormData();
-   thedata.append('session_id', sessionid);
-   $.ajax({
-      url: cgi_bin_path + 'get_labels_to_js.php',
-      type: 'POST',
-      // Form data
-      data: thedata,
-      //Options to tell jQuery not to worry about content-type.
-      processData: false,
-      cache: false,
-      contentType: false
-   }).done(function (data) {
-		if (data.success && data.labels.length > 0) {
-			// console.log(data.labels[0]);
-			var methods_mismatch = false;
-			for (var i = 0; i < data.labels.length; i++) {
-				if(peptideLabelsNamesFromFile.indexOf(data.labels[i]) == -1)
-				{
-					methods_mismatch = true;
-				}
-			}
-			if (methods_mismatch == true)
-			{
-				console.log("Methods mismatch in rearranging maxquant labels!!");
-			}
-			peptideLabelsNamesFromFile = data.labels;
-		}
-		if (peptideLabelsNamesFromFile.length > 0) {
-		  $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
-				$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
-				// $("#conditions_list").after("<select class='hidden' data-required='true' id='explbl" + (idx + 1) + "name_' name='explbl" + (idx + 1) + "name'></select></td><td><input data-required='true' id='explbl" + (idx + 1) + "definition' name='explbl" + (idx + 1) + "def' type='text' placeholder='Definition' readonly" + " class='hidden'" + "/>")
-				// $.each(peptideLabelsNamesFromFile, function (idx2, lblname_i2) {
-					// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
-				// });
-		  });
-		  $("#adv_parameters_div").show();
-	   } else {
-	//label-free case
-		  if (peptideLabelsFromFile.length > 0) {
-			  $.each(peptideLabelsFromFile, function (idx, lblname_i) {
-					$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
-					// $("#conditions_list").after("<select class='hidden' data-required='true' id='explbl" + (idx + 1) + "name_' name='explbl" + (idx + 1) + "name'></select></td><td><input data-required='true' id='explbl" + (idx + 1) + "definition' name='explbl" + (idx + 1) + "def' type='text' placeholder='Definition' readonly" + " class='hidden'" + "/>")
-					// $.each(peptideLabelsNamesFromFile, function (idx2, lblname_i2) {
-						// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
-					// });
-			  });
-			  //hide the advanced parameters (Quantitation filtering) in case we have label-free data
-			  $("#adv_parameters_div").hide();
-		  }
-	   }
-	   // label-free case
-	   if (peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) {
-		  $("#btnAddLabel").prop("disabled", nFormLabels > ($("#s3advparams input[name='explbl00']").prop('checked') ? (peptideLabelsFromFile.length - 2) : peptideLabelsFromFile.length - 1));
-	   } else {
-		  $("#btnAddLabel").prop("disabled", nFormLabels > ($("#s3advparams input[name='explbl00']").prop('checked') ? (peptideLabelsNamesFromFile.length - 2) : peptideLabelsNamesFromFile.length - 1));
-	   }
-   });
+var addFormLabel = function () {
+   if (!$("#explbl" + nFormLabels + "definition").hasClass("hidden") && $("#explbl" + nFormLabels + "definition").val().length == 0) {
+      return;
+   }
+   nFormLabels++;
+   var last_tr_of_table = $("#btnAddLabel").closest("table").children().first().children().last();
+   if (peptideLabelsNamesFromFile.length > 0) {
+      $(last_tr_of_table).after("<tr><td>&#8212 Species label #" + nFormLabels + "</td><td></td><td><select data-required='true' id='explbl" + nFormLabels + "name_' name='explbl" + nFormLabels + "name'></select></td><td><input data-required='true' id='explbl" + nFormLabels + "definition' name='explbl" + nFormLabels + "def' type='text' placeholder='Definition' readonly" + (peptideLabelsFromFile.length > 0 ? "" : " class='hidden'") + "/></td></tr>");
+      if (peptideLabelsFromFile.length > 0) {
+         bind_explbldefinition_focus("#explbl" + nFormLabels + "definition");
+         $("#explbl" + (nFormLabels - 1) + "definition").off("focus");
+      }
+      $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+         $("#explbl" + nFormLabels + "name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+      });
+   } else {
+//label-free case
+      if (peptideLabelsFromFile.length > 0) {
+         $(last_tr_of_table).after("<tr><td>&#8212 Biological condition #" + nFormLabels + "</td><td></td><td><input data-required='true' id='explbl" + nFormLabels + "name_' name='explbl" + nFormLabels + "name' type='text' onkeypress='inputChCheck(event,\"^(?!_)[a-zA-Z0-9_]+$\",20)' placeholder='Character rules apply'></input></td><td><input data-required='true' id='explbl" + nFormLabels + "definition' name='explbl" + nFormLabels + "def' type='text' placeholder='Raw file' readonly" + (peptideLabelsFromFile.length > 0 ? "" : " class='hidden'") + "/></td></tr>");
+         bind_explbldefinition_focus("#explbl" + nFormLabels + "definition");
+         $("#explbl" + (nFormLabels - 1) + "definition").off("focus");
+      }
+   }
+   var addbtntd = $("#btnAddLabel").closest("td");
+   var rembtntd = $(addbtntd).next();
+   last_tr_of_table = $(last_tr_of_table).next();
+   $(last_tr_of_table).children().last().after($(addbtntd));
+   $(last_tr_of_table).children().last().after($(rembtntd));
+   $("#btnRemLabel").prop("disabled", false);
+   // label-free case
+   if (peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) {
+      $("#btnAddLabel").prop("disabled", nFormLabels > ($("#s3advparams input[name='explbl00']").prop('checked') ? (peptideLabelsFromFile.length - 2) : peptideLabelsFromFile.length - 1));
+   } else {
+      $("#btnAddLabel").prop("disabled", nFormLabels > ($("#s3advparams input[name='explbl00']").prop('checked') ? (peptideLabelsNamesFromFile.length - 2) : peptideLabelsNamesFromFile.length - 1));
+   }
 }
 
 var removeFormLabel = function () {
@@ -821,45 +693,6 @@ var removeFormLabel = function () {
 
 var downloadTestDataset = function (dataset_desc) {
    window.location = cgi_bin_path + 'download_test_data.php?session_id=' + sessionid + '&dataset_info_requested=' + dataset_desc;
-}
-
-function refresh_fractions(){
-		//Now check that the fractions are set correctly
-		$.each(rawfiles_structure, function (idx, my_raw_file)
-		{
-			if (my_raw_file.used == false) return;
-			// console.log("Checking fractionation in " + my_raw_file.rawfile);
-			var my_brep = my_raw_file.biorep;
-			var my_trep = my_raw_file.techrep;
-			var my_cur_fraction = 1;
-			$.each(rawfiles_structure, function (idxJ, my_raw_fileJ)
-				{
-					if (my_raw_fileJ.used == false) return;
-					if (my_raw_fileJ.biorep == my_brep && my_raw_fileJ.techrep == my_trep)
-					{
-						my_raw_fileJ.fraction = my_cur_fraction++;
-					}
-				});
-		});
-
-		//Show the new structure to the user:
-		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
-		// console.log(all_items);
-		for (var i = 0; i < all_items.length; i++) {
-         var items_tds = $(all_items[i]).find('td');
-         var items_frac = items_tds[3];
-		 // console.log("Reassigning fraction in " + $(items_tds[0]).text());
-		 $.each(rawfiles_structure, function (idx, my_raw_file)
-		 {
-			 // console.log("Checking if " + my_raw_file.rawfile + " and " + $(items_tds[0]).text() + " are equal");
-			 if (my_raw_file.rawfile == $(items_tds[0]).text())
-			 {
-				 // console.log("assigning fraction " + my_raw_file.fraction +  " in " + $(items_tds[0]).text());
-				 $(items_frac).text(my_raw_file.fraction);
-				 return false;
-			 }
-		 });
-		}
 }
 
 var postTestDatasetInfo = function (dataset_desc) {
@@ -904,32 +737,22 @@ var postTestDatasetInfo = function (dataset_desc) {
                         break;
                      default:
                         m = param_selector.match(/^#explbl[2-9]+[0-9]*name_$/);
-                        if (m != null && !$(param_selector).is(':visible') && AddedLabels == false) {
+                        if (m != null && !$(param_selector).is(':visible')) {
 						   // console.log(m);
-						   if (AppendNewLabels == false)
-						   {
-							   $('#conditions_list').empty();
-						   }
-						   else
-						   {
-							   AppendNewLabels = false;
-						   }
                            addFormLabel();
-						   AddedLabels = true;
                         }
                         $(param_selector).val(data.queryres.value[idx]);
                         break;
                   }
                });
                for (var i = 0; i < data.queryres.raw_file.length; i++) {
-                  rawfiles_structure.push({rawfile: data.queryres.raw_file[i], biorep: data.queryres.brep[i], techrep: data.queryres.trep[i], fraction: data.queryres.frac[i], used: true});
+                  rawfiles_structure.push({rawfile: data.queryres.raw_file[i], biorep: data.queryres.brep[i], techrep: data.queryres.trep[i], fraction: data.queryres.frac[i]});
                   var tds = $('tr[id="tr_' + data.queryres.raw_file[i] + '"] td');
                   $(tds[1]).text(data.queryres.brep[i] == 0 ? '-' : data.queryres.brep[i]);
                   $(tds[2]).text(data.queryres.trep[i] == 0 ? '-' : data.queryres.trep[i]);
                   $(tds[3]).text(data.queryres.frac[i] == 0 ? '-' : data.queryres.frac[i]);
                }
                set_reps();
-			   refresh_fractions();
                $("#s3expparams").animate({scrollTop: 0}, "slow");
             });
          } else {
@@ -998,7 +821,6 @@ var reset_reps = function () {
    });
    rawfiles_tbl_allfiles_DT.draw();
    $('#rawfiles_tbl_allfiles tbody tr').click(function (event) {
-	   // console.log("			" + this);
       if (event.shiftKey) {
          if (lastclicked_rawfiles_tbl_tr !== null) {
             var i1 = $('#rawfiles_tbl_allfiles tbody tr').index(lastclicked_rawfiles_tbl_tr);
@@ -1051,55 +873,17 @@ function set_reps() {
    }
 //console.log(rep_counts);
 //console.log([bioreps, techreps, fractions]);
-	set_s22btnf();
+   if (rawfiles_structure.length == rawfiles.length) {	//if all files have been assigned something
+      $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
+   }
    $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
-   
-
-}
-
-function set_s22btnf()
-{
-	// console.log("rawfikes " + rawfiles.length + " rawfilesstructure: " + rawfiles_structure.length);
-	if (rawfiles_structure.length == rawfiles.length) {	//if all files have been assigned to something
-		var found_used_rec = false;
-		$.each(rawfiles_structure, function (idx, my_raw_file)
-		{
-			// console.log(my_raw_file.rawfile);
-			if(my_raw_file.used == true)
-			{
-				found_used_rec = true;
-				return;
-			}
-		});
-		var bioreps_used = [];
-		$.each(rawfiles_structure, function (idx, my_raw_file)
-		{
-			if(my_raw_file.used == true)
-			{
-				if (bioreps_used.indexOf(my_raw_file.biorep) == -1)
-				{
-					bioreps_used.push(my_raw_file.biorep);
-				}
-			}
-		});
-		// console.log(bioreps_used);
-		$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && found_used_rec && bioreps_used.length > 1));
-   }
-   else
-   {
-	   $("#s22btnf").prop('disabled', true);
-   }
 }
 
 var gen_expdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
-	   if(struct[i].used == true){
-		ret = ret + struct[i].rawfile + "\t" + struct[i].biorep + "\t" + struct[i].techrep + "\t" + struct[i].fraction + "\n"; 
-	   }
-
+      ret = ret + struct[i].rawfile + "\t" + struct[i].biorep + "\t" + struct[i].techrep + "\t" + struct[i].fraction + "\n";
    }
-   // console.log("ret: " + ret);
    return ret;
 }
 
@@ -1172,14 +956,12 @@ $(document).ready(function () {
          if ($(backward_buttons[0]).hasClass("hidden")) {
             $(backward_buttons[0]).removeClass("hidden");
          }
-		rawfiles_tbl_allfiles_DT.columns.adjust().draw();
-   });
+      });
    });
    // Binds the click event to "toggleNextClass" for each "backward button" (button with class button.main and id /s[0-9]+btnb/) 
    backward_buttons.forEach(function (btn) {
       $(btn).on("click", function () {
          toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
-		 rawfiles_tbl_allfiles_DT.columns.adjust().draw();
       });
    });
    // Bind event for file upload button
@@ -1189,8 +971,7 @@ $(document).ready(function () {
    // Bind event when file(s) is/are chosen
    $("#__s2btnupld").change(function () {
       var fnames = "";
-       //$("#s2uluploaders > table").empty();
-	   // console.log("files: " + this.files.length)
+      $("#s2uluploaders > table").empty();
       if (this.files.length > 0) {
 //Start uploading ...
          uploadingFiles = this.files;
@@ -1199,7 +980,6 @@ $(document).ready(function () {
 		      $.each(uploadingFiles, function (idx, file_i)
 		      {
 		      	if(file_i.size > 2147483648)
-				// if(false)
 		      	{
 		      		oversized_files_idxs.push(idx);
 		      	}
@@ -1208,60 +988,18 @@ $(document).ready(function () {
 			if(oversized_files_idxs.length == 0)
 			{
 		      uploadFiles(false, function () {
-				 // console.log("upload files report: nuploaded / uploaded_files / typeof rawfiles / peptideLabelsNamesFromFile.length / peptideLabelsFromFile.length : " + nUploaded + "/" + uploaded_files + "/" + typeof rawfiles + "/" + peptideLabelsNamesFromFile.length + "/" + peptideLabelsFromFile.length);
-				 //Check what type of files has the user uploaded:
-				 var Files_valid = false;
-				 if (types_of_files_uploaded.indexOf("MQ") != -1 && types_of_files_uploaded.indexOf("MQP") != -1)
-				 {
-					 if(types_of_files_uploaded.indexOf("PD") == -1)
-					 {
-						 //Maxquant valid files:
-						 Files_valid = true;
-						 procProgram = "MQ";
-						 $("#exppddata").prop("checked", false);
-					 }
-					 else
-					 {
-						procProgram = "";
-						//Both MQ and PD files were uploaded:
-						alert("WARNING: Some of the files you uploaded are processed by MaxQuant and some by Proteome Discoverer, we are sorry to inform you that it is impossible to proceed.");
-						$("#s2btnf").prop('disabled', true);
-						Files_valid = false;
-					 }
-				 }
-				 if(types_of_files_uploaded.indexOf("PD") != -1)
-				 {
-					 if (types_of_files_uploaded.indexOf("MQ") == -1 && types_of_files_uploaded.indexOf("MQP") == -1)
-					 {
-						 //PD valid files:
-						 Files_valid = true;
-						 procProgram = "PD";
-						 $("#exppddata").prop("checked", false);
-					 }
-					 //No need to check if both MQ and PD files were uploaded, this has already been done
-				 }
-				 //If the user has uploaded more than one file from the same type alert them:
-				if ((procProgram == "MQ" && types_of_files_uploaded.filter(filterFunction).length > 2) 	|| (procProgram == "PD" && types_of_files_uploaded.filter(filterFunction).length > 1))
-				{
-					alert("WARNING: You uploaded too many files from " + procProgram + "! Please make sure you upload MultiConsensus files. Please refresh the current page and try again.");
-					$("#s2btnf").prop('disabled', true);
-					Files_valid = false;
-				}
-				 // console.log("Files valid" + Files_valid);
-				 // console.log("	Check to enable next: nToUpload = " + nToUpload);
-				 if (Files_valid == true && (upload_was_successful == true || (nToUpload == 0 && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)))) {
-					upload_was_successful = true;
+		         if (++nUploaded == nToUpload && typeof rawfiles != 'undefined' && (peptideLabelsNamesFromFile.length > 0 || peptideLabelsFromFile.length > 0)) {
 		            $("#s2btnf").prop('disabled', false);
 		         }
-		      });			
+		      });				
 			}
 			else
 			{
-				alert("WARNING: At least one of the files chosen is oversized, we are sorry to inform you that it is impossible to proceed.");
+				alert("WARNING: At least one of the files chosen is oversized, we are sorry to inform you that it impossible to proceed.");
 	         $("#s2btnf").prop('disabled', true);
 			}
       } else {
-         //$("#s2btnf").prop('disabled', true);
+         $("#s2btnf").prop('disabled', true);
       }
    });
    //Toggle visibility of table with advanced params
@@ -1344,6 +1082,7 @@ $(document).ready(function () {
          $this.attr('title', $this.text());
       }
    });
+   //
 
    $('#btnAssignExpStructCoord').on("click", function () {
       var items = $('#rawfiles_tbl_allfiles').find('.rawfiles_tbl_td_selected');
@@ -1353,35 +1092,19 @@ $(document).ready(function () {
       var curr_techrep = def_techrep;
       var curr_fraction = 0;
       var rep_offset = 1;
-      // if (def_biorep > 0 && def_biorep > (bioreps + 1)) {	// return if user tries to assign biorep X without having defined biorep X-1
-         // return;
-      // }
-      // if (def_techrep > 0 && def_techrep > (techreps + 1)) {	// same as above but for techreps
-         // return;
-      // }
+      if (def_biorep > 0 && def_biorep > (bioreps + 1)) {	// return if user tries to assign biorep X without having defined biorep X-1
+         return;
+      }
+      if (def_techrep > 0 && def_techrep > (techreps + 1)) {	// same as above but for techreps
+         return;
+      }
       $("#btnResetExpStructCoord").prop('disabled', false);
       for (var i = 0; i < items.length; i++) {
          var items_tds = $(items[i]).find('td');
          var items_biorep = items_tds[1];
          var items_techrep = items_tds[2];
          var items_frac = items_tds[3];
-		 if (def_biorep == 0)
-		 {
-			 return;
-		 }
-
-				 //if the user attempted to overwrite the coordinations of a file, delete its rawfiles_structure entry and set it again
-				$.each(rawfiles_structure, function (idx, my_raw_file)
-				{
-					// console.log("\t\t" + my_raw_file.rawfile + "\t" + $(items_tds[0]).text());
-					if(my_raw_file.rawfile == $(items_tds[0]).text())
-					{
-						// console.log("\t\t" + my_raw_file.rawfile + " was attempted to be overwritten!");
-						rawfiles_structure.splice(idx, 1);
-						// console.log(rawfiles_structure);
-						return false;
-					}
-				});
+         if ($(items_biorep).text() == '-' && $(items_techrep).text() == '-' && $(items_frac).text() == '-') {
             if (def_biorep > 0) { // i.e. non-blank
                if (def_techrep == 0) { // blank
 //techreps, from current count to items.length, except we have label-free data (peptideLabelsNamesFromFile.length == 0)
@@ -1414,23 +1137,18 @@ $(document).ready(function () {
                   return;
                }
             }
-			curr_used = true;
-            rawfiles_structure.push({rawfile: $(items_tds[0]).text(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction, used : curr_used});
-			$(items_tds[0])[0].style = "text-decoration: none";
-			$(items_tds[1])[0].style = "text-decoration: none";
-			$(items_tds[2])[0].style = "text-decoration: none";
-			$(items_tds[3])[0].style = "text-decoration: none";
+            rawfiles_structure.push({rawfile: $(items_tds[0]).text(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction});
             $(items_biorep).text(curr_biorep == 0 ? '-' : curr_biorep);
             $(items_techrep).text(curr_techrep == 0 ? '-' : curr_techrep);
             $(items_frac).text(curr_fraction == 0 ? '-' : curr_fraction);
+         }
       }
       set_reps();
-	  refresh_fractions();
-	  $('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
+      $('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
    });
    $('#btnResetExpStructCoord').on("click", function () {
       reset_reps();
-	  $("#btnResetExpStructCoord").prop('disabled', true);
+      $("#btnResetExpStructCoord").prop('disabled', true);
       $("#s22btnf").prop('disabled', true);
    });
    // CSS
@@ -1457,40 +1175,21 @@ $(document).ready(function () {
    rawfiles_tbl_allfiles_DT = $('#rawfiles_tbl_allfiles').DataTable({
       paging: false,
       bInfo: false,
-	  select: true,
-	  "pageLength": 308,
-	  scrollY: "142px",
-	  scrollCollapse: true,
-	  
       "columnDefs": [
          {
             targets: [1, 2, 3],
-            width: '4%',
+            width: '5%',
             className: "dt-center"
          },
          {
             targets: 0,
-            width: '88%',
-            className: "dt-left",
-			title: "Raw File"
-         },
-		 {
-			 targets: 1,
-			title: "#B"
-		 },
-		 {
-			 targets: 2,
-			title: "#T"
-		 },
-		 {
-			 targets: 3,
-			title: "#F"
-		 }
+            width: '80%',
+            className: "dt-left"
+         }
       ],
       "dom": '<"top ibvspace"f>rtT',
-		"sDom": 'lfrtip',
-		"oLanguage": {
-         "sSearch": "Filter: "
+      "oLanguage": {
+         "sSearch": "Filter"
       },
       "aoColumns": [
          {"mData": "fname"},
@@ -1499,174 +1198,7 @@ $(document).ready(function () {
          {"mData": "frac"}
       ]
    });
-   // Initialize the context menu 
-     $(document).contextmenu({
-		delegate: ".dataTable td",
-		menu: [
-		  {title: "Select All", cmd: "slc_all"},
-		  {title: "Deselect All", cmd: "dslc_all"},
-		  {title: "Invert Selection", cmd: "inv_slc"},
-		  {title: "Exclude Selected", cmd: "rmv_slc"},
-		  {title: "Include Selected", cmd: "add_slc"},
-		  {title: "Clear filter", cmd: "clr_fltr"},
-		  {title: "Reset", cmd: "reset"},
-		  {title: "Select unassigned", cmd: "slc_unassigned"}
-		],
-		select: function(event, ui) {
-			switch(ui.cmd){
-				case "slc_all":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var my_rows = my_table._('tr', {"filter":"applied"});
-					$.each(my_rows, function (idx, cur_row) {
-						// console.log(cur_row);
-						var my_tmp = cur_row["DT_RowId"];
-						$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
-						});
-					break;
-				case "dslc_all":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var my_rows = my_table._('tr', {"filter":"applied"});
-					$.each(my_rows, function (idx, cur_row) {
-						// console.log(cur_row);
-						var my_tmp = cur_row["DT_RowId"];
-						$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
-						});
-					break;
-				case "inv_slc":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var my_rows = my_table._('tr', {"filter":"applied"});
-					$.each(my_rows, function (idx, cur_row) {
-						// console.log(cur_row);
-						var my_tmp = cur_row["DT_RowId"];
-						$(document.getElementById(my_tmp.toString())).toggleClass('rawfiles_tbl_td_selected');
-						});	
-					break;
-				case "clr_fltr":
-					// var my_D_table = $('#rawfiles_tbl_allfiles').DataTable();
-					rawfiles_tbl_allfiles_DT.search('');
-					rawfiles_tbl_allfiles_DT.columns().search('');
-					rawfiles_tbl_allfiles_DT.draw();
-					break;
-				case "reset":
-					$("#btnResetExpStructCoord").trigger("click");
-					break;
-				case "rmv_slc":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var items = $('#rawfiles_tbl_allfiles').find('.rawfiles_tbl_td_selected');
-					for (var i = 0; i < items.length; i++) {
-						var items_tds = $(items[i]).find('td');
-						// console.log("rmvslc: " + $(items_tds[0])["0"].textContent + "items length:" +  items.length);
-						// console.log($(items_tds[0]));
-						var rec_found = false;
-						$.each(rawfiles_structure, function (idx, my_raw_file)
-						{
-							// console.log(my_raw_file.rawfile);
-							if(my_raw_file.rawfile == $(items_tds[0])["0"].textContent)
-							{
-
-								my_raw_file.used = false;
-								rec_found = true;
-								return false;
-								// console.log("continued!");
-							}
-						});
-						if (!rec_found)
-						{
-							rawfiles_structure.push({rawfile: $(items_tds[0]).text(), biorep: "-", techrep: "-", fraction: "-", used : false});
-						}
-						// console.log("stopped!");
-						// console.log("rawfiles_structure after delete");
-						// console.log(rawfiles_structure);
-						$(items_tds[0])["0"].style = "text-decoration: line-through";
-						$(items_tds[1])["0"].style = "text-decoration: line-through";
-						$(items_tds[2])["0"].style = "text-decoration: line-through";
-						$(items_tds[3])["0"].style = "text-decoration: line-through";
-					}
-					set_s22btnf();
-					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
-					$("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
-					refresh_fractions();
-					break;
-				case "add_slc":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var items = $('#rawfiles_tbl_allfiles').find('.rawfiles_tbl_td_selected');
-					for (var i = 0; i < items.length; i++) {
-						var items_tds = $(items[i]).find('td');
-						// console.log(i);
-						// console.log("addslc: " + $(items_tds[0])["0"].textContent + "items length:" +  items.length);
-						var rec_found = false;
-						$.each(rawfiles_structure, function (idx, my_raw_file)
-						{
-							// console.log(my_raw_file.rawfile);
-							if(my_raw_file.rawfile == $(items_tds[0])["0"].textContent)
-							{
-								if(!(my_raw_file.biorep == '-' && my_raw_file.techrep == '-' && my_raw_file.fraction == '-'))
-								{
-									// console.log(my_raw_file.biorep);
-									my_raw_file.used = true;
-									rec_found = true;
-								}
-								else
-								{
-									rawfiles_structure.splice(idx, 1);
-								}
-								return false;
-								// console.log("continued!");
-							}
-						});
-						// console.log("stopped!");
-						// console.log("rawfiles_structure after delete");
-						// console.log(rawfiles_structure);
-						$(items_tds[0])["0"].style = "text-decoration: none";
-						$(items_tds[1])["0"].style = "text-decoration: none";
-						$(items_tds[2])["0"].style = "text-decoration: none";
-						$(items_tds[3])["0"].style = "text-decoration: none";
-					}
-					set_s22btnf();
-					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
-					$("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
-					refresh_fractions();
-					break;
-				case "slc_unassigned":
-					var my_table = $('#rawfiles_tbl_allfiles').dataTable();
-					var my_rows = my_table._('tr', {"filter":"applied"});
-					$.each(my_rows, function (idx, cur_row) {
-						// console.log(cur_row);
-						var my_tmp = cur_row["DT_RowId"];
-						var rec_found = false;
-						$.each(rawfiles_structure, function (idx, my_raw_file)
-						{
-							// console.log(my_raw_file.rawfile == cur_row["fname"]);
-							if(my_raw_file.rawfile == cur_row["fname"])
-							{
-								rec_found = true;
-							}
-						});
-						if(rec_found == false)
-						{
-							$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
-						}
-						else
-						{
-							$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
-						}
-					});
-					break;
-				}
-			},
-		beforeOpen: function(event, ui) {
-			var $menu = ui.menu,
-				$target = ui.target,
-				extraData = ui.extraData;
-			ui.menu.zIndex(9999);
-		}
-	  });
-  
-  
-   $('#rawfiles_tbl_allfiles').css({border: 'none'});
-   $('#rawfiles_tbl_allfiles').css({margin: '0px'});
    $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
-   $('#rawfiles_tbl_allfiles').css({'border-bottom': 'none'});
    $('#rawfiles_tbl_allfiles').css({'border-bottom': 'none'});
    $('#btnRawfilesTblSelectAll').on("click", function () {
       $('#rawfiles_tbl_allfiles tbody tr').addClass('rawfiles_tbl_td_selected');
@@ -1703,21 +1235,14 @@ $(document).ready(function () {
       $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
       $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
    });
-	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
-	$("#conditions_list").mousedown(function(e){
-		e.preventDefault();
-
-		var select = this;
-		var scroll = select .scrollTop;
-
-		e.target.selected = !e.target.selected;
-
-		setTimeout(function(){select.scrollTop = scroll;}, 0);
-
-		$(select ).focus();
-	}).mousemove(function(e){e.preventDefault()});
+	
    // TEST DATA INIT
    postTestDatasetsInfo();
    //
    postClientServerClientInfo();
 });
+
+
+
+
+
