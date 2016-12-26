@@ -32,6 +32,7 @@ mkdir('msdiffexp_wd');
 copy($cgibin_dir . '/MSdiffexp.R', $upload_dir . '/msdiffexp_wd/MSdiffexp.R');
 rename('MSdiffexp_definitions.R', 'msdiffexp_wd/MSdiffexp_definitions.R');
 rename('exp_struct.txt', 'msdiffexp_wd/exp_struct.txt');
+rename('LFQ_conditions.txt', 'msdiffexp_wd/LFQ_conditions.txt');
 rename('msdiffexp_peptide.txt', 'msdiffexp_wd/msdiffexp_peptide.txt');
 if(file_exists('msdiffexp_protein.txt'))
 {

@@ -60,7 +60,8 @@
 			<div class="main_div main_section hidden" id="s22div">
 				<h2>Step 2</h2>
 				<p style="color: #000000">Please define the experimental design by assigning the appropriate structure coordinate to each file. 
-					<p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Select one or more files from the table on the left, type the biological and technical replicate numbers they belong to in the boxes on the right, and click the <strong>Assign</strong> button. If multiple files are fractions of the same replicate, simply assign the same biological and technical replicate number to them, the order of the fractions does not matter. Use <strong>Shift</strong> to select a range of items. <strong>Right click</strong> on the table for extended functionality.</p>
+					<p id = "step2desc" style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Select one or more files from the table on the left, type the biological and technical replicate numbers they belong to in the boxes on the right, and click the <strong>Assign</strong> button. If multiple files are fractions of the same replicate, simply assign the same biological and technical replicate number to them, the order of the fractions does not matter. Use <strong>Shift</strong> to select a range of items. <strong>Right click</strong> on the table for extended functionality.</p>
+					<p style="font-size: 14px;" id="ExtraInfoForLFQ">Please use the <strong>"Assign Condition"</strong> option in the right click menu to tell ProteoSign which Raw Files correspond to which condition.</p>
 				</p>
 				<hr class="style-one">
             <div style="text-align: center; height: 45%; width: 100%; display: -webkit-flex; display: inline-flex;">
@@ -93,7 +94,7 @@
 				</div>
 				<div class="buttonbar">
 					<button type="button" class="main" id="s22btnb">Back</button>
-					<button type="button" class="main" id="s22btnf" disabled>Next</button>
+					<button type="button" class="main" id="s22btnf" disabled onclick="ons22btnfclick();">Next</button>
 				</div>
 			</div>
 			
@@ -239,7 +240,18 @@
 			</div>			
 		</div>		
 
-		
+		<div class="expparamsDlg" id="s2LFQConditions" style="width: 340px">
+			<div style="text-align: center;">
+				<span style="font-size: 85%;">Select a condition to assign to the selected raw files<br> or type a <strong>New condition</strong> in the box below.</span>
+				<input id="s2LFQConditionsNew" placeholder="New Condition" style="width:70%" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',10);" onkeyup="SwitchLFQList(event);"></input>
+				<select id="s2LFQConditionsList" style="width:70%">
+				</select><br>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="s2LFQConditionsOK" onclick="ons2LFQConditionsOK_click();">OK</button>
+				<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s2LFQConditionsCancel">Cancel</button>
+			</div>			
+		</div>	
 		
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/jquery.dataTables.min.js"></script>

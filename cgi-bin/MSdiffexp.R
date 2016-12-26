@@ -424,7 +424,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   }
   
   levellog("Saving plots results to files ...")
-  colnames(results)<-gsub("[\\._]"," ",colnames(results))
+  colnames(results)<-gsub("[\\.]"," ",colnames(results))
   for(i in 1:nrow(ratio_combs)){
     ratio_i_str<-paste("(",conditions.labels[ratio_combs[i,2]],") (",conditions.labels[ratio_combs[i,1]],")",sep="")
     colnames(results)<-gsub(ratio_i_str,"\\1/\\2",colnames(results))
@@ -756,13 +756,18 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   background_species_lbl<-NA
   for(i in 1:length(conditions.labels)){
     if(PDdata){
-      evidence$label_<-evidence$Quan.Channel
+	  if(LabelFree){
+        mi<-which(grepl(conditions.labels[i], LFQ_conds[, "condition"]))
+        mi2<-which(grepl(paste(LFQ_conds[mi,]$raw_file, collapse="|"), evidence[, cond_spec_col]))
+        evidence[mi2,]$label_<-conditions.labels[i]
+	  }else{
+	  evidence$label_<-evidence$Quan.Channel
+	  }
     }else{
       if(LabelFree){
-        for(cond_i_spec in conditions.labels.Modifications[[i]]){
-          mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
-          evidence[mi,]$label_<-conditions.labels[i]
-        }        
+        mi<-which(grepl(conditions.labels[i], LFQ_conds[, "condition"]))
+        mi2<-which(grepl(paste(LFQ_conds[mi,]$raw_file, collapse="|"), evidence[, cond_spec_col]))
+        evidence[mi2,]$label_<-conditions.labels[i]
       }else{
         # MQ nomenclature for labels: 0 the first label, 1 the second etc ...
         mi<-which(grepl((i-1), evidence[, cond_spec_col]))
@@ -810,6 +815,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     if(PDdata){
       # Precursor Area is unfortunately buggy (sometimes 0/NA), so we are left with Intensity to work with
       #intensityCol <- 'Precursor.Area'
+      #TODO validate that PD-LFQ data is supported
       intensityCol <- 'Intensity'
     }else{
       intensityCol <- 'Intensity'
@@ -1132,6 +1138,12 @@ perform_analysis<-function(){
   setwd(working_directory)
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
+  LFQ_conds<-c()
+  if(LabelFree)
+  {
+    #if labelfree load the lfq conditions structure
+    LFQ_conds<-read.table(LFQ_conditions_file, col.names=c('raw_file', 'condition'))
+  }
   #we will keep a copy of the original rep_structure to display in the graphs
   original_rep_structure <- rep_structure
   #we are not sure if the biorep and techrep numbers the user typed are sequential, the following code converts them to sequential numbers
@@ -1181,6 +1193,7 @@ perform_analysis<-function(){
   }
   
   .GlobalEnv[["rep_structure"]]<-rep_structure
+  .GlobalEnv[["LFQ_conds"]]<-LFQ_conds
   .GlobalEnv[["original_rep_structure"]]<-original_rep_structure
   .GlobalEnv[["n_bioreps"]]<-max(rep_structure$biorep)
   .GlobalEnv[["n_techreps"]]<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
@@ -1242,7 +1255,7 @@ perform_analysis<-function(){
     expdesign[tmp_counter + 1,1] <- sub("\\..*",paste0(".", temp_vector[tmp_counter + 1]), expdesign_i)
     tmp_counter <- tmp_counter + 1
   }
-  expdesign <- sub("f.*", "", expdesign)
+  expdesign[,1] <- sub("(.*)f.*", "\\1", expdesign[,1], perl = TRUE)
   write.table(expdesign,file="curr_exp_design.txt",row.names=F,quote=F,sep = "\t")
   exp_design_fname<<-"curr_exp_design.txt"
   

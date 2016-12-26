@@ -9,6 +9,7 @@ rep_order<-NA
 mqValidation<-F
 #working_directory<-REPLACE9
 experimental_structure_file = "exp_struct.txt"
+LFQ_conditions_file = "LFQ_conditions.txt"
 pgroups_fname<-"msdiffexp_protein.txt"
 evidence_fname<-"msdiffexp_peptide.txt"
 outputFigsPrefix<-REPLACE2
