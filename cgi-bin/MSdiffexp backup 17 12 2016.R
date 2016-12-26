@@ -4,21 +4,20 @@ options(warn=1)
 # WARNING: Make sure to install the following packages as administrator/root (for them to be available to all users)
 # ======================================
 
-# source("http://www.bioconductor.org/biocLite.R")
-# if(!require("limma")){ biocLite("limma") }
-# if(!require("statmod")){ biocLite("statmod") }
-# if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
-# if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
-# if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
-# if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
-# # WARNING! please install version 1.9.6 of data.table package!
-# if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
-# if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
-# if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
-# #if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
-# #if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
+#source("http://www.bioconductor.org/biocLite.R")
+#if(!require("limma")){ biocLite("limma") }
+#if(!require("statmod")){ biocLite("statmod") }
+#if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
+#if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
+#if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
+#if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
+#if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+#if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
+#if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
+##if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
+##if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
 
 library(limma)
 library(statmod)

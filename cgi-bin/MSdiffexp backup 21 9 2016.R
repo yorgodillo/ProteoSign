@@ -1,24 +1,23 @@
 options(warn=1)
-# DEPLOYMENT VERSION
+
 # ======================================
 # WARNING: Make sure to install the following packages as administrator/root (for them to be available to all users)
 # ======================================
 
-# source("http://www.bioconductor.org/biocLite.R")
-# if(!require("limma")){ biocLite("limma") }
-# if(!require("statmod")){ biocLite("statmod") }
-# if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
-# if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
-# if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
-# if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
-# if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
-# # WARNING! please install version 1.9.6 of data.table package!
-# if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
-# if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
-# if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
-# #if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
-# #if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
+#source("http://www.bioconductor.org/biocLite.R")
+#if(!require("limma")){ biocLite("limma") }
+#if(!require("statmod")){ biocLite("statmod") }
+#if(!require("ggplot2")){ install.packages("ggplot2", repos="http://cran.fhcrc.org") }
+#if(!require("stringr")){ install.packages("stringr", repos="http://cran.fhcrc.org") }
+#if(!require("reshape")){ install.packages("reshape", repos="http://cran.fhcrc.org") }
+#if(!require("plyr")){ install.packages("plyr", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("gtools", repos="http://cran.fhcrc.org") }
+#if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
+#if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+#if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
+#if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
+##if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
+##if(!require("lineprof")){ devtools::install_github("hadley/lineprof") }
 
 library(limma)
 library(statmod)
@@ -101,20 +100,11 @@ levellog <- function (msg, change=0, reset=F,after=F, supression=debuglog){
 panel.cor.scale <- function(x, y, digits=2, prefix="", cex.cor){
   usr <- par("usr"); on.exit(par(usr))
   par(usr = c(0, 1, 0, 1))
-  
   r = (cor(x, y,use="pairwise"))
   txt <- format(c(r, 0.123456789), digits=digits)[1]
   txt <- paste(prefix, txt, sep="")
   if(missing(cex.cor)) cex <- 0.8/strwidth(txt)
-  if(is.na(r))
-  {
-    txt="NA"
-    text(0.5, 0.5, txt, cex = cex * 0.25)
-  }
-  else
-  {
-    text(0.5, 0.5, txt, cex = cex * abs(r))
-  }
+  text(0.5, 0.5, txt, cex = cex * abs(r))
 }
 
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor){
@@ -130,30 +120,22 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor){
 panel.hist <- function(x, ...){
   usr <- par("usr"); on.exit(par(usr))
   par(usr = c(usr[1:2], 0, 1.5) )
+  #h <- hist(x, plot = FALSE)
   h <- hist(x, breaks=panel.hist.breaks,plot = FALSE)
   breaks <- h$breaks; nB <- length(breaks)
   y <- h$counts; y <- y/max(y)
-  #If all values are 0 create a simple rectangle in the middle:
-  non_zero_values <- x != 0
-  if(any(non_zero_values))
-  {
-    rect(breaks[-nB], 0, breaks[-1], y, col=ratios.hist.colour, ...)
-  }
-  else
-  {
-    rect(-0.25, 0, 0.25, max(y), col=ratios.hist.colour, ...)
-  }
+  rect(breaks[-nB], 0, breaks[-1], y, col=ratios.hist.colour, ...)
 }
 
 # FROM: http://www-personal.umich.edu/~ladamic/presentations/Rtutorial/Rtutorial.R
 panel.lmline = function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 1, col.smooth = reps.scatter.lmline.colour, ...){
   points(x, y, pch = pch, col = col, bg = bg, cex = cex)
   ok <- is.finite(x) & is.finite(y)
-  unequal_values <- x != y
-  if (any(ok) && any(unequal_values)) 
-    abline(lm(y[ok] ~ x[ok]), col = col.smooth, ...)
+  if (any(ok)) 
+    abline(lm(y[ok] ~ x[ok]), 
+           col = col.smooth, ...)
 }
-#Called by do_results_plot (with smooth=TRUE,scale=TRUE,lm=TRUE)
+
 pairs.panels <- function (x,y,smooth=TRUE,scale=FALSE,lm=FALSE){
   if (smooth){
     if (scale) {
@@ -187,7 +169,7 @@ lm_eqn<-function(df){
   return(as.character(as.expression(eq)));
 }
 
-# to be used with apply on a limma-results data.frame, called by do_result_plots
+# to be used with apply on a limma-results data.frame
 # calculate mean, sd and N of ratios between available channels
 # conds_cols_idxs the column indexes of quant channels intensities
 # x a limma-results data.frame row
@@ -199,13 +181,15 @@ calcRowStats<-function(x,conds_cols_idxs,ratio_combs){
   avg.I<-c()
   
   for(i in 1:nrow(ratio_combs)){
-    tmp1<-as.numeric(x[conds_cols_idxs[ratio_combs[i,2],]]) #columns of "heavier" label
-    tmp2<-as.numeric(x[conds_cols_idxs[ratio_combs[i,1],]]) #columns of "lighter" label    
+    tmp1<-as.numeric(x[conds_cols_idxs[ratio_combs[i,2],]]) #columns of heavier label (assumed to be defined after lighter label in conditions.labels)
+    tmp2<-as.numeric(x[conds_cols_idxs[ratio_combs[i,1],]]) #columns of lighter label    
     ratio_i<-(tmp1-tmp2)
     ratios<-rbind(ratios, ratio_i)
     m<-rbind(m, mean(ratio_i,na.rm=T))
     std<-rbind(std, sd(ratio_i,na.rm=T))
-    N<-rbind(N, length(which(!is.na(ratio_i) & ratio_i != 0)))
+    N<-rbind(N, length(which(!is.na(ratio_i)|ratio_i==0)))
+    
+    #avg.I<-rbind(avg.I, log2(mean(sapply(1:nrow(conds_cols_idxs),function(x) sum(c(2^tmp1[x],2^tmp2[x]),na.rm=T)),na.rm=T)))
     avg.I<-rbind(avg.I, mean(c(tmp1,tmp2),na.rm=T))
   }
   
@@ -221,7 +205,13 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   results<-read.table(paste(outputFigsPrefix,"_condition-i_vs_condition-j_",time.point,".txt",sep=""), header = T, sep = "\t",quote='',stringsAsFactors=F,comment.char = "")
   if(nrow(ratio_combs) == 1){
     colnames(results)[grep("p\\.value\\.adj",colnames(results))]<-paste("p.value.adj.",conditions.labels[2],".",conditions.labels[1],sep="")
-  }
+  }#else{
+  #  for(i in 1:nrow(ratio_combs)){
+  #    ratio_i_desc<-paste(conditions.labels[ratio_combs[i,2]],"\\.",conditions.labels[ratio_combs[i,1]],sep="")
+  #    ratio_i_sub<-paste("L",ratio_combs[i,2],"...L",ratio_combs[i,1],sep="")
+  #    colnames(results)<-gsub(ratio_i_desc,ratio_i_sub,colnames(results))
+  #  }
+  #}
   
   # Due to the mysterious bug (undefined results$ID column), the following does not make sense ...
   #rownames(results)<-results$ID
@@ -289,7 +279,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   # customized colorblind-friendly palette from http://wiki.stdout.org/rcookbook/Graphs/Colors%20(ggplot2)/
   cbPalette <- c("#999999", "#D55E00", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#CC79A7")
   
-  #Plot generation:
+  #my plots
   for(i in 1:nrow(ratio_combs)){
     levellog(paste("Generating plots for combination #",i," ..."),change=1,after=T)
     ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep="")
@@ -300,18 +290,13 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     if(exportFormat == "pdf"){
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
     }
-    
+  
     ratio_i_<-paste("log2.",ratio_i_str,sep="")
     ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
     tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
     
     tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
     ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
-    #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
-    if(ratiolim == 0)
-    {
-      ratiolim <- 5
-    }
     panel.hist.breaks<<-(-ratiolim:ratiolim)
     
     ratio_i_p.value.adj<-paste("p.value.adj.",paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
@@ -355,7 +340,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     # 2 - value-ordered - log ratio
     levellog("Making value-ordered plot ...")
     figsuffix<-paste("_",ratio_i_str,"-value-ordered-log-ratio","_",sep="")
-    
+   
     if(exportFormat == "pdf"){
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
     }
@@ -402,7 +387,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     }
     dev.off()
     
-    # 4 - Reproducibility plots & histograms
+    # 4 - reproducibility plots & histograms
     levellog("Making reproducibility plot ...")
     figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
     
@@ -442,6 +427,8 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   results<-results[,which(!grepl("sd$",colnames(results)))]
   results<-results[,which(!grepl("^nID$",colnames(results)))]
   results<-results[,which(!grepl("^diffexp",colnames(results)))]
+  
+  #write.table(results,file=paste(outputFigsPrefix,"_results_",time.point,".txt",sep=""),sep="\t",col.names=NA)
   
   quant_species<-"proteins"
   if(!ProteinQuantitation){
@@ -489,20 +476,8 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     colnames(diffexp)[grep("^Protein\\.IDs$",colnames(diffexp))]<-"Protein"
   }
   dec <- "."
-  #Restore original rep description for output
-  newcolumns <- names(diffexp[signTruth,])
-  oldcolumns <- newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(diffexp) <- newcolumns
   write.table(diffexp[signTruth,],dec=dec,file=paste(outputFigsPrefix,"_diffexp_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
-  colnames(diffexp) <- oldcolumns
+  
   diffexp<-merge(diffexp,results[,-grep("^(avg log2|P-value adjusted)",colnames(results))],by.x=c(quantitated_items_lbl),by.y=c("ID"),all.x=T)
   write.table(diffexp,dec=dec,file=paste(outputFigsPrefix,"_results_",time.point,".txt",sep=""),sep="\t",row.names=F,quote=F)
   
@@ -539,23 +514,9 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   
   setwd(limma_output)
   
-  #rename the column names to their original ones to display to the graph
-  names(log.intensities) <- rownames(sample.key)
   levellog("Saving limma input frame ...")
-  #also restore original repdesc to output to the limma-input file
-  newcolumns <- names(working_pgroups)
-  oldcolumns <- newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(working_pgroups) <- newcolumns
   write.table(working_pgroups,file=paste(outputFigsPrefix,"_limma-input_",quantitated_items_lbl,"Groups.txt",sep=""),sep="\t",row.names = T, col.names=NA)
-  colnames(working_pgroups) <- oldcolumns
+  
   if(exportFormat == "pdf"){
     pdf(file=paste(outputFigsPrefix,"_limma-graphs_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
   }
@@ -577,33 +538,17 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   # Assign row names to our aggregated intensities from the sample key
   
   row.names(norm.median.intensities) <- row.names(sample.key)
-  #Assign a blocking variable that groups the data based on technical replication
-   blocking_var<-c()
-   if(.GlobalEnv[["n_techreps"]] > 1){
-     #In Label-Free projects each raw file is derived from a different experiment. Thus, data from different conditions
-     #must be in different groups
-     if(.GlobalEnv[["LabelFree"]]){
-       max_bioreps = max(rep_structure$biorep)
-       for(j in 1:nConditions)
-       {
-         for(i in unique(rep_structure$biorep)){
-           blocking_var<-c(blocking_var, rep((j-1)*max_bioreps + i,length(unique(rep_structure[rep_structure$biorep == i,]$techrep))))
-         }
-       }
-     }
-     else{
-     #All other supported experiment methods are multi-plexed, so all conditions derived from the same
-     #technical replicate must be in the same group
-       for(i in unique(rep_structure$biorep)){
-             blocking_var<-c(blocking_var, rep(i,length(unique(rep_structure[rep_structure$biorep == i,]$techrep))))
-           }
-           blocking_var<-rep(blocking_var, nConditions)
-       }
-   }else{
-     #When there is no technical replication, each sample.key record must be in its own group
-      blocking_var<-1:nrow(sample.key)
-   }
-
+  
+  blocking_var<-c()
+  if(.GlobalEnv[["n_techreps"]] > 1){
+    for(i in unique(rep_structure$biorep)){
+      blocking_var<-c(blocking_var, rep(i,length(rep_structure[rep_structure$biorep == i,]$techrep)))
+    }
+    blocking_var<-rep(blocking_var, nConditions)
+  }else{
+    blocking_var<-1:nrow(sample.key)
+  }
+  
   # Setup design matrix
   # This specifies the design of the experiment for limma, replicating
   # the info in the sample key, but representing it in a matrix format
@@ -649,6 +594,10 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   fit2 <- contrasts.fit(fit, contrasts)
   fit2 <- eBayes(fit2)
   
+  # Make volcano plot
+  
+  #volcanoplot(fit2, highlight="20")
+  #title(main="Log odds vs fold change STIMULATED-CTRL", sub="Top 20 most significant proteins highlighted")
   
   # Plot a Histogram of co-efficients (log2 ratio)
   for(i in 1:nrow(ratio_combs)){
@@ -659,6 +608,23 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   if(exportFormat == "emf"){
     savePlot(filename=paste(outputFigsPrefix,"_limma-graphs_",time.point,"_hist.emf",sep=""),type="emf")
   }
+  
+  # Do an MA Plot (mean of log2 intensities vs log2 ratio)
+  # Important to inspect the MA plot to ensures that the ratio does not depend on
+  # the intensity of the protein/peptide. This shouldn't happen if the data was normalised
+  # successfully, and should be unusual in SILAC / label-free experiments.
+  #for(i in 1:nrow(ratio_combs)){
+  #  plotMA(fit2)
+  
+  # Add a line at y=0 to the MA plot. The clouds of points should be centred around y=0
+  # if most proteins/peptides are unchanges and normalisation worked well.
+  
+  #  abline(h=0)
+  
+  #  if(exportFormat == "emf"){
+  #    savePlot(filename=paste(outputFigsPrefix,"_limma-graphs_",time.point,"_MA.emf",sep=""),type="emf")
+  #  }
+  #}
   
   dev.off()
   
@@ -674,16 +640,14 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   title(main="Intensities After Normalisation")
   
   dev.off()
-  for(i in 1:nrow(ratio_combs)){
-    ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep="")
-    ratio_i_str_with_dash <-paste(conditions.labels[ratio_combs[i,2]],"-",conditions.labels[ratio_combs[i,1]],sep="")
-    png(paste("../",outputFigsPrefix,"_limma-graphs_",time.point,"_log2-fold-change-histogram", ratio_i_str_with_dash ,".png",sep=""), width = 1500, height = 1050)
-    hist(fit2$coefficients[,i],main=paste("Log2 Fold Change ",ratio_i_str,sep=""), xlab="Log2 Fold Change", breaks=50 )
-    dev.off()
-  } 
+  png(paste("../",outputFigsPrefix,"_limma-graphs_",time.point,"_log2-fold-change-histogram.png",sep=""), width = 1500, height = 1050)
+  
+  hist(fit2$coefficients[,i],main=paste("Log2 Fold Change ",ratio_i_str,sep=""), xlab="Log2 Fold Change", breaks=50 )
+  
+  dev.off()
   
   # Output analysis details to file
-  # adjust="BH" means adjust the calculated p-values for multiple testing using
+  # asjust="BH" means adjust the calculated p-values for multiple testing using
   # the Benjamini Hochberg method (FDR)
   levellog("Saving analysis results to file ...")
   write.fit(fit2, file=paste(outputFigsPrefix,"_condition-i_vs_condition-j_",time.point,".txt",sep=""), adjust="BH")
@@ -710,10 +674,10 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     # If there isn't a Protein.Names column (depends on MQ version), create one from the Fasta Headers column
     col_Protein.names <- length(grep('Protein.Names',colnames(pgroups))) > 0
     if(! col_Protein.names){
-      pgroups$Protein.Names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
+      pgroups$Protein.names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
     }
     # Construct a table, mapping the correct protein groups IDs (and the corresponding proteins names) to the evidence IDs
-    tmp.table.1<-data.table(do.call(rbind, apply(pgroups[,c('Protein.IDs','Protein.Names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.Names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
+    tmp.table.1<-data.table(do.call(rbind, apply(pgroups[,c('Protein.IDs','Protein.names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
     setnames(tmp.table.1, colnames(tmp.table.1), c('Protein.IDs', 'Protein.Names', 'id'))
     class(tmp.table.1$id)<-'integer'
     setkey(tmp.table.1, id)
@@ -756,7 +720,18 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   background_species_lbl<-NA
   for(i in 1:length(conditions.labels)){
     if(PDdata){
-      evidence$label_<-evidence$Quan.Channel
+      for(cond_i_spec in conditions.labels.Modifications[[i]]){
+        if(nchar(cond_i_spec) > 0){
+          mi<-which(grepl(cond_i_spec, evidence[, cond_spec_col]))
+          evidence[mi,]$label_<-conditions.labels[i]
+        }else{
+          # if the label specification is the empty string
+          # it means that we have background / unlabelled species that we need treat as 'labeled'.
+          # In such case, we shouldn't remove any NA-assigned label_ record after this loop.
+          # So set a flag in order to set the label for the NA records after the loop.
+          background_species_lbl<-conditions.labels[i]
+        }
+      }
     }else{
       if(LabelFree){
         for(cond_i_spec in conditions.labels.Modifications[[i]]){
@@ -1132,24 +1107,6 @@ perform_analysis<-function(){
   setwd(working_directory)
   rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
-  #we will keep a copy of the original rep_structure to display in the graphs
-  original_rep_structure <- rep_structure
-  #we are not sure if the biorep and techrep numbers the user typed are sequential, the following code converts them to sequential numbers
-  unique_reps <- unique(rep_structure$biorep)
-  counter <- 1
-  for(rep_i in unique_reps){
-    mi <- which(rep_structure$biorep == rep_i)
-    rep_structure$biorep[mi] <- counter
-    counter <- counter + 1
-    unique_techreps <- unique(rep_structure$techrep[mi])
-    counter2 <- 1
-    for(techrep_i in unique_techreps){
-      mi2 <- which(rep_structure$biorep == counter - 1 & rep_structure$techrep == techrep_i)
-      rep_structure$techrep[mi2] <- counter2
-      counter2 <- counter2 + 1
-    }
-  }
-  original_rep_structure$rep_desc<-paste(paste(paste('b',original_rep_structure$biorep,sep=''),'t',original_rep_structure$techrep,sep=''))
   
   if(length(unique(rep_structure$biorep)) == 1){
     levellog("Error: Cannot accept dataset with just one biological replicate. Aborting ...")
@@ -1160,28 +1117,23 @@ perform_analysis<-function(){
     if(length(unique(rep_structure$fraction)) > 1){
       # we have techreps and fractions
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       #we have bioreps and techreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
     }
   }else{
     if(length(unique(rep_structure$fraction)) > 1){
       # we have fractions but not techreps
       rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
-      original_rep_structure$rep_desc<-paste(paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep=''),'f',rep_structure$fraction,sep='')
     }else{
       # we just have bioreps
       rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
-      original_rep_structure$rep_desc<-paste(paste('b',rep_structure$biorep,sep=''),'t',rep_structure$techrep,sep='')
       # it should be like below, but for backward compatibility with other parts of the code, we keep the convention that in the rep. description, we will always have the terms 'b' (i.e. bio-rep) and 't', even if we don't have tech-reps ...
       # rep_structure$rep_desc<-paste('b',rep_structure$biorep,sep='')
     }
   }
   
   .GlobalEnv[["rep_structure"]]<-rep_structure
-  .GlobalEnv[["original_rep_structure"]]<-original_rep_structure
   .GlobalEnv[["n_bioreps"]]<-max(rep_structure$biorep)
   .GlobalEnv[["n_techreps"]]<-min(ddply(rep_structure[,c("biorep","techrep")],c("biorep"),function(x){return(max(x$techrep))})$V1)
   
@@ -1214,35 +1166,16 @@ perform_analysis<-function(){
     }
     protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
   }
-  #Restore the original rep descriptions to add to the graph
-  newcolumns <- names(protein_groups)
-  oldcolumns = newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
-      }
-    }
-  }
-  colnames(protein_groups) <- newcolumns
+  
   setwd(limma_output)
   write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   setwd("..")
-  colnames(protein_groups) <- oldcolumns
+  
   expdesign<-c()
   for(cond_i in conditions.labels){
     expdesign<-rbind(expdesign,cbind(paste(sub("Intensity\\.","",sort(colnames(protein_groups)[grep(paste("Intensity.",cond_i,".b",sep=""),colnames(protein_groups))]))),cond_i))  
   }
   colnames(expdesign)<-c("Sample","Category")
-  temp_vector <- sub("(.*)\\.","", expdesign[,1])
-  temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
-  tmp_counter <- 0
-  for (expdesign_i in expdesign[,1]){
-    expdesign[tmp_counter + 1,1] <- sub("\\..*",paste0(".", temp_vector[tmp_counter + 1]), expdesign_i)
-    tmp_counter <- tmp_counter + 1
-  }
-  expdesign <- sub("f.*", "", expdesign)
   write.table(expdesign,file="curr_exp_design.txt",row.names=F,quote=F,sep = "\t")
   exp_design_fname<<-"curr_exp_design.txt"
   

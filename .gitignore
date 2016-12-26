@@ -4,37 +4,8 @@ dev/msdiffexp/v2/quancat_4h_PD_psms.txt
 dev/msdiffexp/v2/.Rproj.user
 dev/msdiffexp/v2/limma output
 dev/msdiffexp/v2/msdiffexp_out
-<<<<<<< Updated upstream
 uploads/*
 test data/*
-=======
-dev/msdiffexp/v2/.RData
-dev/msdiffexp/v2/.Rhistory
-dev/msdiffexp/v2/msdiffexp_out/*
-uploads/*
-test data/*
-dev/msdiffexp/v3/quancat_2h_PD_psms.txt
-dev/msdiffexp/v3/quancat_4h_PD_psms.txt
-dev/msdiffexp/v3/msdiffexp_out/*
-dev/msdiffexp/v3/.txt
-dev/msdiffexp/v3/.Rproj.user
-dev/msdiffexp/v3/limma output
-dev/msdiffexp/v3/msdiffexp_out
-dev/msdiffexp/v3/.RData
-dev/msdiffexp/v3/.Rhistory
-dev/msdiffexp/v3/*evidence.txt
-dev/msdiffexp/v3/*psms.txt
->>>>>>> Stashed changes
 test data/Dimethyl_DIC_merged_psms.txt
 test data/Dimethyl_DIM_merged_psms.txt
 !test data/testdatadb
-dev/msdiffexp/v3/Dimethyl_MQ_proteinGroups.txt
-dev/php/Dimethyl_MQ_evidence.txt
-dev/php/PD_psms.txt
-dev/msdiffexp/v3/MQ_proteinGroups.txt
-dev/msdiffexp/v3/tmp.txt
-dev/msdiffexp/v3/tmp2.txt
-dev/msdiffexp/v3/tmp_code.R
-dev/msdiffexp/v3/curr_exp_design.txt
-dev/msdiffexp/v3/curr_exp_design.txt
-.Rproj.user
