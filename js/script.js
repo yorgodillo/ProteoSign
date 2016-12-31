@@ -299,7 +299,7 @@ var postFireUpAnalysisAndWait = function () {
       if (data.success) {
          $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
 		 //WIN TODO: \\ in next line
-         $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("\\") + 1) + "</strong></a></span>");
+         $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("/") + 1) + "</strong></a></span>");
          patt = new RegExp("limma\-graphs");
          $.each(data.results_preview, function (idx, path_to_img_i)
          {
@@ -468,6 +468,7 @@ var executeStage = function (stageIndex) {
          break;
       case 5:
          resetState();
+		 window.location.reload();
          break;
       default:
    }
@@ -1050,7 +1051,7 @@ var postTestDatasetInfo = function (dataset_desc) {
                         // Here the 0/1 is transmitted false/true
                         var theval = (data.queryres.value[idx] == "0" ? false : true);
                         if ($(param_selector).prop("checked") != theval) {
-                           $(param_selector).trigger("click");
+                           $(param_selector).prop("checked", theval);
                         }
                         break;
                      default:
@@ -1098,6 +1099,7 @@ var postTestDatasetInfo = function (dataset_desc) {
                }
                set_reps();
 			   refresh_fractions();
+			   if (isLabelFree == true) refresh_LFQ_conditions_from_test_data();
                $("#s3expparams").animate({scrollTop: 0}, "slow");
             });
          } else {
@@ -1109,6 +1111,31 @@ var postTestDatasetInfo = function (dataset_desc) {
    });
 }
 
+var refresh_LFQ_conditions_from_test_data = function()
+{
+	RawFileConditions_copy = RawFileConditions.slice();
+	$.each(rawfiles_structure, function (idx, my_raw_file)
+	{
+		if (my_raw_file.used == false)
+		{//for each rawfile not used splice the respective row
+			$.each(RawFileConditions_copy, function (idxC, my_cond)
+			{
+				if (my_raw_file.rawfile == my_cond.name)
+				{//if there is a row in RawFileConditions_copy corresponding to a not used rawfile, erase this row
+					RawFileConditions_copy.splice(idxC, 1);
+					//normally there can not be two rows in RawFileConditions_copy with the same name so escape the loop if erased a row
+					return false;
+				}
+			});
+		}
+	});
+	var non_un_condiitions = RawFileConditions_copy.map(function(value, index){return value.condition;});
+	var unique_conditions = ArrNoDupe(non_un_condiitions);
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		$("#s2LFQConditionsList").append("<option val='undefined'>" + my_un_cond + "</option>");
+	});
+}
 var postTestDatasetsInfo = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
@@ -1502,7 +1529,9 @@ $(document).ready(function () {
 						 //Maxquant valid files:
 						 Files_valid = true;
 						 procProgram = "MQ";
-						 $("#exppddata").prop("checked", false);
+						 $("#s3expparams input[name='exppddata']").prop('checked', false);
+						 $("#quantsoftdetectedspan").text("MaxQuant");
+						 $("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with MaxQuant");
 					 }
 					 else
 					 {
@@ -1520,7 +1549,9 @@ $(document).ready(function () {
 						 //PD valid files:
 						 Files_valid = true;
 						 procProgram = "PD";
-						 $("#exppddata").prop("checked", false);
+						 $("#s3expparams input[name='exppddata']").prop('checked', true);
+						 $("#quantsoftdetectedspan").text("Proteome Discoverer");
+						 $("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with Proteome Discoverer\u2122");
 					 }
 					 //No need to check if both MQ and PD files were uploaded, this has already been done
 				 }
@@ -1939,7 +1970,7 @@ $(document).ready(function () {
 								rec_found = true;
 							}
 						});
-						if (isLabelFree = false)
+						if (isLabelFree == false)
 						{// in labelled data a row is unassigned if it is not found in the rawfiles_structure array
 							if(rec_found == false)
 							{
