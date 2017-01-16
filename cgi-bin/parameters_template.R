@@ -17,6 +17,7 @@ filterL_lbl<-REPLACE7
 filterL_lvl<-REPLACE6
 LabelFree<-REPLACE8
 PDdata<-REPLACE1
+IsobaricLabel<-REPLACE10
 time.point<-REPLACE3
 # bioreps<-3
 # techreps<-1

@@ -13,6 +13,7 @@ var AppendNewLabels = false;
 var isLabelFree = false;
 var LFQconditions = [];
 var RawFileConditions = [];
+var isIsobaricLabel = false;
 //procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
 var procProgram = "";
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
@@ -423,6 +424,7 @@ var postParameters = function (params) {
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
+   thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -873,6 +875,8 @@ var addFormLabel = function()
 					// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
 				// });
 		  });
+		  //Inform ProteoSign if this file is a reporter-ion derived file
+		  isIsobaricLabel = data.isIsobaricLabel;
 		  $("#adv_parameters_div").show();
 	   } else {
 	//label-free case

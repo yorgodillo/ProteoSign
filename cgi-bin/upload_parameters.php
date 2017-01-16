@@ -20,6 +20,7 @@
 	$the_parameters["REPLACE7"] = "\"" . $_POST["expquantfiltlbl"] . "\"";
 	$the_parameters["REPLACE8"] = $_POST["labelfree"];
 	$the_parameters["REPLACE9"] = "\"" . $upload_dir . '\\msdiffexp_wd' . "\"";
+	$the_parameters["REPLACE10"] = $_POST["IsIsobaricLabel"];
 	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "addLabel(\"" . $_POST["explbl0"] . "\",c(\"\"))";
 	}

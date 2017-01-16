@@ -450,11 +450,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   
   levellog(paste("do_results_plots: Quantified ",quant_species,": ",nrow(results)," (",time.point,")",sep=""))
   
+  conditions.labels <- gsub("\\.", " ", conditions.labels)
+  
   for(i in 1:nrow(ratio_combs)){
     col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
     ndiffexp_tmp<-length(which(results[,col_desc_]<0.05))
     levellog(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,sep=""))
   }
+  
   if(nrow(ratio_combs) > 1){
     levellog(paste("do_results_plots: Differentially expressed in at least one combination of conditions: ",ndiffexp,sep=""))
   }
@@ -702,6 +705,26 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("",change=1)
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
+  #In the case of Isobaric labeling we should reformat the table before proceeding, afterwards we will treat the data as
+  #if they were label-free data
+  if(IsobaricLabel)
+    {
+      if(!PDdata)
+      {
+        evidence$Intensity <- NULL
+        varcolnames <- grep("^Reporter.intensity.[[:digit:]]", colnames(evidence), value = TRUE)
+        evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Labeling.State", times = varcolnames, direction = "long")
+        conditions.labels<-varcolnames
+        LabelFree<-T;
+      }
+    else{
+      evidence$Intensity <- NULL
+      varcolnames <- grep("^X[[:digit:]]*$", colnames(evidence), value = TRUE)
+      evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Modifications", times = varcolnames, direction = "long")
+      conditions.labels<<-varcolnames
+      LabelFree<-T;
+    }
+    }
   if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
   colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
   if(!PDdata){
@@ -724,7 +747,12 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     tmp.table.2[, c('Protein.IDs', 'Protein.Names') := NULL]
     # Inner join the mapping table with the evidence table and return the data frame that we ought to have in the first place
     evidence<-data.frame(tmp.table.1[tmp.table.2])
-    evidence<-evidence[evidence$Reverse == '' & evidence$Contaminant == '', ]
+    if(!IsobaricLabel){
+      evidence<-evidence[evidence$Reverse == '' & evidence$Contaminant == '', ]
+    }
+    else{
+      evidence<-evidence[evidence$Reverse == '', ]
+    }
   }
   
   levellog(paste0("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")"))
@@ -749,25 +777,42 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(PDdata){ rawfile_col<-'Spectrum.File' }else{ rawfile_col<-'Raw.file' }
   if(LabelFree){
     cond_spec_col<-rawfile_col
+    if(IsobaricLabel){
+      if(PDdata){ cond_spec_col<-'Modifications' }else{ cond_spec_col<-'Labeling.State' }
+      }
   }else{
     if(PDdata){ cond_spec_col<-'Modifications' }else{ cond_spec_col<-'Labeling.State' }
   }
   evidence$label_<-NA
   background_species_lbl<-NA
+  
   for(i in 1:length(conditions.labels)){
     if(PDdata){
 	  if(LabelFree){
+	    if(!IsobaricLabel)
+	    {
         mi<-which(grepl(conditions.labels[i], LFQ_conds[, "condition"]))
         mi2<-which(grepl(paste(LFQ_conds[mi,]$raw_file, collapse="|"), evidence[, cond_spec_col]))
         evidence[mi2,]$label_<-conditions.labels[i]
+	    }
+	    else
+	    {
+	      evidence$label_<-evidence$Modifications
+	    }
 	  }else{
 	  evidence$label_<-evidence$Quan.Channel
 	  }
     }else{
       if(LabelFree){
-        mi<-which(grepl(conditions.labels[i], LFQ_conds[, "condition"]))
-        mi2<-which(grepl(paste(LFQ_conds[mi,]$raw_file, collapse="|"), evidence[, cond_spec_col]))
-        evidence[mi2,]$label_<-conditions.labels[i]
+        if(!IsobaricLabel){
+          mi<-which(grepl(conditions.labels[i], LFQ_conds[, "condition"]))
+          mi2<-which(grepl(paste(LFQ_conds[mi,]$raw_file, collapse="|"), evidence[, cond_spec_col]))
+          evidence[mi2,]$label_<-conditions.labels[i]
+        }
+        else{
+          evidence$label_<-evidence$Labeling.State
+        }
+
       }else{
         # MQ nomenclature for labels: 0 the first label, 1 the second etc ...
         mi<-which(grepl((i-1), evidence[, cond_spec_col]))
@@ -808,14 +853,22 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("read.pgroups_v3: Standarizing data format ...")
   if(!PDdata){
     colnames(evidence)[grepl('Peptide.ID',colnames(evidence))]<-'Unique.Sequence.ID'
-    colnames(evidence)[grepl('Intensity\\..+',colnames(evidence))]<-conditions.labels
+    if (!IsobaricLabel){
+      colnames(evidence)[grepl('Intensity\\..+',colnames(evidence))]<-conditions.labels
+    }
+    # else{
+      # evidence[,conditions.labels]<-NA
+      # for (my_cond in conditions.labels){
+      #   mi<-which(grepl(my_cond, evidence$Labeling.State))
+      #   evidence[mi, my_cond] <- evidence[mi, "Intensity"]
+      # }
+    # }
     
   }
   if(LabelFree){
     if(PDdata){
       # Precursor Area is unfortunately buggy (sometimes 0/NA), so we are left with Intensity to work with
       #intensityCol <- 'Precursor.Area'
-      #TODO validate that PD-LFQ data is supported
       intensityCol <- 'Intensity'
     }else{
       intensityCol <- 'Intensity'
@@ -1244,6 +1297,14 @@ perform_analysis<-function(){
   setwd("..")
   colnames(protein_groups) <- oldcolumns
   expdesign<-c()
+  if(IsobaricLabel)
+  {
+    if(!PDdata)
+    {
+      varcolnames <- grep("^Reporter.intensity.[[:digit:]]*$", colnames(protein_groups), value = TRUE)
+      conditions.labels <<- varcolnames
+    }
+  }
   for(cond_i in conditions.labels){
     expdesign<-rbind(expdesign,cbind(paste(sub("Intensity\\.","",sort(colnames(protein_groups)[grep(paste("Intensity.",cond_i,".b",sep=""),colnames(protein_groups))]))),cond_i))  
   }
@@ -1252,7 +1313,7 @@ perform_analysis<-function(){
   temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
   tmp_counter <- 0
   for (expdesign_i in expdesign[,1]){
-    expdesign[tmp_counter + 1,1] <- sub("\\..*",paste0(".", temp_vector[tmp_counter + 1]), expdesign_i)
+    expdesign[tmp_counter + 1,1] <- sub("(.*)\\..*",paste0("\\1.", temp_vector[tmp_counter + 1]), expdesign_i)
     tmp_counter <- tmp_counter + 1
   }
   expdesign[,1] <- sub("(.*)f.*", "\\1", expdesign[,1], perl = TRUE)
@@ -1260,6 +1321,7 @@ perform_analysis<-function(){
   exp_design_fname<<-"curr_exp_design.txt"
   
   levellog("Performing the analysis ...")
+
   do_limma_analysis(prepare_working_pgroups(protein_groups),time.point,exp_design_fname,exportFormat="pdf",outputFigsPrefix=outputFigsPrefix)
   
   levellog("Data analysis finished.")
