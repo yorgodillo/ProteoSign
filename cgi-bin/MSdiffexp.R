@@ -329,25 +329,40 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     }else{
       results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<0.05
     }
-    
+    if(!IsobaricLabel)
+    {
+      myxlab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
+    }else{
+      if(!PDdata)
+      {
+        myxlab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
+        myxlab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+      }else{
+        myxlab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
+        myxlab <- gsub("X([[:digit:]])", "\\1", myxlab)
+      }
+    }
     p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.75) +
       theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
       xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
-      xlab(paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
+      xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
       geom_hline(aes(yintercept=-log10(0.05)), colour="#990000", linetype="dashed") +
       geom_text(size=2.5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000")
+    
+    
     print(p)
     if(exportFormat == "emf"){
       savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
     }
     dev.off()
     png(paste("../",outputFigsPrefix,figsuffix,time.point,".png",sep=""), width = 1500, height = 1050)
+    
     p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=4.25) +
       theme(legend.position = "none", axis.title.y=element_text(size = 22.5, vjust=0.2), axis.title.x=element_text(size = 22.5, vjust=0), plot.title = element_text(size = 30, vjust=1.5, lineheight=.8, face="bold"), axis.text.x = element_text(size = 22.5), axis.text.y = element_text(size = 22.5)) +
       xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
-      xlab(paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
+      xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
       geom_hline(aes(yintercept=-log10(0.05)), colour="#990000", linetype="dashed") +
       geom_text(size=5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000") 
     print(p)
@@ -367,12 +382,26 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     results[,ratio_i_avg_col_ymax]<-results[,ratio_i_avg_col]+results[,ratio_i_sd_col]
     results[,ratio_i_avg_col_ymin]<-results[,ratio_i_avg_col]-results[,ratio_i_sd_col]
     
+    if(!IsobaricLabel)
+    {
+      myylab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
+    }else{
+      if(!PDdata)
+      {
+        myylab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
+        myylab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+      }else{
+        myylab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
+        myylab <- gsub("X([[:digit:]])", "\\1", myxlab)
+      }
+    }
+    
     p<-ggplot(data=results, aes_string(x="nID", y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.5) +
       geom_errorbar(aes_string(ymin=ratio_i_avg_col_ymin, ymax=ratio_i_avg_col_ymax), width=1.5) +
       theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
       ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
-      xlab(paste(quantitated_items_lbl,"ID")) + ylab(paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")) + ggtitle("Value-ordered fold change")
+      xlab(paste(quantitated_items_lbl,"ID")) + ylab(myylab) + ggtitle("Value-ordered fold change")
     print(p)
     ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
     if(exportFormat == "emf"){
@@ -389,11 +418,25 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
     }
     
+    if(!IsobaricLabel)
+    {
+      myylab <- paste("A (average log2 ",sub("\\.","/",ratio_i_str),")",sep="")
+    }else{
+      if(!PDdata)
+      {
+        myylab <- paste("A (average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),")",sep="")
+        myylab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+      }else{
+        myylab <- paste("A (average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),")",sep="")
+        myylab <- gsub("X([[:digit:]])", "\\1", myxlab)
+      }
+    }
+    
     p<-ggplot(data=results, aes_string(x=ratio_i_avgI_col, y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.75) +
       theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
       ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
-      xlab("M (average log2 Intensity)") + ylab(paste("A (average log2 ",sub("\\.","/",ratio_i_str),")",sep="")) + ggtitle("MA plot")
+      xlab("M (average log2 Intensity)") + ylab(myylab) + ggtitle("MA plot")
     print(p)
     ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
     
@@ -407,7 +450,18 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
     
     allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
-    colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))
+    if(!IsobaricLabel)
+    {
+      colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))
+    }else{
+      if(!PDdata){
+        colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("([[:digit:]])\\.","\\1/",ratio_i_str),") ",sep=""),colnames(allratios))
+        colnames(allratios) <- gsub("Reporter\\.intensity", "Reporter", colnames(allratios))
+      }else{
+        colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("([[:digit:]])\\.","\\1/",ratio_i_str),") ",sep=""),colnames(allratios))
+        colnames(allratios) <- gsub("X([[:digit:]])", "\\1", colnames(allratios))
+      }
+    }
     
     if(exportFormat == "pdf"){
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
@@ -562,6 +616,29 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   if(exportFormat == "pdf"){
     pdf(file=paste(outputFigsPrefix,"_limma-graphs_",time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
   }
+  
+  #Remove infinite records
+  
+  for(i in 1:ncol(log.intensities)){
+    mi <- NA
+    mi <- which(log.intensities[,i] == -Inf)
+    if(length(mi) != 0){
+      log.intensities <- log.intensities[-mi,]
+    }
+    mi <- which(log.intensities[,i] == Inf)
+    if(length(mi) != 0){
+      log.intensities <- log.intensities[-mi,]
+    }
+  }
+  
+  if (IsobaricLabel){
+    if(!PDdata){
+      colnames(log.intensities) <- sub('Reporter\\.intensity\\.', "Reporter.", colnames(log.intensities))
+    }else{
+      colnames(log.intensities) <- sub('X([[:digit:]])', "\\1", colnames(log.intensities))
+    }
+  }
+  
   # Box plot before normalisation
   boxplot(log.intensities)
   title(main="Intensities Before Normalisation")
@@ -570,6 +647,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   # Perform quantile normalisation
   levellog("Performing quantile normalisation ...")
   norm.intensities <- normalizeBetweenArrays(data.matrix(log.intensities), method="quantile");
+  
   
   # Box plot after normalisation
   boxplot(norm.intensities)
@@ -664,6 +742,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   }
   
   dev.off()
+
   
   #save the graphs to pngs
   png(paste("../",outputFigsPrefix,"_limma-graphs_",time.point,"_intensities-before-normalization.png",sep=""), width = 1500, height = 1050)
@@ -677,6 +756,17 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   title(main="Intensities After Normalisation")
   
   dev.off()
+  
+  tmp_conditions.labels <- conditions.labels
+  if (IsobaricLabel)
+  {
+    if(!PDdata){
+      conditions.labels <- sub("Reporter\\.intensity\\.", "Reporter.", conditions.labels)
+    }else{
+      conditions.labels <- sub('X([[:digit:]])', "\\1", conditions.labels)
+    }
+  }
+  
   for(i in 1:nrow(ratio_combs)){
     ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep="")
     ratio_i_str_with_dash <-paste(conditions.labels[ratio_combs[i,2]],"-",conditions.labels[ratio_combs[i,1]],sep="")
@@ -684,6 +774,11 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
     hist(fit2$coefficients[,i],main=paste("Log2 Fold Change ",ratio_i_str,sep=""), xlab="Log2 Fold Change", breaks=50 )
     dev.off()
   } 
+  
+  if (IsobaricLabel)
+  {
+    conditions.labels <- tmp_conditions.labels
+  }
   
   # Output analysis details to file
   # adjust="BH" means adjust the calculated p-values for multiple testing using
@@ -1293,7 +1388,8 @@ perform_analysis<-function(){
   }
   colnames(protein_groups) <- newcolumns
   setwd(limma_output)
-  write.table(protein_groups,file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
+  temp_pgroups <- protein_groups
+  write.table(temp_pgroups[, -which(names(temp_pgroups) %in% c("N.x","N.y"))],file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   setwd("..")
   colnames(protein_groups) <- oldcolumns
   expdesign<-c()

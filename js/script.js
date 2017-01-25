@@ -14,6 +14,8 @@ var isLabelFree = false;
 var LFQconditions = [];
 var RawFileConditions = [];
 var isIsobaricLabel = false;
+var analysis_finished = false;
+var datatestOK_clicked = false;
 //procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
 var procProgram = "";
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
@@ -74,10 +76,13 @@ var rawfiles_tbl_allfiles_DT;
 var main_context_menu;
 
 var onChooseFromTestDatasets = function(){
-	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s1TestDatasets").width()/2)});
-	$('body').append('<div id="mask"></div>');
-	$("#s1TestDatasets").fadeIn(300);
-	$('#mask').fadeIn(300);
+	if (!datatestOK_clicked)
+	{
+		$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s1TestDatasets").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#s1TestDatasets").fadeIn(300);
+		$('#mask').fadeIn(300);
+	}
 }
 
 var onAssignCondition = function(){
@@ -277,7 +282,10 @@ var resetResultsInfoItms = function () {
 var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
-   toggleCurrentSectionSpinner();
+   if(!sectionSpinnerOn)
+   {
+	   toggleCurrentSectionSpinner();
+   }
    $("#s4btnf").prop('disabled', true);
    $.ajax({
       url: cgi_bin_path + 'perform_analysis.php', //Server script to fire up data analysis
@@ -294,7 +302,15 @@ var postFireUpAnalysisAndWait = function () {
          getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
-   	toggleCurrentSectionSpinner();
+	  if (analysis_finished | data.ret_session != sessionid)
+	  {
+		  return;
+	  }
+	  $("#s4btnb").prop('disabled', true);
+	  if(sectionSpinnerOn)
+	  {
+		toggleCurrentSectionSpinner();
+	  }
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
       if (data.success) {
@@ -319,6 +335,7 @@ var postFireUpAnalysisAndWait = function () {
             //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
          }
       }
+	  analysis_finished = true;
    }).fail(function (jqXHR, textStatus, errorThrown) {
    	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
@@ -482,11 +499,31 @@ var rollbackStage = function (stageIndex) {
    var ret = true;
    stageIndex = getItems("button.main", /s[0-9]+btnb/).length - stageIndex - 1;
    switch (stageIndex) {
-      case 1:
+    case 1:
          resetState();
+	case 3:
+		 resetSession();
       default:
    }   
    return ret;
+}
+
+var resetSession = function ()
+{
+   var thedata = new FormData();
+   thedata.append('old_session_id', sessionid);
+	sessionid = new Date().getTime();
+	thedata.append('session_id', sessionid);
+	$.ajax({
+		url: cgi_bin_path + 'change_session.php', //Server script to fire up data analysis
+		type: 'POST',
+		// Form data
+		data: thedata,
+		//Options to tell jQuery not to worry about content-type.
+		processData: false,
+		cache: false,
+		contentType: false
+	}).done(function (data, textStatus, jqXHR) {});
 }
 
 var unsuccessfullyUploadedFiles = {};
@@ -1044,6 +1081,9 @@ var postTestDatasetInfo = function (dataset_desc) {
                if (++nUploaded < uploadingFiles.length) {
                   return;
                }
+			   $("#s2btnb").prop('disabled', false);
+			   $("#dlgTestDatasetsBtnOK").prop('disabled', false);
+			   datatestOK_clicked = false;
                $("#s2btnf").triggerHandler("click");
                $("#s3showhideadvparams").trigger("click");
                $("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
@@ -1164,6 +1204,7 @@ var postTestDatasetsInfo = function () {
             $("#s1TestDatasetsSelection").append("<option value='" + (i++) + "'>" + dataset_desc + "</option>");
          });
       }
+
    }).fail(function (jqXHR, textStatus, errorThrown) {
       alert("An AJAX error occurred: " + errorThrown);
    });
@@ -1758,10 +1799,17 @@ $(document).ready(function () {
       $(".tooltip span").css({"margin-left": -$(".tooltip span").width() / 2 + 9});
       $(".callout").css({"left": $(".tooltip span").width() / 2});
    });
+   $(".tooltip2").hover(function () {
+      $(".tooltip2 span").css({"margin-left": 11});
+      $(".callout2").css({"left": 0});
+   });
    // Bind test datasets dialog buttons
    $("#dlgTestDatasetsBtnOK").on("click", function () {
-      dlgFadeout();
-      postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
+	  dlgFadeout();
+	  postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
+	  $("#s2btnb").prop('disabled', true);
+	  $("#dlgTestDatasetsBtnOK").prop('disabled', true);
+	  datatestOK_clicked = true;
    });
    $("#dlgTestDatasetsBtnCancel").on("click", function () {
       dlgFadeout();

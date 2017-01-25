@@ -8,6 +8,7 @@ $server_response['dispatcher_dump'] = [];
 $server_response['R_success'] = false;
 $server_response['R_dump'] = "";
 $server_response['dump'] = "";
+$server_response['ret_session'] = $_POST["session_id"];
 
 $session_folder = $_POST["session_id"];
 $document_root = dirname(__DIR__);
