@@ -1,5 +1,5 @@
 <?php
-
+error_reporting(E_ALL ^ E_WARNING);
 require 'get_labels.php';
 require 'get_rawfiles_names.php';
 //"get_labels" function arguments for different file formats
@@ -37,6 +37,7 @@ $server_response = [];
 //Overall success, will be checked by client.
 $server_response['success'] = false;
 $server_response['msg'] = '';
+$server_response['mkdir_msg'] = '';
 $server_response['peptide_labels'] = [];
 $server_response['peptide_labels_names'] = [];
 $server_response['skipped_labels'] = [];
@@ -50,8 +51,12 @@ if (isset($name)) {
       $location = $document_root . '/uploads/' . $_POST["session_id"];
       if (!file_exists($location) && !is_dir($location)) {
          if (!mkdir($location, 0777, true)) {
-            $server_response['msg'] = "The directory $location could not be created ('mkdir' returned FALSE).";
-            goto end;
+			 $server_response['mkdir_msg'] = "The directory $location already exists, probably created from another upload_files instance.";
+			 //Sometimes upload files tries to create an existing directory even if file_exists($location) returns true, check again if the file exists and display the error if so
+			if (!file_exists($location) && !is_dir($location)) {
+				$server_response['msg'] = "The directory $location could not be created ('mkdir' returned FALSE).";
+				goto end;
+			}
          }
       }
       $file_copied_successfully = false;

@@ -8,6 +8,7 @@ $server_response['dispatcher_dump'] = [];
 $server_response['R_success'] = false;
 $server_response['R_dump'] = "";
 $server_response['dump'] = "";
+$server_response['ret_session'] = $_POST["session_id"];
 
 $session_folder = $_POST["session_id"];
 $document_root = dirname(__DIR__);
@@ -32,6 +33,7 @@ mkdir('msdiffexp_wd');
 copy($cgibin_dir . '/MSdiffexp.R', $upload_dir . '/msdiffexp_wd/MSdiffexp.R');
 rename('MSdiffexp_definitions.R', 'msdiffexp_wd/MSdiffexp_definitions.R');
 rename('exp_struct.txt', 'msdiffexp_wd/exp_struct.txt');
+rename('LFQ_conditions.txt', 'msdiffexp_wd/LFQ_conditions.txt');
 rename('msdiffexp_peptide.txt', 'msdiffexp_wd/msdiffexp_peptide.txt');
 if(file_exists('msdiffexp_protein.txt'))
 {

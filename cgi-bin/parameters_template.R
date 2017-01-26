@@ -9,6 +9,7 @@ rep_order<-NA
 mqValidation<-F
 #working_directory<-REPLACE9
 experimental_structure_file = "exp_struct.txt"
+LFQ_conditions_file = "LFQ_conditions.txt"
 pgroups_fname<-"msdiffexp_protein.txt"
 evidence_fname<-"msdiffexp_peptide.txt"
 outputFigsPrefix<-REPLACE2
@@ -16,6 +17,7 @@ filterL_lbl<-REPLACE7
 filterL_lvl<-REPLACE6
 LabelFree<-REPLACE8
 PDdata<-REPLACE1
+IsobaricLabel<-REPLACE10
 time.point<-REPLACE3
 # bioreps<-3
 # techreps<-1
