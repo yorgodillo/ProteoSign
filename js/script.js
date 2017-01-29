@@ -105,6 +105,10 @@ var onlistclick = function()
 {
 	setItemAttrColor("#conditions_list", "border", "#DDDDDD");
 }
+var onexpquantfiltlblclick = function()
+{
+	setItemAttrColor("#expquantfiltlbl", "border", "#DDDDDD");
+}
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
    var key = theEvent.keyCode || theEvent.which;
@@ -566,7 +570,27 @@ var validateParameters = function (params) {
 	{
 		setItemAttrColor("#conditions_list", "border", "#E60000");
 	}
-   return (nInvalid == 0 && tmp_i > 1);
+	var found_cond = false;
+	if ($("#expquantfilt").prop("checked") == true)
+	{
+		var my_text = $("#expquantfiltlbl option:selected").text();
+		$("#conditions_list > option:selected").each(function() {
+			if (this.text == my_text)
+			{
+				found_cond = true;
+			}
+		});
+		if (found_cond == false)
+		{
+			setItemAttrColor("#expquantfiltlbl", "border", "#E60000");
+		}
+	}
+	else
+	{
+		found_cond = true;
+	}
+
+   return (nInvalid == 0 && tmp_i > 1 && found_cond);
 }
 
 // reset "counters"/states

@@ -159,12 +159,12 @@
 						<tr>
 							<td>&#8212 Quantitation filtering?</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>For labelled experiments only</u>. If enabled, two options will become available: <strong>a)</strong> singlets (peptides with no signal at the MS level in all but one labelled version) can be excluded from protein quantitation (this is referred to as <u>peptide-level filtering</u>).<br><strong>b)</strong> Proteins identified just by peptides with a certain label can be excluded from the analysis (this is referred to as <u>protein-level filtering</u>).</span></span></td>
-							<td><input name="expquantfilt" type="checkbox"/></td>
+							<td><input name="expquantfilt" id="expquantfilt" type="checkbox"/></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Filtering based on which label?</td>
 							<td><span class="tooltip2">?<span><img class="callout2" src="images/callout_black.gif" />The singlet label.</span></span></td>
-							<td><select name="expquantfiltlbl"></select></td>
+							<td><select name="expquantfiltlbl" id = "expquantfiltlbl" onclick="onexpquantfiltlblclick()"></select></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Type of filtering: Peptide-level (as opposed to protein-level)?</td>

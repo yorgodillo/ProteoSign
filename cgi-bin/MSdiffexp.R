@@ -809,15 +809,16 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
         evidence$Intensity <- NULL
         varcolnames <- grep("^Reporter.intensity.[[:digit:]]", colnames(evidence), value = TRUE)
         evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Labeling.State", times = varcolnames, direction = "long")
-        conditions.labels<-varcolnames
+        conditions.labels<-sub("^X", "Reporter.intensity.", conditions.labels)
         LabelFree<-T;
+        filterL_lbl <- paste0("Reporter.intensity.", filterL_lbl)
       }
     else{
       evidence$Intensity <- NULL
       varcolnames <- grep("^X[[:digit:]]*$", colnames(evidence), value = TRUE)
       evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Modifications", times = varcolnames, direction = "long")
-      conditions.labels<<-varcolnames
       LabelFree<-T;
+	  filterL_lbl <- paste0("X", filterL_lbl)
     }
     }
   if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
@@ -1020,7 +1021,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     minI<-tmp.I[1]
   }
   
-  ## If enabled, do filter out peptides where all 'channels' except filterL_lbl channel have noise-level intensity
+  ## If enabled, do filter out peptides where all 'channels' except filterL_lbl channel have noise-level intensity (peptide-level filtering)
   if(filterL && filterL_lvl){
     evidence.dt[, minIcount := rowSums(.SD == minI), .SDcols=conditions.labels[! conditions.labels %in% filterL_lbl]]
     n1<-nrow(evidence.dt)
@@ -1052,7 +1053,7 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   tmp.rep_struct$rep_desc<-paste0('b',tmp.rep_struct$biorep,'t',tmp.rep_struct$techrep)
   evidence.dt<-merge(evidence.dt ,data.table(tmp.rep_struct), by='rep_desc')
   
-  ## If enabled, do filter out proteins based on percentage labeling for the desired label
+  ## If enabled, do filter out proteins based on percentage labeling for the desired label (protein-level filtering)
   if(filterL && !filterL_lvl){
     n1<-length(unique(evidence.dt[get(paste0(filterL_lbl,"p")) == 100.0]$Protein.IDs))
     evidence.dt<-evidence.dt[get(paste0(filterL_lbl,"p")) < 100.0]
