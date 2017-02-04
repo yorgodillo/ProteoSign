@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+
+<?php
+	//To prevent cache from storing the website: (from http://docstore.mik.ua/orelly/webprog/php/ch07_05.htm)
+	header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1.
+	header("Pragma: no-cache"); // HTTP 1.0.
+	header("Expires: 0"); // Proxies.
+?>
+
 <html>
 	<head>
 		<title>ProteoSign</title>
@@ -14,7 +22,7 @@
 			<div class="main_div main_header">
 				<span class="logo">ProteoSign</span><br>
 				<span class="logo" style="font-size: 100%; left: 12%">comparative proteomics</span>
-				<a href="help.html" target="_blank"><i class="fa fa-question-circle helplink" aria-hidden="true"></i></a><a class="helplink" href="help.html" target="_blank"> HELP</a>
+				<a href="help.html" target="_blank"><i class="fa fa-question-circle helplink" aria-hidden="true"></i></a><a class="helplink" href="help.php" target="_blank"> HELP</a>
 			</div>
 			<div class="main_div main_nav">
 				<p id="scrollingtext" class="scrolling_p"></p>
@@ -252,6 +260,17 @@
 			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
 				<button type="button" class="main inline" style="font-size: 80%;" id="s2LFQConditionsOK" onclick="ons2LFQConditionsOK_click();">OK</button>
 				<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s2LFQConditionsCancel">Cancel</button>
+			</div>			
+		</div>	
+		
+		<div class="expparamsDlg" id="s4UserInfo" style="width: 600px">
+			<div style="text-align: center;">
+				<span style="font-size: 100%;"><strong>ProteoSign</strong> says:</span>
+				<div style="text-align: left; font-size: 85%;" id= "s4UserInfoText"></div>
+				</select><br>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="s4UserInfoOK">Discard</button>
 			</div>			
 		</div>	
 		

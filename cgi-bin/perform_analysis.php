@@ -9,6 +9,7 @@ $server_response['R_success'] = false;
 $server_response['R_dump'] = "";
 $server_response['dump'] = "";
 $server_response['ret_session'] = $_POST["session_id"];
+$server_response['UserInfo'] = "";
 
 $session_folder = $_POST["session_id"];
 $document_root = dirname(__DIR__);
@@ -52,6 +53,9 @@ if ($R_logfile) {
       $server_response['dump'] = $server_response['R_dump'];
    } else {
       $server_response['R_success'] = true;
+   }
+   if (preg_match_all("/(Warn User:.*|Error User:.*|Info User:.*)/", $R_logfile, $r_logfile_error_lines) > 0) {
+	   $server_response['UserInfo'] .= implode(array_values($r_logfile_error_lines[1]), "\t\t");
    }
 }
 if (!file_exists("msdiffexp_out"))

@@ -310,6 +310,7 @@ var postFireUpAnalysisAndWait = function () {
 	  {
 		  return;
 	  }
+	  var R_returned_error = false;
 	  $("#s4btnb").prop('disabled', true);
 	  if(sectionSpinnerOn)
 	  {
@@ -317,6 +318,33 @@ var postFireUpAnalysisAndWait = function () {
 	  }
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
+	  var my_UserInfo = data.UserInfo;
+	  var UserInfoDisplay = "";
+	  if(typeof(my_UserInfo) != "undefined" && my_UserInfo != "")
+	  {
+		  	var lines = my_UserInfo.split("\t\t");
+			$.each(lines, function(idx, my_line){
+				UserInfoDisplay = UserInfoDisplay + my_line.replace(/\[.*?\]/i, "</p>&#13");
+			});
+	  }
+	  if (UserInfoDisplay != "")
+	  {
+		  UserInfoDisplay = UserInfoDisplay.replace("Warn User: ", '<p style="color: #BA4A00">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Error User: ", '<p style="color: #E60000">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Info User: ", '<p>')
+		  $("#s4UserInfoText").empty();
+		  $("#s4UserInfoText").append(UserInfoDisplay);
+		  $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4UserInfo").width() / 2)});
+		  $('body').append('<div id="mask"></div>');
+		  $("#s4UserInfo").fadeIn(300);
+		  $('#mask').fadeIn(300);
+		  var lbl = $(this);
+		  $("#s4UserInfoOK").unbind();
+		  $("#s4UserInfoOK").on("click", function () {
+			 dlgFadeout();
+			 //ADD OK RESULT HERE
+		  });
+	  }
       if (data.success) {
          $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
 		 //WIN TODO: \\ in next line
@@ -338,8 +366,10 @@ var postFireUpAnalysisAndWait = function () {
             //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
             //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
          }
+		 R_returned_error = true;
+		 $("#s4btnb").prop("disabled", false);
       }
-	  analysis_finished = true;
+	  if (!R_returned_error) analysis_finished = true;
    }).fail(function (jqXHR, textStatus, errorThrown) {
    	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
@@ -438,14 +468,30 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-	for (var pair of thedata.entries()) {
-		// console.log(pair[0]+ ', ' + pair[1]); 
-	}
+	// for (var pair of thedata.entries()) {
+		// // console.log(pair[0]+ ', ' + pair[1]); 
+	// }
    dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
    thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
+   var myOpts = document.getElementById('conditions_list').options;
+	var my_all_mq_labels = "c(";
+	for(i = 0; i < myOpts.length; i++)
+	{
+		if(i != myOpts.length - 1)
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '", ';
+		}
+		else
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '"';
+		}
+	}
+	
+	my_all_mq_labels = my_all_mq_labels + ")";
+   thedata.append("All_MQ_Labels", my_all_mq_labels);
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -1241,6 +1287,58 @@ var rawfiles;
 var rawfiles_structure;
 var rep_counts;
 var lastclicked_rawfiles_tbl_tr = null;
+
+//The following sub is for DEBUGGING purposes only, comment-out in deployment
+var add_raw_file_structure = function(tab_sep_string)
+{
+	//This function prints all file names if tab_rep_string == "" or sets the rawfile_structure otherwise
+	if(typeof(tab_sep_string) == "undefined" || tab_sep_string == "")
+	{
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		for (var i = 0; i < all_items.length; i++) {
+			var items_tds = $(all_items[i]).find('td');
+			console.log($(items_tds[0]).text() + "\n");
+		}
+		return;
+	}
+	rawfiles_structure = [];
+	var lines = tab_sep_string.split("\t\t");
+	$.each(lines, function(idx, my_line){
+		var my_vals = my_line.split("\t");
+		if(my_vals[0] == "rawfile")
+		{
+			return;
+		}
+		rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
+	});
+	
+	//Show everything back to the user
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		// console.log(all_items);
+		for (var i = 0; i < all_items.length; i++) {
+         var items_tds = $(all_items[i]).find('td');
+         var items_brep = items_tds[1];
+         var items_trep = items_tds[2];
+         var items_frac = items_tds[3];
+		 $.each(rawfiles_structure, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.rawfile == $(items_tds[0]).text())
+			 {
+				 $(items_brep).text(my_raw_file.biorep);
+				 $(items_trep).text(my_raw_file.techrep);
+				 $(items_frac).text(my_raw_file.fraction);
+				 if(my_raw_file.used == false)
+				 {
+					 $(items_tds[0])["0"].style = "text-decoration: line-through";
+				 }
+				 return false;
+			 }
+		 });
+		}
+		refresh_fractions();
+		set_s22btnf();
+}
+
 var reset_reps = function () {
    bioreps = 0;
    techreps = 0;
@@ -1568,9 +1666,12 @@ $(document).ready(function () {
    });
    // Bind event when file(s) is/are chosen
    $("#__s2btnupld").change(function () {
+		if ($("#__s2btnupld").val() == "") {
+			return;
+		}
       var fnames = "";
        //$("#s2uluploaders > table").empty();
-	   // console.log("files: " + this.files.length)
+	   //console.log("files: " + this.files.length)
       if (this.files.length > 0) {
 //Start uploading ...
          uploadingFiles = this.files;
@@ -1647,6 +1748,7 @@ $(document).ready(function () {
       } else {
          //$("#s2btnf").prop('disabled', true);
       }
+		$("#__s2btnupld").val("");
    });
    //Toggle visibility of table with advanced params
    $("#s3showhideadvparams").on("click", function () {
