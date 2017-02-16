@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+
+<?php
+	//To prevent cache from storing the website: (from http://docstore.mik.ua/orelly/webprog/php/ch07_05.htm)
+	header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1.
+	header("Pragma: no-cache"); // HTTP 1.0.
+	header("Expires: 0"); // Proxies.
+?>
+
 <html>
 	<head>
 		<title>ProteoSign</title>
@@ -7,12 +15,14 @@
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 		<meta name="keywords" content="ProteoSign, mass spectrometry, proteomics, data, statistics, statistical analysis, bioinformatics, limma, comparative proteomics, silac, labeling, differential expression">
 		<meta charset="UTF-8">
+		<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 	</head>
 	<body>
 		<div class="main_div">
 			<div class="main_div main_header">
 				<span class="logo">ProteoSign</span><br>
 				<span class="logo" style="font-size: 100%; left: 12%">comparative proteomics</span>
+				<a href="help.html" target="_blank"><i class="fa fa-question-circle helplink" aria-hidden="true"></i></a><a class="helplink" href="help.php" target="_blank"> HELP</a>
 			</div>
 			<div class="main_div main_nav">
 				<p id="scrollingtext" class="scrolling_p"></p>
@@ -60,7 +70,8 @@
 			<div class="main_div main_section hidden" id="s22div">
 				<h2>Step 2</h2>
 				<p style="color: #000000">Please define the experimental design by assigning the appropriate structure coordinate to each file. 
-					<p style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Select one or more files from the table on the left, type the biological and technical replicate numbers they belong to in the boxes on the right, and click the <strong>Assign</strong> button. If multiple files are fractions of the same replicate, simply assign the same biological and technical replicate number to them, the order of the fractions does not matter. Use <strong>Shift</strong> to select a range of items. <strong>Right click</strong> on the table for extended functionality.</p>
+					<p id = "step2desc" style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Select one or more files from the table on the left, type the biological and technical replicate numbers they belong to in the boxes on the right, and click the <strong>Assign</strong> button. If multiple files are fractions of the same replicate, simply assign the same biological and technical replicate number to them, the order of the fractions does not matter. Use <strong>Shift</strong> to select a range of items. <strong>Right click</strong> on the table for extended functionality.</p>
+					<p style="font-size: 14px;" id="ExtraInfoForLFQ">Please use the <strong>"Assign Condition"</strong> option in the right click menu to tell ProteoSign which Raw Files correspond to which condition.</p>
 				</p>
 				<hr class="style-one">
             <div style="text-align: center; height: 45%; width: 100%; display: -webkit-flex; display: inline-flex;">
@@ -93,7 +104,7 @@
 				</div>
 				<div class="buttonbar">
 					<button type="button" class="main" id="s22btnb">Back</button>
-					<button type="button" class="main" id="s22btnf" disabled>Next</button>
+					<button type="button" class="main" id="s22btnf" disabled onclick="ons22btnfclick();">Next</button>
 				</div>
 			</div>
 			
@@ -103,7 +114,7 @@
 				<div class="sectionForm" id="s3expparams">
 					<table name = "tbl_main_params" id = "tbl_main_params" style="border-spacing: 5px 5px;">
 						<tr>
-							<td id="quantitation_prog_lbl">&#8212 Quantitation by Proteome Discoverer&#8482</td>
+							<td id="quantitation_prog_lbl">&#8212 Raw data were quantified with Proteome Discoverer&#8482</td>
 							<td><input name="exppddata" type="checkbox"  onclick="return false" style="visibility: hidden"/></td>
 							<td></td>
 							<td></td>
@@ -128,15 +139,16 @@
 						<tr>
 							<td>&#8212 Conditions to compare </td>
 							<td></td>
-							<td>
-								<select name = "conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple>
+							<td id="conds_list_container">
+								<select name = "conditions_list" class="conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple oncontextmenu="return false;" onmouseup="oncondslistclick()">
+								
 									
 								</ul>
 							</td>
 						</tr>
 					</table>
 					<div id="adv_parameters_div"> <!-- WARNING!! in case we add another advanced parameter other than Quantitation filtering change script.js function addformlabel so that if label-free data are detected, only Quantitation filtering will be hidden and not advanced parameters as a whole -->
-					<p><u class="astyle" id="s3showhideadvparams">Show advanced parameters</u></p>
+					<u class="astyle" id="s3showhideadvparams">Show advanced parameters</u>
 					<table id="s3advparams" class="hidden" style="border-spacing: 5px 5px;">
 						<tr class="hidden">
 							<td>&#8212 Protein (as opposed to peptide) quantitation?</td>
@@ -153,21 +165,25 @@
 							<td></td>
 							<td><select id="explbl0name_" name="explbl0"></select></td>
 						</tr>
-						<tr>
+						<tr id="s3QuantitationFiltering">
 							<td>&#8212 Quantitation filtering?</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>For labelled experiments only</u>. If enabled, two options will become available: <strong>a)</strong> singlets (peptides with no signal at the MS level in all but one labelled version) can be excluded from protein quantitation (this is referred to as <u>peptide-level filtering</u>).<br><strong>b)</strong> Proteins identified just by peptides with a certain label can be excluded from the analysis (this is referred to as <u>protein-level filtering</u>).</span></span></td>
-							<td><input name="expquantfilt" type="checkbox"/></td>
+							<td><input name="expquantfilt" id="expquantfilt" type="checkbox"/></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Filtering based on which label?</td>
-							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" />The singlet label.</span></span></td>
-							<td><select name="expquantfiltlbl"></select></td>
+							<td><span class="tooltip2">?<span><img class="callout2" src="images/callout_black.gif" />The singlet label.</span></span></td>
+							<td><select name="expquantfiltlbl" id = "expquantfiltlbl" onclick="onexpquantfiltlblclick()"></select></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Type of filtering: Peptide-level (as opposed to protein-level)?</td>
 							<td><input name="expquantfiltprot" type="checkbox"/></td>
 						</tr>
-						
+						<!--
+						<tr>
+							<td>&#8212 <u class = "astyle" id="s3showcondsadvanced">Advanced conditions options...</u>
+						</tr>
+						-->
 					</table>
 					</div>
 				</div>
@@ -239,8 +255,40 @@
 			</div>			
 		</div>		
 
+		<div class="expparamsDlg" id="s2LFQConditions" style="width: 340px">
+			<div style="text-align: center;">
+				<span style="font-size: 85%;">Select a condition to assign to the selected raw files<br> or type a <strong>New condition</strong> in the box below.</span>
+				<input id="s2LFQConditionsNew" placeholder="New Condition" style="width:70%" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',10);" onkeyup="SwitchLFQList(event);"></input>
+				<select id="s2LFQConditionsList" style="width:70%">
+				</select><br>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="s2LFQConditionsOK" onclick="ons2LFQConditionsOK_click();">OK</button>
+				<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s2LFQConditionsCancel">Cancel</button>
+			</div>			
+		</div>	
 		
+		<div class="expparamsDlg" id="s4UserInfo" style="width: 600px">
+			<div style="text-align: center;">
+				<span style="font-size: 100%;"><strong>ProteoSign</strong> says:</span>
+				<div style="text-align: left; font-size: 85%;" id= "s4UserInfoText"></div>
+				</select><br>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="s4UserInfoOK">Discard</button>
+			</div>			
+		</div>
 		
+		<div class="expparamsDlg" id="condsadvancedDlg" style="width: 600px">
+			<div style="text-align: center;">
+				<span style="font-size: 85%;">Please type the Name of the <strong>New condition:</strong></span>
+				<input id="s3AdvNewCondition" placeholder="New Condition" style="width:70%" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',10);"></input>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="s3AdvancedOK">OK</button>
+			<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s3AdvancedCancel">Cancel</button>
+			</div>	
+		</div>	
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/jquery.dataTables.min.js"></script>
  		<script src="js/jquery-ui.min.js"></script>
