@@ -95,12 +95,28 @@
               Usage note: When multiple raw files are selected, if just the biological replicate is entered, the software will assume that the selected raw files are technical replicates of the entered biological replicate. If both the biological and technical replicates are entered, the software will assume that the selected raw files are fractions of the entered technical replicate.
             </dt>
             <dd><img src="images/scrshot5.PNG"/></dd>
+			<dt><h3>Label Free conditions definition</h3>
+              In the case of Label Free data the figure on the right illustrates the condition assignment procedure: the user first selects the table rows (i.e. raw files) and - using the right click - selects <i>Assign Condition</i>. Also notice the extended functionality provided by this menu.
+            </dt>
+            <dd><img src="images/scrshotan1.png"/></dd>
+			<dt><h3>Label Free conditions definition (continued)</h3>
+              The user is then asked to type the <i>name</i> of the condition or select one he/she typed before. By pressing OK the condition is assigned to the selected raw files.
+            </dt>
+            <dd><img src="images/scrshotan2.png"/></dd>
             <dt><h3>Experimental parameters definition page</h3>
               Here the user can enter some meta information regarding the experiment (<i>Experiment ID</i> and <i>Experiment description</i>) but most importantly choose the set of biological conditions/treatments to compare against each other. Typically all conditions are selected here via the <i>Conditions to compare</i> list. The <i>advanced parameters</i> section comprises options for filtering-out certain kinds of measurements. More details can be found by hovering the mouse over the question mark icon (at the actual page).
               <br><br>
               By clicking <i>Submit</i> the user initiates the statistical analysis.
             </dt>
-            <dd><img src="images/scrshot6.PNG"/></dd>
+			<dd><img src="images/scrshot6.PNG"/></dd>
+			<dt><h3>Advanced Options</h3>
+              In case more than one labels was used for the same condition (usual in TMT experiments) the user can mark these labels and select <i>Same Condition</i> as illustrated on the picture using the right click. Afterwards, the user is asked to name the respective condition (e.g. Lung_ADC).
+            </dt>
+            <dd><img src="images/scrshotan3.png"/></dd>
+			<dt><h3>Advanced Options (continued)</h3>
+              The conditions that were labelled by more than one labels are always displayed in <strong>bold</strong>. In order to expand such a condition back to its original labels select <i>Restore Conditions</i> as illustrated on the right.
+            </dt>
+            <dd><img src="images/scrshotan4.png"/></dd>
             <dt><h3>Statistical analysis wait page</h3>
               Here the user waits for the software to finish the statistical analysis, while presented with current <i>Nature Methods</i> articles hyperlinks. When the analysis is finished, the user is navigated automatically to the next page (see below).
             </dt>

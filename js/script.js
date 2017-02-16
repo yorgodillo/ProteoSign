@@ -18,6 +18,12 @@ var analysis_finished = false;
 var datatestOK_clicked = false;
 //procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
 var procProgram = "";
+var RenameArray = []; //used to cover the possibility where more than one labels correspond to the same condition
+var AuthenticItemsinRename = []; //used to cover the possibility where more than one labels correspond to the same condition
+var itemsToRename = [];
+var my_all_mq_labels = "";
+//DEBUG flags
+var AllowMergeLabels = true;
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -26,6 +32,7 @@ Array.prototype.unique = function () {
    for (i in o)
       r.push(o[i]);
    return r;
+
 }
 
 //For unique arrays:
@@ -100,7 +107,110 @@ var onAssignCondition = function(){
     });
 }
 
+var create_my_all_mq_labels = function()
+{
+	var myOpts = document.getElementById('conditions_list').options;
+	my_all_mq_labels = "c(";
+	for(i = 0; i < myOpts.length; i++)
+	{
+		if(i != myOpts.length - 1)
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '", ';
+		}
+		else
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '"';
+		}
+	}
 	
+	my_all_mq_labels = my_all_mq_labels + ")";
+}
+
+var InitializeRename = function()
+{
+	RenameArray = [];
+	AuthenticItemsinRename = [];
+	var conditions_in_list = [];
+	$("#conditions_list option").each(function(){ conditions_in_list.push($(this).val());})
+	$.each(conditions_in_list, function(idx, my_cond)
+	{
+		var value_to_push = [];
+		value_to_push[0] = my_cond;
+		value_to_push[1] = my_cond;
+		RenameArray.push(value_to_push);
+		AuthenticItemsinRename.push(value_to_push[0]);
+	});
+	console.log(AuthenticItemsinRename);
+	Refresh_conds_list_cmenu_items();
+}
+
+var Refresh_conds_list = function()
+{
+	if (!AllowMergeLabels) return;
+	$("#conditions_list").empty();
+	var temp_array = [];
+	$.each(RenameArray, function(idx, my_row)
+	{
+		temp_array.push(my_row[1]);
+	});
+	var unique_conditions = ArrNoDupe(temp_array);
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		if($.inArray(my_un_cond, AuthenticItemsinRename) == -1)
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%; font-weight: bold;' selected='true'>" + my_un_cond + "</option>");
+		}
+		else
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
+		}
+		
+	});
+}
+
+var Refresh_conds_list_cmenu_items = function()
+{
+	//Check which items on the cmenu of conditions list should be visible Merge button:
+	var my_items = [];
+	var show_Merge = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) == -1)
+		{
+			show_Merge = false;
+		}
+		my_items.push(my_item);
+	});
+	console.log(my_items.length);
+	if(my_items.length < 2)
+	{
+		show_Merge = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "same_cond", show_Merge);
+	//Check which items on the cmenu of conditions list should be visible Restore button:
+	var my_items = [];
+	var show_restore = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) != -1)
+		{
+			show_restore = false;
+		}
+		my_items.push(my_item);
+	});
+	console.log(my_items.length);
+	if(my_items.length == 0)
+	{
+		show_restore = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "restore_conds", show_restore);
+	if (!show_restore && !show_Merge)
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", false);
+	}
+	else
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", true);
+	}
+}
 var onlistclick = function()
 {
 	setItemAttrColor("#conditions_list", "border", "#DDDDDD");
@@ -286,7 +396,7 @@ var resetResultsInfoItms = function () {
 var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
-   if(!sectionSpinnerOn)
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");   if(!sectionSpinnerOn)
    {
 	   toggleCurrentSectionSpinner();
    }
@@ -450,10 +560,38 @@ var postParameters = function (params) {
 				var mytmp = "#" + $(param_i).attr('id') +  " option:selected";
 				var tmp_i = 0;
 				$(mytmp).map(function () {
-					thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
-					thedata.append("explbl" + (tmp_i + 1) + "def", "");
-					// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
-					tmp_i++;
+					if (!AllowMergeLabels)
+					{
+						thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
+						thedata.append("explbl" + (tmp_i + 1) + "def", "");
+						// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+						tmp_i++;	
+					}
+					else
+					{
+						var my_temp_text = $(this).text();
+						if($.inArray(my_temp_text, AuthenticItemsinRename) != -1)
+						{
+							thedata.append("explbl" + (tmp_i + 1) + "name", my_temp_text);
+							thedata.append("explbl" + (tmp_i + 1) + "def", "");
+							// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+							tmp_i++;
+						}
+						else
+						{
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if(my_row[1] == my_temp_text)
+								 {
+									thedata.append("explbl" + (tmp_i + 1) + "name", my_row[0]);
+									thedata.append("explbl" + (tmp_i + 1) + "def", "");
+									tmp_i++;
+								 }
+							 });						
+						}
+	
+					}
+
 				});
 			}
 			else
@@ -473,24 +611,11 @@ var postParameters = function (params) {
 	// }
    dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
+   if(AllowMergeLabels) thedata.append("Rename_Array", gen_RenameFile(RenameArray));
    thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
-   var myOpts = document.getElementById('conditions_list').options;
-	var my_all_mq_labels = "c(";
-	for(i = 0; i < myOpts.length; i++)
-	{
-		if(i != myOpts.length - 1)
-		{
-			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '", ';
-		}
-		else
-		{
-			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '"';
-		}
-	}
-	
-	my_all_mq_labels = my_all_mq_labels + ")";
    thedata.append("All_MQ_Labels", my_all_mq_labels);
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
@@ -849,7 +974,7 @@ types_of_files_uploaded.push(data.file_type);
 					// $("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
 				   // // $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
 				   // // $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-				   $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+				   $("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
                });
 				addFormLabel();
 			   AddedLabels = true;
@@ -934,7 +1059,8 @@ var ons22btnfclick = function()
 		{
 			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
 		});
-
+		if(AllowMergeLabels) InitializeRename();
+		create_my_all_mq_labels();
 	}
 }
 var onShowDialog = function (selector){
@@ -970,7 +1096,7 @@ var addFormLabel = function()
 			}
 			if (methods_mismatch == true)
 			{
-				console.log("Methods mismatch in rearranging maxquant labels!!");
+				// console.log("Methods mismatch in rearranging maxquant labels!!");
 			}
 			peptideLabelsNamesFromFile = data.labels;
 		}
@@ -982,9 +1108,11 @@ var addFormLabel = function()
 					// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
 				// });
 		  });
+		  if(AllowMergeLabels) InitializeRename();
+		  create_my_all_mq_labels();
 		  //Inform ProteoSign if this file is a reporter-ion derived file
 		  isIsobaricLabel = data.isIsobaricLabel;
-		  $("#adv_parameters_div").show();
+		  $("#s3QuantitationFiltering").show();
 	   } else {
 	//label-free case
 		  if (peptideLabelsFromFile.length > 0) {
@@ -995,8 +1123,10 @@ var addFormLabel = function()
 						// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
 					// });
 			  });
+			  if(AllowMergeLabels) InitializeRename();
+			  create_my_all_mq_labels();
 			  //hide the advanced parameters (Quantitation filtering) in case we have label-free data
-			  $("#adv_parameters_div").hide();
+			  $("#s3QuantitationFiltering").hide();
 		  }
 	   }
 	   // label-free case
@@ -1489,7 +1619,6 @@ function set_s22btnf()
 	   $("#s22btnf").prop('disabled', true);
    }
 }
-
 var gen_expdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
@@ -1506,6 +1635,15 @@ var gen_lfqdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
 		ret = ret + struct[i].name + "\t" + struct[i].condition + "\n"; 
+   }
+   // console.log("ret: " + ret);
+   return ret;
+}
+
+var gen_RenameFile = function (struct) {
+   var ret = "";
+   for (var i = 0; i < struct.length; i++) {
+		ret = ret + struct[i][0] + "\t" + struct[i][1] + "\n"; 
    }
    // console.log("ret: " + ret);
    return ret;
@@ -1632,12 +1770,20 @@ var getRSS = function (rssurl, renderelem) {
    });
 }
 
+var oncondslistclick = function(){
+	   if (AllowMergeLabels)
+	   {
+		   Refresh_conds_list_cmenu_items();	
+	   }
+}
+
 var dlgFadeout = function () {
    $(".expparamsDlg").fadeOut(300, function () {
       $('#mask').remove();
    });
 }
 
+var label_context_menu;
 
 $(document).ready(function () {
 	// 	document.getElementById("s2LFQConditionsNew").onkeydown = inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20);
@@ -1762,7 +1908,8 @@ $(document).ready(function () {
          $("#s3advparams").addClass("hidden");
          $(this).text(txt.replace("Hide", "Show"));
       }
-   });
+   });  
+
    //Add functionality of add/remove labels buttons
    $("#btnAddLabel").on("click", addFormLabel);
    $("#btnRemLabel").on("click", removeFormLabel);
@@ -2194,8 +2341,65 @@ $(document).ready(function () {
 			ui.menu.zIndex(9999);
 		}
 	  });
-  
-  
+		if(AllowMergeLabels){
+		 label_context_menu = $('#conds_list_container').contextmenu({
+			 delegate: ".conditions_list",
+			 menu: [
+				{title: "Same Condition", cmd: "same_cond"},
+				{title: "Restore Conditions", cmd: "restore_conds"}
+			 ],
+			 select: function(event, ui) {
+				 switch(ui.cmd){
+					 case "same_cond":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						// console.log(my_items);
+						$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#condsadvancedDlg").width()/2)});
+						$('body').append('<div id="mask"></div>');
+						$("#condsadvancedDlg").fadeIn(300);
+						$('#mask').fadeIn(300);
+						$("#s3AdvancedOK").on("click", function () {
+							 dlgFadeout();
+							 if($("#s3AdvNewCondition").val() == "") return;
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if($.inArray(my_row[0], itemsToRename) != -1)
+								 {
+									 RenameArray[idx][1] = $("#s3AdvNewCondition").val();
+								 }
+							 });
+							 console.log(RenameArray);
+							 $("#s3AdvNewCondition").val("");
+							 Refresh_conds_list();
+							 //ADD OK RESULT HERE
+						});
+						$("#s3AdvancedCancel").on("click", function () {
+							 dlgFadeout();
+							 //ADD cancel RESULT HERE
+						});
+						break;
+					 case "restore_conds":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						$.each(RenameArray, function(idx, my_row)
+						 {
+							 if($.inArray(my_row[1], itemsToRename) != -1)
+							 {
+								 RenameArray[idx][1] = RenameArray[idx][0];
+							 }
+						 });
+						 Refresh_conds_list();
+						break;
+				 }
+			 },
+			 beforeOpen: function(event, ui) {
+				var $menu = ui.menu,
+					$target = ui.target,
+					extraData = ui.extraData;
+				ui.menu.zIndex(9999);
+			}
+		 });
+		}
    $('#rawfiles_tbl_allfiles').css({border: 'none'});
    $('#rawfiles_tbl_allfiles').css({margin: '0px'});
    $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
@@ -2239,7 +2443,10 @@ $(document).ready(function () {
 	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
 	$("#conditions_list").mousedown(function(e){
 		e.preventDefault();
-
+		if (event.which == 3)
+		{
+			return;
+		}
 		var select = this;
 		var scroll = select .scrollTop;
 
@@ -2249,6 +2456,7 @@ $(document).ready(function () {
 
 		$(select ).focus();
 	}).mousemove(function(e){e.preventDefault()});
+	
    // TEST DATA INIT
    postTestDatasetsInfo();
    //

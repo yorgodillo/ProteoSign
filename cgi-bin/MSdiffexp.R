@@ -849,7 +849,13 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       evidence$Intensity <- NULL
       varcolnames <- grep("^Reporter.intensity.[[:digit:]]", colnames(evidence), value = TRUE)
       evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Labeling.State", times = varcolnames, direction = "long", new.row.names=sequence(prod(length(varcolnames), nrow(evidence))))
-      conditions.labels<-sub("^X", "Reporter.intensity.", conditions.labels)
+      conditions.labels<<-sub("^X", "Reporter.intensity.", conditions.labels)
+      if (AllowLabelRename == T)
+      {
+        Rename_Array$old_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$old_label)
+        Rename_Array$new_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$new_label)
+      }
+      
       LabelFree<-T;
       filterL_lbl <- paste0("Reporter.intensity.", filterL_lbl)
     }
@@ -858,6 +864,11 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       varcolnames <- grep("^X[[:digit:]]*$", colnames(evidence), value = TRUE)
       evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Modifications", times = varcolnames, direction = "long", new.row.names=sequence(prod(length(varcolnames), nrow(evidence))))
       LabelFree<-T;
+      if (AllowLabelRename == T)
+      {
+        Rename_Array$old_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$old_label)
+        Rename_Array$new_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$new_label)
+      }
       filterL_lbl <- paste0("X", filterL_lbl)
     }
   }
@@ -939,6 +950,20 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       }
     }
     levellog(paste0("read.pgroups_v3: Assigned label '", conditions.labels[i],"'."))
+  }
+  #Rename any labels if necessary
+  if (AllowLabelRename == T)
+  {
+    for(i in 1:length(Rename_Array$old_label))
+    {
+      if(Rename_Array$old_label[i] != Rename_Array$new_label[i])
+      {
+        mi<-which(evidence$label_ == Rename_Array$old_label[i])
+        evidence$label_[mi] <- Rename_Array$new_label[i]
+      }
+    }
+    conditions.labels <<- unique(Rename_Array$new_label)
+    nConditions<<-length(conditions.labels)
   }
   levellog("",change=-1)
   mi<-which(is.na(evidence$label_))
@@ -1342,6 +1367,10 @@ perform_analysis<-function(){
     #if labelfree load the lfq conditions structure
     LFQ_conds<-read.table(LFQ_conditions_file, col.names=c('raw_file', 'condition'))
   }
+  if (AllowLabelRename == T)
+  {
+      Rename_Array <<- read.table(Rename_Array_file, col.names=c('old_label', 'new_label'))
+  }
   #Because a condition can not be named "N" in ProteoSign, rename it to condN
   mi <- which(LFQ_conds$condition == "N")
   if(length(mi)>0)
@@ -1460,14 +1489,6 @@ perform_analysis<-function(){
   setwd("..")
   colnames(protein_groups) <- oldcolumns
   expdesign<-c()
-  if(IsobaricLabel)
-  {
-    if(!PDdata)
-    {
-      varcolnames <- grep("^Reporter.intensity.[[:digit:]]*$", colnames(protein_groups), value = TRUE)
-      conditions.labels <<- varcolnames
-    }
-  }
   #Rename conditions labels from condN back to N
   for(i in 1:length(conditions.labels)){
     if(conditions.labels[i] == "condN")

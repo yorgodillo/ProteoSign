@@ -9,6 +9,7 @@
 	$upload_parameter_file = $upload_dir . "/MSdiffexp_definitions.R";
 	$upload_experimental_structure_file = $upload_dir . "/exp_struct.txt";
 	$upload_LFQ_data_file = $upload_dir . "/LFQ_conditions.txt";
+	$upload_Rename_Array_file = $upload_dir . "/Rename_array.txt";
 	$parameters_template = "parameters_template.R";
 	//WIN TODO: the next lines contain \\ and \ slashes to send paths to R change them to UNIX compatible format before uploading
 	$the_parameters["REPLACE1"] = $_POST["exppddata"];
@@ -22,6 +23,7 @@
 	$the_parameters["REPLACE9"] = "\"" . $upload_dir . '\\msdiffexp_wd' . "\"";
 	$the_parameters["REPLACE10"] = $_POST["IsIsobaricLabel"];
 	$the_parameters["REPLACE11"] = $_POST["All_MQ_Labels"];
+	$the_parameters["REPLACE12"] = $_POST["AllowMergeLabels"];
 	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "addLabel(\"" . $_POST["explbl0"] . "\",c(\"\"))";
 	}
@@ -87,6 +89,22 @@
 			}
 		}else{
 			$server_response['msg'] = "The file $upload_LFQ_data_file could not be opened ('fopen' returned FALSE)";
+		}
+		if ($_POST["AllowMergeLabels"] == "T")
+		{
+			if($ff = fopen($upload_Rename_Array_file, 'w')){
+				$canwrite = fwrite($ff, $_POST["Rename_Array"]);
+				if(!$canwrite){
+					$server_response['msg'] = "The file $upload_Rename_Array_file could not be written ('fwrite' returned FALSE)";
+				}
+				if($canwrite && !fclose($ff)){
+					$server_response['msg'] = "The file $upload_Rename_Array_file could not be closed ('fclose' returned FALSE)";
+				}else{
+					$server_response['success'] = true;
+				}
+			}else{
+				$server_response['msg'] = "The file $upload_Rename_Array_file could not be opened ('fopen' returned FALSE)";
+			}	
 		}
 	}
 end:

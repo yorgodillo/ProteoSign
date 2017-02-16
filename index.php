@@ -139,15 +139,16 @@
 						<tr>
 							<td>&#8212 Conditions to compare </td>
 							<td></td>
-							<td>
-								<select name = "conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple>
+							<td id="conds_list_container">
+								<select name = "conditions_list" class="conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple oncontextmenu="return false;" onmouseup="oncondslistclick()">
+								
 									
 								</ul>
 							</td>
 						</tr>
 					</table>
 					<div id="adv_parameters_div"> <!-- WARNING!! in case we add another advanced parameter other than Quantitation filtering change script.js function addformlabel so that if label-free data are detected, only Quantitation filtering will be hidden and not advanced parameters as a whole -->
-					<p><u class="astyle" id="s3showhideadvparams">Show advanced parameters</u></p>
+					<u class="astyle" id="s3showhideadvparams">Show advanced parameters</u>
 					<table id="s3advparams" class="hidden" style="border-spacing: 5px 5px;">
 						<tr class="hidden">
 							<td>&#8212 Protein (as opposed to peptide) quantitation?</td>
@@ -164,7 +165,7 @@
 							<td></td>
 							<td><select id="explbl0name_" name="explbl0"></select></td>
 						</tr>
-						<tr>
+						<tr id="s3QuantitationFiltering">
 							<td>&#8212 Quantitation filtering?</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>For labelled experiments only</u>. If enabled, two options will become available: <strong>a)</strong> singlets (peptides with no signal at the MS level in all but one labelled version) can be excluded from protein quantitation (this is referred to as <u>peptide-level filtering</u>).<br><strong>b)</strong> Proteins identified just by peptides with a certain label can be excluded from the analysis (this is referred to as <u>protein-level filtering</u>).</span></span></td>
 							<td><input name="expquantfilt" id="expquantfilt" type="checkbox"/></td>
@@ -178,7 +179,11 @@
 							<td>&#8212 Type of filtering: Peptide-level (as opposed to protein-level)?</td>
 							<td><input name="expquantfiltprot" type="checkbox"/></td>
 						</tr>
-						
+						<!--
+						<tr>
+							<td>&#8212 <u class = "astyle" id="s3showcondsadvanced">Advanced conditions options...</u>
+						</tr>
+						-->
 					</table>
 					</div>
 				</div>
@@ -272,8 +277,18 @@
 			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
 				<button type="button" class="main inline" style="font-size: 80%;" id="s4UserInfoOK">Discard</button>
 			</div>			
-		</div>	
+		</div>
 		
+		<div class="expparamsDlg" id="condsadvancedDlg" style="width: 600px">
+			<div style="text-align: center;">
+				<span style="font-size: 85%;">Please type the Name of the <strong>New condition:</strong></span>
+				<input id="s3AdvNewCondition" placeholder="New Condition" style="width:70%" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',10);"></input>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="s3AdvancedOK">OK</button>
+			<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s3AdvancedCancel">Cancel</button>
+			</div>	
+		</div>	
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/jquery.dataTables.min.js"></script>
  		<script src="js/jquery-ui.min.js"></script>
