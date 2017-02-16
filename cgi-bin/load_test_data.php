@@ -57,7 +57,7 @@
 		}
 		$qres->finalize();
 		// fetch experimental structure info
-		$qres = $db->query('select name as raw_file,brep,trep,frac from processed_files inner join experimental_structure on processed_files.id=experimental_structure.processed_file_id inner join dataset on experimental_structure.dataset_id=dataset.id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
+		$qres = $db->query('select name as raw_file,brep,trep,frac,used,condition from processed_files inner join experimental_structure on processed_files.id=experimental_structure.processed_file_id inner join dataset on experimental_structure.dataset_id=dataset.id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
 		if(!$qres){
 			$server_response['msg'] = "Failed to query the database: " . $sqlite->lastErrorMsg();
 			goto end;		

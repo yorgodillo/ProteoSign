@@ -10,8 +10,20 @@ var tmp_nToUpload = 0;
 var explblselected = [];
 var AddedLabels = false;
 var AppendNewLabels = false;
+var isLabelFree = false;
+var LFQconditions = [];
+var RawFileConditions = [];
+var isIsobaricLabel = false;
+var analysis_finished = false;
+var datatestOK_clicked = false;
 //procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
 var procProgram = "";
+var RenameArray = []; //used to cover the possibility where more than one labels correspond to the same condition
+var AuthenticItemsinRename = []; //used to cover the possibility where more than one labels correspond to the same condition
+var itemsToRename = [];
+var my_all_mq_labels = "";
+//DEBUG flags
+var AllowMergeLabels = true;
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -20,6 +32,19 @@ Array.prototype.unique = function () {
    for (i in o)
       r.push(o[i]);
    return r;
+
+}
+
+//For unique arrays:
+//from http://stackoverflow.com/questions/6940103/how-do-i-make-an-array-with-unique-elements-i-e-remove-duplicates
+function ArrNoDupe(a) {
+    var temp = {};
+    for (var i = 0; i < a.length; i++)
+        temp[a[i]] = true;
+    var r = [];
+    for (var k in temp)
+        r.push(k);
+    return r;
 }
 
 // for counting the number of elements in an associative array
@@ -55,31 +80,165 @@ File.prototype.toString = function getFileName() {
 }
 
 var rawfiles_tbl_allfiles_DT;
+var main_context_menu;
 
 var onChooseFromTestDatasets = function(){
-	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s1TestDatasets").width()/2)});
-	$('body').append('<div id="mask"></div>');
-	$("#s1TestDatasets").fadeIn(300);
-	$('#mask').fadeIn(300);
+	if (!datatestOK_clicked)
+	{
+		$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s1TestDatasets").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#s1TestDatasets").fadeIn(300);
+		$('#mask').fadeIn(300);
+	}
 }
 
+var onAssignCondition = function(){
+	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s2LFQConditions").width()/2)});
+	$('body').append('<div id="mask"></div>');
+	$("#s2LFQConditions").fadeIn(300);
+	$('#mask').fadeIn(300);
+	$("#s2LFQConditionsOK").on("click", function () {
+         dlgFadeout();
+		 //ADD OK RESULT HERE
+    });
+	$("#s2LFQConditionsCancel").on("click", function () {
+         dlgFadeout();
+		 //ADD cancel RESULT HERE
+    });
+}
+
+var create_my_all_mq_labels = function()
+{
+	var myOpts = document.getElementById('conditions_list').options;
+	my_all_mq_labels = "c(";
+	for(i = 0; i < myOpts.length; i++)
+	{
+		if(i != myOpts.length - 1)
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '", ';
+		}
+		else
+		{
+			my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '"';
+		}
+	}
 	
+	my_all_mq_labels = my_all_mq_labels + ")";
+}
+
+var InitializeRename = function()
+{
+	RenameArray = [];
+	AuthenticItemsinRename = [];
+	var conditions_in_list = [];
+	$("#conditions_list option").each(function(){ conditions_in_list.push($(this).val());})
+	$.each(conditions_in_list, function(idx, my_cond)
+	{
+		var value_to_push = [];
+		value_to_push[0] = my_cond;
+		value_to_push[1] = my_cond;
+		RenameArray.push(value_to_push);
+		AuthenticItemsinRename.push(value_to_push[0]);
+	});
+	console.log(AuthenticItemsinRename);
+	Refresh_conds_list_cmenu_items();
+}
+
+var Refresh_conds_list = function()
+{
+	if (!AllowMergeLabels) return;
+	$("#conditions_list").empty();
+	var temp_array = [];
+	$.each(RenameArray, function(idx, my_row)
+	{
+		temp_array.push(my_row[1]);
+	});
+	var unique_conditions = ArrNoDupe(temp_array);
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		if($.inArray(my_un_cond, AuthenticItemsinRename) == -1)
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%; font-weight: bold;' selected='true'>" + my_un_cond + "</option>");
+		}
+		else
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
+		}
+		
+	});
+}
+
+var Refresh_conds_list_cmenu_items = function()
+{
+	//Check which items on the cmenu of conditions list should be visible Merge button:
+	var my_items = [];
+	var show_Merge = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) == -1)
+		{
+			show_Merge = false;
+		}
+		my_items.push(my_item);
+	});
+	console.log(my_items.length);
+	if(my_items.length < 2)
+	{
+		show_Merge = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "same_cond", show_Merge);
+	//Check which items on the cmenu of conditions list should be visible Restore button:
+	var my_items = [];
+	var show_restore = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) != -1)
+		{
+			show_restore = false;
+		}
+		my_items.push(my_item);
+	});
+	console.log(my_items.length);
+	if(my_items.length == 0)
+	{
+		show_restore = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "restore_conds", show_restore);
+	if (!show_restore && !show_Merge)
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", false);
+	}
+	else
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", true);
+	}
+}
 var onlistclick = function()
 {
 	setItemAttrColor("#conditions_list", "border", "#DDDDDD");
 }
+var onexpquantfiltlblclick = function()
+{
+	setItemAttrColor("#expquantfiltlbl", "border", "#DDDDDD");
+}
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
    var key = theEvent.keyCode || theEvent.which;
-   if (key === 8) {
-      return;
-   }
    var re = new RegExp(repatt);
    var srcelem = e.target || e.srcElement;
    var txt = srcelem.value + String.fromCharCode(e.which);
+   if (key === 8) {
+      return;
+   }
+
    if (!re.test(txt) || txt.length > maxCharacters) {
       e.preventDefault();
    }
+
+}
+
+var SwitchLFQList = function(e) {
+   var theEvent = e || window.event;
+   var srcelem = e.target || e.srcElement;
+    $("#s2LFQConditionsList").attr("disabled", srcelem.value != "");
 }
 
 // from http://codereview.stackexchange.com/questions/7001/better-way-to-generate-all-combinations
@@ -237,7 +396,10 @@ var resetResultsInfoItms = function () {
 var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
-   toggleCurrentSectionSpinner();
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");   if(!sectionSpinnerOn)
+   {
+	   toggleCurrentSectionSpinner();
+   }
    $("#s4btnf").prop('disabled', true);
    $.ajax({
       url: cgi_bin_path + 'perform_analysis.php', //Server script to fire up data analysis
@@ -254,13 +416,49 @@ var postFireUpAnalysisAndWait = function () {
          getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
-   	toggleCurrentSectionSpinner();
+	  if (analysis_finished | data.ret_session != sessionid)
+	  {
+		  return;
+	  }
+	  var R_returned_error = false;
+	  $("#s4btnb").prop('disabled', true);
+	  if(sectionSpinnerOn)
+	  {
+		toggleCurrentSectionSpinner();
+	  }
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
+	  var my_UserInfo = data.UserInfo;
+	  var UserInfoDisplay = "";
+	  if(typeof(my_UserInfo) != "undefined" && my_UserInfo != "")
+	  {
+		  	var lines = my_UserInfo.split("\t\t");
+			$.each(lines, function(idx, my_line){
+				UserInfoDisplay = UserInfoDisplay + my_line.replace(/\[.*?\]/i, "</p>&#13");
+			});
+	  }
+	  if (UserInfoDisplay != "")
+	  {
+		  UserInfoDisplay = UserInfoDisplay.replace("Warn User: ", '<p style="color: #BA4A00">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Error User: ", '<p style="color: #E60000">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Info User: ", '<p>')
+		  $("#s4UserInfoText").empty();
+		  $("#s4UserInfoText").append(UserInfoDisplay);
+		  $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4UserInfo").width() / 2)});
+		  $('body').append('<div id="mask"></div>');
+		  $("#s4UserInfo").fadeIn(300);
+		  $('#mask').fadeIn(300);
+		  var lbl = $(this);
+		  $("#s4UserInfoOK").unbind();
+		  $("#s4UserInfoOK").on("click", function () {
+			 dlgFadeout();
+			 //ADD OK RESULT HERE
+		  });
+	  }
       if (data.success) {
          $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
 		 //WIN TODO: \\ in next line
-         $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("\\") + 1) + "</strong></a></span>");
+         $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("/") + 1) + "</strong></a></span>");
          patt = new RegExp("limma\-graphs");
          $.each(data.results_preview, function (idx, path_to_img_i)
          {
@@ -278,7 +476,10 @@ var postFireUpAnalysisAndWait = function () {
             //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
             //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
          }
+		 R_returned_error = true;
+		 $("#s4btnb").prop("disabled", false);
       }
+	  if (!R_returned_error) analysis_finished = true;
    }).fail(function (jqXHR, textStatus, errorThrown) {
    	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
@@ -359,10 +560,38 @@ var postParameters = function (params) {
 				var mytmp = "#" + $(param_i).attr('id') +  " option:selected";
 				var tmp_i = 0;
 				$(mytmp).map(function () {
-					thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
-					thedata.append("explbl" + (tmp_i + 1) + "def", "");
-					// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
-					tmp_i++;
+					if (!AllowMergeLabels)
+					{
+						thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
+						thedata.append("explbl" + (tmp_i + 1) + "def", "");
+						// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+						tmp_i++;	
+					}
+					else
+					{
+						var my_temp_text = $(this).text();
+						if($.inArray(my_temp_text, AuthenticItemsinRename) != -1)
+						{
+							thedata.append("explbl" + (tmp_i + 1) + "name", my_temp_text);
+							thedata.append("explbl" + (tmp_i + 1) + "def", "");
+							// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+							tmp_i++;
+						}
+						else
+						{
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if(my_row[1] == my_temp_text)
+								 {
+									thedata.append("explbl" + (tmp_i + 1) + "name", my_row[0]);
+									thedata.append("explbl" + (tmp_i + 1) + "def", "");
+									tmp_i++;
+								 }
+							 });						
+						}
+	
+					}
+
 				});
 			}
 			else
@@ -377,12 +606,17 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-	for (var pair of thedata.entries()) {
-		// console.log(pair[0]+ ', ' + pair[1]); 
-	}
+	// for (var pair of thedata.entries()) {
+		// // console.log(pair[0]+ ', ' + pair[1]); 
+	// }
    dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
+   thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
+   if(AllowMergeLabels) thedata.append("Rename_Array", gen_RenameFile(RenameArray));
+   thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
+   thedata.append("All_MQ_Labels", my_all_mq_labels);
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -428,6 +662,7 @@ var executeStage = function (stageIndex) {
          break;
       case 5:
          resetState();
+		 window.location.reload();
          break;
       default:
    }
@@ -439,11 +674,31 @@ var rollbackStage = function (stageIndex) {
    var ret = true;
    stageIndex = getItems("button.main", /s[0-9]+btnb/).length - stageIndex - 1;
    switch (stageIndex) {
-      case 1:
+    case 1:
          resetState();
+	case 3:
+		 resetSession();
       default:
    }   
    return ret;
+}
+
+var resetSession = function ()
+{
+   var thedata = new FormData();
+   thedata.append('old_session_id', sessionid);
+	sessionid = new Date().getTime();
+	thedata.append('session_id', sessionid);
+	$.ajax({
+		url: cgi_bin_path + 'change_session.php', //Server script to fire up data analysis
+		type: 'POST',
+		// Form data
+		data: thedata,
+		//Options to tell jQuery not to worry about content-type.
+		processData: false,
+		cache: false,
+		contentType: false
+	}).done(function (data, textStatus, jqXHR) {});
 }
 
 var unsuccessfullyUploadedFiles = {};
@@ -486,7 +741,27 @@ var validateParameters = function (params) {
 	{
 		setItemAttrColor("#conditions_list", "border", "#E60000");
 	}
-   return (nInvalid == 0 && tmp_i > 1);
+	var found_cond = false;
+	if ($("#expquantfilt").prop("checked") == true)
+	{
+		var my_text = $("#expquantfiltlbl option:selected").text();
+		$("#conditions_list > option:selected").each(function() {
+			if (this.text == my_text)
+			{
+				found_cond = true;
+			}
+		});
+		if (found_cond == false)
+		{
+			setItemAttrColor("#expquantfiltlbl", "border", "#E60000");
+		}
+	}
+	else
+	{
+		found_cond = true;
+	}
+
+   return (nInvalid == 0 && tmp_i > 1 && found_cond);
 }
 
 // reset "counters"/states
@@ -518,6 +793,9 @@ var resetState = function (uploading_new_file = false) {
 		types_of_files_uploaded = [];
 		nToUpload = 0;
 		AddedLabels = false;
+		RawFileConditions = [];
+		isLabelFree = false;
+		LFQconditions = [];
 	}
 	
    nUploaded = uploaded_files;
@@ -656,14 +934,26 @@ types_of_files_uploaded.push(data.file_type);
                $("#quantitation_prog_lbl").text(peptideLabelsFromFile.length > 0 ? "\u2014 Raw data were quantified with Proteome Discoverer\u2122" : "\u2014 Raw data were quantified with MaxQuant");
                $(item5).removeClass('hidden');
                $(item6).attr('placeholder', 'Definition');
+			   $(document).contextmenu("showEntry", "assign_condition", false);
+			   $("#ExtraInfoForLFQ").hide();
+			   //Add here more functionality in case of Labeled data
+			   rawfiles_tbl_allfiles_DT.column("4").visible(false);
+			   isLabelFree = false;
+			   
             } else {
 //label-free case (disable non-applicable parameters and rename others accordingly)
+			   isLabelFree = true;
                $(item1).prop('disabled', true);
                $(item2).prop('disabled', true);
                $(item3).html('&#8212 Biological condition #1');
                $(item4).html('<input data-required="true" id="explbl1name_" name="explbl1name" type="text" onkeypress="inputChCheck(event,\'^(?!_)[a-zA-Z0-9_]+$\',20)" placeholder="Character rules apply"></input>');
                $(item5).addClass('hidden');
                $(item6).attr('placeholder', 'Raw file');
+			   $("#ExtraInfoForLFQ").show();
+			   $(document).contextmenu("showEntry", "assign_condition", true);
+			   rawfiles_tbl_allfiles_DT.column("4").visible(true);
+			   //Add here more functionality in case of LFQ data
+			   
             }
 
             // $.each(peptideLabelsFromFile, function (idx, lbl_i) {
@@ -684,7 +974,7 @@ types_of_files_uploaded.push(data.file_type);
 					// $("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
 				   // // $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
 				   // // $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-				   $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+				   $("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
                });
 				addFormLabel();
 			   AddedLabels = true;
@@ -729,7 +1019,50 @@ var bind_explbldefinition_focus = function (explbldefinition) {
       });
    });
 }
+var bind_s2LFQConditions_focus = function () {
+      $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s3expparamsDlgLabels").width() / 2)});
+      $("#s2LFQConditions").fadeIn(300);
+      //$('#mask').fadeIn(300);
+      var lbl = $(this);
+      $("#s2LFQConditionsOK").unbind();
+      $("#s2LFQConditionsOK").on("click", function () {
+         dlgFadeout();
+		 //ADD OK RESULT HERE
+      });
+}
 
+var ons22btnfclick = function()
+{
+	if (isLabelFree)
+	{
+		//First clean the conditions from RawFileConditions that are not used
+		RawFileConditions_copy = RawFileConditions.slice();
+		$.each(rawfiles_structure, function (idx, my_raw_file)
+		{
+			if (my_raw_file.used == false)
+			{//for each rawfile not used
+				$.each(RawFileConditions_copy, function (idxC, my_cond)
+				{
+					if (my_raw_file.rawfile == my_cond.name)
+					{//if there is a row in RawFileConditions_copy corresponding to a not used rawfile, erase this row
+						RawFileConditions_copy.splice(idxC, 1);
+						//normally there can not be two rows in RawFileConditions_copy so escape the loop if erased a row
+						return false;
+					}
+				});
+			}
+		});
+		$('#conditions_list').empty();
+		var non_un_condiitions = RawFileConditions_copy.map(function(value, index){return value.condition;});
+		var unique_conditions = ArrNoDupe(non_un_condiitions);
+		$.each(unique_conditions, function (idx, my_un_cond)
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
+		});
+		if(AllowMergeLabels) InitializeRename();
+		create_my_all_mq_labels();
+	}
+}
 var onShowDialog = function (selector){
    $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($(selector).width() / 2)});
    $('body').append('<div id="mask"></div>');
@@ -763,7 +1096,7 @@ var addFormLabel = function()
 			}
 			if (methods_mismatch == true)
 			{
-				console.log("Methods mismatch in rearranging maxquant labels!!");
+				// console.log("Methods mismatch in rearranging maxquant labels!!");
 			}
 			peptideLabelsNamesFromFile = data.labels;
 		}
@@ -775,7 +1108,11 @@ var addFormLabel = function()
 					// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
 				// });
 		  });
-		  $("#adv_parameters_div").show();
+		  if(AllowMergeLabels) InitializeRename();
+		  create_my_all_mq_labels();
+		  //Inform ProteoSign if this file is a reporter-ion derived file
+		  isIsobaricLabel = data.isIsobaricLabel;
+		  $("#s3QuantitationFiltering").show();
 	   } else {
 	//label-free case
 		  if (peptideLabelsFromFile.length > 0) {
@@ -786,8 +1123,10 @@ var addFormLabel = function()
 						// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
 					// });
 			  });
+			  if(AllowMergeLabels) InitializeRename();
+			  create_my_all_mq_labels();
 			  //hide the advanced parameters (Quantitation filtering) in case we have label-free data
-			  $("#adv_parameters_div").hide();
+			  $("#s3QuantitationFiltering").hide();
 		  }
 	   }
 	   // label-free case
@@ -825,22 +1164,76 @@ var downloadTestDataset = function (dataset_desc) {
 
 function refresh_fractions(){
 		//Now check that the fractions are set correctly
-		$.each(rawfiles_structure, function (idx, my_raw_file)
+		//The algorithm is slightly different in label free and labeled cases
+		if (isLabelFree == false)
 		{
-			if (my_raw_file.used == false) return;
-			// console.log("Checking fractionation in " + my_raw_file.rawfile);
-			var my_brep = my_raw_file.biorep;
-			var my_trep = my_raw_file.techrep;
-			var my_cur_fraction = 1;
-			$.each(rawfiles_structure, function (idxJ, my_raw_fileJ)
-				{
-					if (my_raw_fileJ.used == false) return;
-					if (my_raw_fileJ.biorep == my_brep && my_raw_fileJ.techrep == my_trep)
+			$.each(rawfiles_structure, function (idx, my_raw_file)
+			{
+				if (my_raw_file.used == false) return;
+				// console.log("Checking fractionation in " + my_raw_file.rawfile);
+				var my_brep = my_raw_file.biorep;
+				var my_trep = my_raw_file.techrep;
+				var my_cur_fraction = 1;
+				$.each(rawfiles_structure, function (idxJ, my_raw_fileJ)
 					{
-						my_raw_fileJ.fraction = my_cur_fraction++;
+						if (my_raw_fileJ.used == false) return;
+						if (my_raw_fileJ.biorep == my_brep && my_raw_fileJ.techrep == my_trep)
+						{
+							my_raw_fileJ.fraction = my_cur_fraction++;
+						}
+					});
+			});	
+		}
+		else
+		{//Label free cases:
+			$.each(rawfiles_structure, function (idx, my_raw_file)
+			{
+				if (my_raw_file.used == false) return;
+				// console.log("Checking fractionation in " + my_raw_file.rawfile);
+				var my_brep = my_raw_file.biorep;
+				var my_trep = my_raw_file.techrep;
+				//In label free case the fractions are automatically set to ascending order
+				//in groups that have not only biorep and techrep in common but freactions as well
+				var my_assigned_condition = "";
+				$.each(RawFileConditions, function (idxC, my_cond)
+				{
+					if (my_raw_file.rawfile == my_cond.name)
+					{
+						my_assigned_condition = my_cond.condition;
+						return false;
 					}
 				});
-		});
+				//if my_assigned_condition == "" then no condition has been assigned and this raw file can not be a part of any groups
+				if (my_assigned_condition == "")
+				{
+					return; //continue
+				}
+				var my_cur_fraction = 1;
+				$.each(rawfiles_structure, function (idxJ, my_raw_fileJ)
+					{
+						if (my_raw_fileJ.used == false) return;
+						//Find out the assigned condition (if any) of the J raw file
+						var my_assigned_conditionJ = "";
+						$.each(RawFileConditions, function (idxJC, my_condJ)
+						{
+							if (my_raw_fileJ.rawfile == my_condJ.name)
+							{
+								my_assigned_conditionJ = my_condJ.condition;
+								return false;
+							}
+						});
+						//if my_assigned_conditionJ == "" then no condition has been assigned and this raw file can not be a part of any groups
+						if (my_assigned_conditionJ == "")
+						{
+							return;
+						}
+						if (my_raw_fileJ.biorep == my_brep && my_raw_fileJ.techrep == my_trep && 			my_assigned_condition == my_assigned_conditionJ)
+						{
+							my_raw_fileJ.fraction = my_cur_fraction++;
+						}
+					});
+			});
+		}
 
 		//Show the new structure to the user:
 		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
@@ -888,6 +1281,9 @@ var postTestDatasetInfo = function (dataset_desc) {
                if (++nUploaded < uploadingFiles.length) {
                   return;
                }
+			   $("#s2btnb").prop('disabled', false);
+			   $("#dlgTestDatasetsBtnOK").prop('disabled', false);
+			   datatestOK_clicked = false;
                $("#s2btnf").triggerHandler("click");
                $("#s3showhideadvparams").trigger("click");
                $("input[name='expid']").val(dataset_desc.replace(/[^a-zA-Z0-9]+/g, "_"));
@@ -899,7 +1295,7 @@ var postTestDatasetInfo = function (dataset_desc) {
                         // Here the 0/1 is transmitted false/true
                         var theval = (data.queryres.value[idx] == "0" ? false : true);
                         if ($(param_selector).prop("checked") != theval) {
-                           $(param_selector).trigger("click");
+                           $(param_selector).prop("checked", theval);
                         }
                         break;
                      default:
@@ -922,14 +1318,32 @@ var postTestDatasetInfo = function (dataset_desc) {
                   }
                });
                for (var i = 0; i < data.queryres.raw_file.length; i++) {
-                  rawfiles_structure.push({rawfile: data.queryres.raw_file[i], biorep: data.queryres.brep[i], techrep: data.queryres.trep[i], fraction: data.queryres.frac[i], used: true});
+                  rawfiles_structure.push({rawfile: data.queryres.raw_file[i], biorep: data.queryres.brep[i], techrep: data.queryres.trep[i], fraction: data.queryres.frac[i], used: data.queryres.used[i]});
+				  if (data.queryres.condition[i] != "-")
+				  {
+					  RawFileConditions.push({name: data.queryres.raw_file[i], condition: data.queryres.condition[i]});
+				  }
+				  // console.log(RawFileConditions);
                   var tds = $('tr[id="tr_' + data.queryres.raw_file[i] + '"] td');
                   $(tds[1]).text(data.queryres.brep[i] == 0 ? '-' : data.queryres.brep[i]);
                   $(tds[2]).text(data.queryres.trep[i] == 0 ? '-' : data.queryres.trep[i]);
                   $(tds[3]).text(data.queryres.frac[i] == 0 ? '-' : data.queryres.frac[i]);
+				  if (data.queryres.condition[i] != "-")
+				  {
+					$(tds[4]).text(data.queryres.condition[i]);
+				  }
+				  if (data.queryres.used[i] == 0)
+				  {
+					  $(tds[0])["0"].style = "text-decoration: line-through";
+					  $(tds[1])["0"].style = "text-decoration: line-through";
+					  $(tds[2])["0"].style = "text-decoration: line-through";
+					  $(tds[3])["0"].style = "text-decoration: line-through";
+					  if (isLabelFree == true) $(tds[4])["0"].style = "text-decoration: line-through";
+				  }
                }
                set_reps();
 			   refresh_fractions();
+			   if (isLabelFree == true) refresh_LFQ_conditions_from_test_data();
                $("#s3expparams").animate({scrollTop: 0}, "slow");
             });
          } else {
@@ -941,6 +1355,31 @@ var postTestDatasetInfo = function (dataset_desc) {
    });
 }
 
+var refresh_LFQ_conditions_from_test_data = function()
+{
+	RawFileConditions_copy = RawFileConditions.slice();
+	$.each(rawfiles_structure, function (idx, my_raw_file)
+	{
+		if (my_raw_file.used == false)
+		{//for each rawfile not used splice the respective row
+			$.each(RawFileConditions_copy, function (idxC, my_cond)
+			{
+				if (my_raw_file.rawfile == my_cond.name)
+				{//if there is a row in RawFileConditions_copy corresponding to a not used rawfile, erase this row
+					RawFileConditions_copy.splice(idxC, 1);
+					//normally there can not be two rows in RawFileConditions_copy with the same name so escape the loop if erased a row
+					return false;
+				}
+			});
+		}
+	});
+	var non_un_condiitions = RawFileConditions_copy.map(function(value, index){return value.condition;});
+	var unique_conditions = ArrNoDupe(non_un_condiitions);
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		$("#s2LFQConditionsList").append("<option val='undefined'>" + my_un_cond + "</option>");
+	});
+}
 var postTestDatasetsInfo = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
@@ -965,6 +1404,7 @@ var postTestDatasetsInfo = function () {
             $("#s1TestDatasetsSelection").append("<option value='" + (i++) + "'>" + dataset_desc + "</option>");
          });
       }
+
    }).fail(function (jqXHR, textStatus, errorThrown) {
       alert("An AJAX error occurred: " + errorThrown);
    });
@@ -977,11 +1417,64 @@ var rawfiles;
 var rawfiles_structure;
 var rep_counts;
 var lastclicked_rawfiles_tbl_tr = null;
+
+//The following sub is for DEBUGGING purposes only, comment-out in deployment
+var add_raw_file_structure = function(tab_sep_string)
+{
+	//This function prints all file names if tab_rep_string == "" or sets the rawfile_structure otherwise
+	if(typeof(tab_sep_string) == "undefined" || tab_sep_string == "")
+	{
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		for (var i = 0; i < all_items.length; i++) {
+			var items_tds = $(all_items[i]).find('td');
+			console.log($(items_tds[0]).text() + "\n");
+		}
+		return;
+	}
+	rawfiles_structure = [];
+	var lines = tab_sep_string.split("\t\t");
+	$.each(lines, function(idx, my_line){
+		var my_vals = my_line.split("\t");
+		if(my_vals[0] == "rawfile")
+		{
+			return;
+		}
+		rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
+	});
+	
+	//Show everything back to the user
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		// console.log(all_items);
+		for (var i = 0; i < all_items.length; i++) {
+         var items_tds = $(all_items[i]).find('td');
+         var items_brep = items_tds[1];
+         var items_trep = items_tds[2];
+         var items_frac = items_tds[3];
+		 $.each(rawfiles_structure, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.rawfile == $(items_tds[0]).text())
+			 {
+				 $(items_brep).text(my_raw_file.biorep);
+				 $(items_trep).text(my_raw_file.techrep);
+				 $(items_frac).text(my_raw_file.fraction);
+				 if(my_raw_file.used == false)
+				 {
+					 $(items_tds[0])["0"].style = "text-decoration: line-through";
+				 }
+				 return false;
+			 }
+		 });
+		}
+		refresh_fractions();
+		set_s22btnf();
+}
+
 var reset_reps = function () {
    bioreps = 0;
    techreps = 0;
    fractions = 0;
    rawfiles_structure = [];
+   RawFileConditions = [];
    rep_counts = {biorep: []};
    rawfiles_tbl_allfiles_DT.clear();
    $.each(rawfiles, function (idx, filename_i) {
@@ -991,6 +1484,7 @@ var reset_reps = function () {
                  'brep': '-',
                  'trep': '-',
                  'frac': '-',
+				 'cond': '-',
                  'DT_RowClass': "rawfiles_tbl_td_not_selected",
                  'DT_RowId': 'tr_' + filename_i
               }
@@ -1083,14 +1577,48 @@ function set_s22btnf()
 			}
 		});
 		// console.log(bioreps_used);
-		$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && found_used_rec && bioreps_used.length > 1));
+		if(isLabelFree == false)
+		{
+			$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && found_used_rec && bioreps_used.length > 1));
+		}
+		else
+		{
+			//In case of label free data The next button should be enabled only if al used raw fileshave been assigned to a condition
+			var all_files_have_label_assigned = true;
+			$.each(rawfiles_structure, function (idx, my_raw_file)
+			{
+
+				if(my_raw_file.used == true)
+				{
+					//foreach used file in rawfiles structure see if there is a corresponding one in
+					//Rawfileconditions
+					var found_corresponding_file = false;
+					$.each(RawFileConditions, function (idx, my_cond)
+					{
+						if (my_raw_file.rawfile == my_cond.name)
+						{
+							found_corresponding_file = true;
+							return;
+						}
+					});
+					if (found_corresponding_file == false)
+					{
+						all_files_have_label_assigned = false;
+						return;
+					}
+				}
+			});
+			//Here if all used files have a corresponding label (condition) assigned all_files_have_label_assigned is set to true otherwise to false
+			$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && all_files_have_label_assigned == true && found_used_rec && bioreps_used.length > 1));
+		}
+
+		
    }
    else
    {
 	   $("#s22btnf").prop('disabled', true);
    }
 }
-
 var gen_expdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
@@ -1098,6 +1626,24 @@ var gen_expdesign = function (struct) {
 		ret = ret + struct[i].rawfile + "\t" + struct[i].biorep + "\t" + struct[i].techrep + "\t" + struct[i].fraction + "\n"; 
 	   }
 
+   }
+   // console.log("ret: " + ret);
+   return ret;
+}
+
+var gen_lfqdesign = function (struct) {
+   var ret = "";
+   for (var i = 0; i < struct.length; i++) {
+		ret = ret + struct[i].name + "\t" + struct[i].condition + "\n"; 
+   }
+   // console.log("ret: " + ret);
+   return ret;
+}
+
+var gen_RenameFile = function (struct) {
+   var ret = "";
+   for (var i = 0; i < struct.length; i++) {
+		ret = ret + struct[i][0] + "\t" + struct[i][1] + "\n"; 
    }
    // console.log("ret: " + ret);
    return ret;
@@ -1134,6 +1680,75 @@ var renderRSSData = function (data, renderelem) {
    var inter = setTimeout(updateFun, 100);
 }
 
+var ons2LFQConditionsOK_click = function()
+{
+	//In case the user clicked on ok on the popup box trying to assign a condition to raw files update
+	//assign the appropriate condition: in case the user added a new condition
+	//update the list as well
+	
+	var CondToAdd;
+	if ($("#s2LFQConditionsNew").prop("value") != "")
+	{
+		if (typeof($("#s2LFQConditionsNew").prop("value")) == "undefined") return;
+		LFQconditions.push($("#s2LFQConditionsNew").prop("value"));
+		CondToAdd = $("#s2LFQConditionsNew").prop("value");
+		$("#s2LFQConditionsNew").val("");
+		var ListLength = $("#s2LFQConditionsNew").prop("length");
+		var optiontext = '<option val="' + ListLength + '">' + CondToAdd + '</option>';
+		$("#s2LFQConditionsList").append(optiontext);
+		$("#s2LFQConditionsList").attr("disabled", false);
+	}
+	else{
+		if ($("#s2LFQConditionsList").prop("value") != "")
+		{
+			CondToAdd = $("#s2LFQConditionsList").prop("value");
+		}
+	}
+	if (typeof(CondToAdd) == "undefined") return;
+	//Now add the condition to the selected files:
+	// console.log("Condition to add: " + CondToAdd);
+	//First clean up all RawFileConditions rows that wil be overwritten
+	var items = $('#rawfiles_tbl_allfiles').find('.rawfiles_tbl_td_selected');
+	var item_idxs_to_splice = [];
+	$.each(RawFileConditions, function (idx, my_cond)
+	{
+		
+		for (var i = 0; i < items.length; i++) {
+			var items_tds = $(items[i]).find('td');
+			var items_name = items_tds[0];
+			var name_txt = $(items_name).text();
+			if(my_cond.name == name_txt)
+			{
+				item_idxs_to_splice.push(idx);
+			}
+		}
+	});
+	for (var i = item_idxs_to_splice.length -1; i >= 0; i--)
+	{
+		RawFileConditions.splice(item_idxs_to_splice[i], 1);
+	}
+	for (var i = 0; i < items.length; i++) {
+		 var items_tds = $(items[i]).find('td');
+		 var items_cond = items_tds[4];
+		 var items_name = items_tds[0];
+		//Now update the RawFileConditions list
+		RawFileConditions.push({name: $(items_name).text(), condition: CondToAdd});
+		$(items_cond).text(CondToAdd);
+	}
+	// console.log(RawFileConditions)
+	//Deselect all rows
+	var my_table = $('#rawfiles_tbl_allfiles').dataTable();
+	var my_rows = my_table._('tr', {"filter":"applied"});
+	$.each(my_rows, function (idx, cur_row) {
+		// console.log(cur_row);
+		var my_tmp = cur_row["DT_RowId"];
+		$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
+	});
+	//Also check if the next button should be enabled now
+	set_s22btnf();
+	//Also refresh the fractions:
+	refresh_fractions();
+}
 var getRSS = function (rssurl, renderelem) {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
@@ -1155,14 +1770,23 @@ var getRSS = function (rssurl, renderelem) {
    });
 }
 
+var oncondslistclick = function(){
+	   if (AllowMergeLabels)
+	   {
+		   Refresh_conds_list_cmenu_items();	
+	   }
+}
+
 var dlgFadeout = function () {
    $(".expparamsDlg").fadeOut(300, function () {
       $('#mask').remove();
    });
 }
 
+var label_context_menu;
 
 $(document).ready(function () {
+	// 	document.getElementById("s2LFQConditionsNew").onkeydown = inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20);
    var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
    var backward_buttons = getItems("button.main", /s[0-9]+btnb/);
    // Binds the click event to "toggleNextClass" for each "forward button" (button with class button.main and id /s[0-9]+btnf/) 
@@ -1188,9 +1812,12 @@ $(document).ready(function () {
    });
    // Bind event when file(s) is/are chosen
    $("#__s2btnupld").change(function () {
+		if ($("#__s2btnupld").val() == "") {
+			return;
+		}
       var fnames = "";
        //$("#s2uluploaders > table").empty();
-	   // console.log("files: " + this.files.length)
+	   //console.log("files: " + this.files.length)
       if (this.files.length > 0) {
 //Start uploading ...
          uploadingFiles = this.files;
@@ -1218,7 +1845,9 @@ $(document).ready(function () {
 						 //Maxquant valid files:
 						 Files_valid = true;
 						 procProgram = "MQ";
-						 $("#exppddata").prop("checked", false);
+						 $("#s3expparams input[name='exppddata']").prop('checked', false);
+						 $("#quantsoftdetectedspan").text("MaxQuant");
+						 $("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with MaxQuant");
 					 }
 					 else
 					 {
@@ -1236,7 +1865,9 @@ $(document).ready(function () {
 						 //PD valid files:
 						 Files_valid = true;
 						 procProgram = "PD";
-						 $("#exppddata").prop("checked", false);
+						 $("#s3expparams input[name='exppddata']").prop('checked', true);
+						 $("#quantsoftdetectedspan").text("Proteome Discoverer");
+						 $("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with Proteome Discoverer\u2122");
 					 }
 					 //No need to check if both MQ and PD files were uploaded, this has already been done
 				 }
@@ -1263,6 +1894,7 @@ $(document).ready(function () {
       } else {
          //$("#s2btnf").prop('disabled', true);
       }
+		$("#__s2btnupld").val("");
    });
    //Toggle visibility of table with advanced params
    $("#s3showhideadvparams").on("click", function () {
@@ -1276,7 +1908,8 @@ $(document).ready(function () {
          $("#s3advparams").addClass("hidden");
          $(this).text(txt.replace("Hide", "Show"));
       }
-   });
+   });  
+
    //Add functionality of add/remove labels buttons
    $("#btnAddLabel").on("click", addFormLabel);
    $("#btnRemLabel").on("click", removeFormLabel);
@@ -1420,6 +2053,7 @@ $(document).ready(function () {
 			$(items_tds[1])[0].style = "text-decoration: none";
 			$(items_tds[2])[0].style = "text-decoration: none";
 			$(items_tds[3])[0].style = "text-decoration: none";
+			if (isLabelFree == true) $(items_tds[4])[0].style = "text-decoration: none";
             $(items_biorep).text(curr_biorep == 0 ? '-' : curr_biorep);
             $(items_techrep).text(curr_techrep == 0 ? '-' : curr_techrep);
             $(items_frac).text(curr_fraction == 0 ? '-' : curr_fraction);
@@ -1438,10 +2072,17 @@ $(document).ready(function () {
       $(".tooltip span").css({"margin-left": -$(".tooltip span").width() / 2 + 9});
       $(".callout").css({"left": $(".tooltip span").width() / 2});
    });
+   $(".tooltip2").hover(function () {
+      $(".tooltip2 span").css({"margin-left": 11});
+      $(".callout2").css({"left": 0});
+   });
    // Bind test datasets dialog buttons
    $("#dlgTestDatasetsBtnOK").on("click", function () {
-      dlgFadeout();
-      postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
+	  dlgFadeout();
+	  postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
+	  $("#s2btnb").prop('disabled', true);
+	  $("#dlgTestDatasetsBtnOK").prop('disabled', true);
+	  datatestOK_clicked = true;
    });
    $("#dlgTestDatasetsBtnCancel").on("click", function () {
       dlgFadeout();
@@ -1470,7 +2111,7 @@ $(document).ready(function () {
          },
          {
             targets: 0,
-            width: '88%',
+            width: '70%',
             className: "dt-left",
 			title: "Raw File"
          },
@@ -1485,6 +2126,13 @@ $(document).ready(function () {
 		 {
 			 targets: 3,
 			title: "#F"
+		 },
+		 {
+			 targets: 4,
+			 title: "Condition",
+			 width: '18%',
+			 visible: false,
+			 className: "dt-center"
 		 }
       ],
       "dom": '<"top ibvspace"f>rtT',
@@ -1496,11 +2144,12 @@ $(document).ready(function () {
          {"mData": "fname"},
          {"mData": "brep"},
          {"mData": "trep"},
-         {"mData": "frac"}
+         {"mData": "frac"},
+		 {"mData": "cond"}
       ]
    });
    // Initialize the context menu 
-     $(document).contextmenu({
+     main_context_menu = $(document).contextmenu({
 		delegate: ".dataTable td",
 		menu: [
 		  {title: "Select All", cmd: "slc_all"},
@@ -1510,7 +2159,8 @@ $(document).ready(function () {
 		  {title: "Include Selected", cmd: "add_slc"},
 		  {title: "Clear filter", cmd: "clr_fltr"},
 		  {title: "Reset", cmd: "reset"},
-		  {title: "Select unassigned", cmd: "slc_unassigned"}
+		  {title: "Select unassigned", cmd: "slc_unassigned"},
+		  {title: "Assign Condition", cmd: "assign_condition", visible: false}
 		],
 		select: function(event, ui) {
 			switch(ui.cmd){
@@ -1581,6 +2231,7 @@ $(document).ready(function () {
 						$(items_tds[1])["0"].style = "text-decoration: line-through";
 						$(items_tds[2])["0"].style = "text-decoration: line-through";
 						$(items_tds[3])["0"].style = "text-decoration: line-through";
+						if (isLabelFree == true) $(items_tds[4])["0"].style = "text-decoration: line-through";
 					}
 					set_s22btnf();
 					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
@@ -1621,6 +2272,7 @@ $(document).ready(function () {
 						$(items_tds[1])["0"].style = "text-decoration: none";
 						$(items_tds[2])["0"].style = "text-decoration: none";
 						$(items_tds[3])["0"].style = "text-decoration: none";
+						if (isLabelFree == true) $(items_tds[4])["0"].style = "text-decoration: none";
 					}
 					set_s22btnf();
 					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
@@ -1634,6 +2286,7 @@ $(document).ready(function () {
 						// console.log(cur_row);
 						var my_tmp = cur_row["DT_RowId"];
 						var rec_found = false;
+						var unused_file = false;
 						$.each(rawfiles_structure, function (idx, my_raw_file)
 						{
 							// console.log(my_raw_file.rawfile == cur_row["fname"]);
@@ -1642,15 +2295,42 @@ $(document).ready(function () {
 								rec_found = true;
 							}
 						});
-						if(rec_found == false)
-						{
-							$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
+						if (isLabelFree == false)
+						{// in labelled data a row is unassigned if it is not found in the rawfiles_structure array
+							if(rec_found == false)
+							{
+								$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
+							}
+							else
+							{
+								$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
+							}
 						}
 						else
-						{
-							$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
+						{// in label free the row is also unassigned if a condition is not assigned to it
+							var cond_found = false;
+							$.each(RawFileConditions, function (idxC, my_cond)
+							{
+								if (cur_row["fname"] == my_cond.name)
+								{
+									cond_found = true;
+								}
+							});
+							if(rec_found == true && cond_found == true)
+							{
+								$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
+							}
+							else
+							{
+								$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
+							}							
 						}
+
+
 					});
+					break;
+				case "assign_condition":
+					onAssignCondition();
 					break;
 				}
 			},
@@ -1661,8 +2341,65 @@ $(document).ready(function () {
 			ui.menu.zIndex(9999);
 		}
 	  });
-  
-  
+		if(AllowMergeLabels){
+		 label_context_menu = $('#conds_list_container').contextmenu({
+			 delegate: ".conditions_list",
+			 menu: [
+				{title: "Same Condition", cmd: "same_cond"},
+				{title: "Restore Conditions", cmd: "restore_conds"}
+			 ],
+			 select: function(event, ui) {
+				 switch(ui.cmd){
+					 case "same_cond":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						// console.log(my_items);
+						$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#condsadvancedDlg").width()/2)});
+						$('body').append('<div id="mask"></div>');
+						$("#condsadvancedDlg").fadeIn(300);
+						$('#mask').fadeIn(300);
+						$("#s3AdvancedOK").on("click", function () {
+							 dlgFadeout();
+							 if($("#s3AdvNewCondition").val() == "") return;
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if($.inArray(my_row[0], itemsToRename) != -1)
+								 {
+									 RenameArray[idx][1] = $("#s3AdvNewCondition").val();
+								 }
+							 });
+							 console.log(RenameArray);
+							 $("#s3AdvNewCondition").val("");
+							 Refresh_conds_list();
+							 //ADD OK RESULT HERE
+						});
+						$("#s3AdvancedCancel").on("click", function () {
+							 dlgFadeout();
+							 //ADD cancel RESULT HERE
+						});
+						break;
+					 case "restore_conds":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						$.each(RenameArray, function(idx, my_row)
+						 {
+							 if($.inArray(my_row[1], itemsToRename) != -1)
+							 {
+								 RenameArray[idx][1] = RenameArray[idx][0];
+							 }
+						 });
+						 Refresh_conds_list();
+						break;
+				 }
+			 },
+			 beforeOpen: function(event, ui) {
+				var $menu = ui.menu,
+					$target = ui.target,
+					extraData = ui.extraData;
+				ui.menu.zIndex(9999);
+			}
+		 });
+		}
    $('#rawfiles_tbl_allfiles').css({border: 'none'});
    $('#rawfiles_tbl_allfiles').css({margin: '0px'});
    $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
@@ -1706,7 +2443,10 @@ $(document).ready(function () {
 	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
 	$("#conditions_list").mousedown(function(e){
 		e.preventDefault();
-
+		if (event.which == 3)
+		{
+			return;
+		}
 		var select = this;
 		var scroll = select .scrollTop;
 
@@ -1716,6 +2456,7 @@ $(document).ready(function () {
 
 		$(select ).focus();
 	}).mousemove(function(e){e.preventDefault()});
+	
    // TEST DATA INIT
    postTestDatasetsInfo();
    //

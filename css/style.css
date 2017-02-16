@@ -474,7 +474,7 @@
 	}
 	
 	
-	.tooltip {
+	.tooltip, .tooltip2 {
 		background-color: #8AB8E6;
 		box-shadow: 0 0.1em 0.5em #333333;
 		border-radius: 0.15em;
@@ -484,16 +484,16 @@
 		padding-right: 0.25em;
 	}
 	
-	.tooltip strong {
+	.tooltip strong, .tooltip2 strong {
 		line-height: 30px;
 	}
-	.tooltip:hover {
+	.tooltip:hover, .tooltip2:hover {
 		text-decoration: none;
 		cursor: default;
 	}
 	
 	
-	.tooltip span, .tooltip div
+	.tooltip span, .tooltip div, .tooltip2 span, .tooltip2 div
 	{
 		z-index: 10;
 		display: none;
@@ -508,7 +508,7 @@
 		max-width: 50%;
 	}	
 
-	.tooltip:hover span, .tooltip:hover div{
+	.tooltip:hover span, .tooltip:hover div, .tooltip2:hover span, .tooltip2:hover div{
 		display: block;
 		position: absolute;
 		border: 2px solid #FFF;
@@ -516,7 +516,7 @@
 		background-color: #000;
 		font-size: 90%;
 	}
-	.callout {
+	.callout, .callout2 {
 		z-index: 20;
 		position: absolute;
 		border: 0;
@@ -749,3 +749,16 @@
 		font-family: 'Arial';
 	}
 	
+.helplink{
+		position: relative;
+		left: 65%;
+		color: white;
+		text-shadow: 0 0 1px #ddd, 0 0 3px #ccc, 0 0 5px #bbb, 0 0 7px #aaa, 0 0 9px #000, 0 0 11px #000;
+		font-size: 140% !important;
+		font-weight: 400;
+	}
+
+	.main_header a:visited, .main_header a:hover, .main_header a:active {
+		cursor: pointer;
+		text-decoration: none;
+	}
