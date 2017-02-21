@@ -18,6 +18,20 @@ var analysis_finished = false;
 var datatestOK_clicked = false;
 //procProgram refers to the program that is believed to have processed the raw data (MQ or PD) based on the uploaded files' format
 var procProgram = "";
+var my_lbls_toselect = [];
+var RenameArray = []; //used to cover the possibility where more than one labels correspond to the same condition
+var AuthenticItemsinRename = []; //used to cover the possibility where more than one labels correspond to the same condition
+var RenameFromTestData = false;
+var itemsToRename = [];
+var my_all_mq_labels = "";
+//DEBUG flags
+var AllowMergeLabels = true;
+var AllowLS = true;
+//LabelSwap vars:
+var LS_array_counter = 0;
+var LS_counters_per_Add = [];//each of LS_counters_per_Add's elements is an array that contains as a first element the decription of the Label swap as shown in LSLabelSwaps list and second another array with the indices of the swaps in LabelSwapArray that correspond to the specific list element a third array contains two values which are the labels that correspond to this ls swap assignment
+var LabelSwapArray = [];//Format: first column ([0]): a rawfile where the swap occurs, second ([1]): the first label that is swapped, third ([2]): the second label of the swap and fourth ([3]): a unique index
+var LSselected_raws = [];
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -26,6 +40,7 @@ Array.prototype.unique = function () {
    for (i in o)
       r.push(o[i]);
    return r;
+
 }
 
 //For unique arrays:
@@ -100,10 +115,434 @@ var onAssignCondition = function(){
     });
 }
 
+var create_my_all_mq_labels = function()
+{
+	if (!RenameFromTestData)
+	{
+		var myOpts = document.getElementById('conditions_list').options;
+		my_all_mq_labels = "c(";
+		for(i = 0; i < myOpts.length; i++)
+		{
+			if(i != myOpts.length - 1)
+			{
+				my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '", ';
+			}
+			else
+			{
+				my_all_mq_labels = my_all_mq_labels + '"' + myOpts[i].value + '"';
+			}
+		}
+		
+		my_all_mq_labels = my_all_mq_labels + ")";
+	}
+	else
+	{
+		my_all_mq_labels = "c(";
+		for(i = 0; i < RenameArray.length; i++)
+		{
+			if(i != RenameArray.length - 1)
+			{
+				my_all_mq_labels = my_all_mq_labels + '"' + RenameArray[i][0] + '", ';
+			}
+			else
+			{
+				my_all_mq_labels = my_all_mq_labels + '"' + RenameArray[i][0] + '"';
+			}
+		}
+		
+		my_all_mq_labels = my_all_mq_labels + ")";
+	}
+}
+
+var InitializeRename = function()
+{
+	RenameArray = [];
+	AuthenticItemsinRename = [];
+	var conditions_in_list = [];
+	$("#conditions_list option").each(function(){ conditions_in_list.push($(this).val());})
+	$.each(conditions_in_list, function(idx, my_cond)
+	{
+		var value_to_push = [];
+		value_to_push[0] = my_cond;
+		value_to_push[1] = my_cond;
+		RenameArray.push(value_to_push);
+		AuthenticItemsinRename.push(value_to_push[0]);
+	});
+	// console.log(AuthenticItemsinRename);
+	Refresh_conds_list_cmenu_items();
+}
+
+var Refresh_conds_list = function()
+{
+	if (!AllowMergeLabels) return;
+	$("#conditions_list").empty();
+	var temp_array = [];
+	$.each(RenameArray, function(idx, my_row)
+	{
+		temp_array.push(my_row[1]);
+	});
+	var unique_conditions = ArrNoDupe(temp_array);
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		if($.inArray(my_un_cond, AuthenticItemsinRename) == -1)
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%; font-weight: bold;' selected='true'>" + my_un_cond + "</option>");
+		}
+		else
+		{
+			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
+		}
+		
+	});
+	//Make sure that expquantfiltlbl containing the label used for quantitation filtering contains a valid label after merging, in case the user had selected one label that became invalid prompt him/her by making expquantfiltlbl's border red
+	var my_sel_item = "";
+	if (!RenameFromTestData)
+	{
+		my_sel_item = $("#expquantfiltlbl option:selected").val();
+	}
+	$("#expquantfiltlbl").empty();
+	$.each(unique_conditions, function (idx, my_un_cond)
+	{
+		$("#expquantfiltlbl").append("<option oncontextmenu='return false;' value='" + my_un_cond + "'>" + my_un_cond + "</option>");
+	});
+	if (!RenameFromTestData && my_sel_item !== "")
+	{
+		var prev_selected_item_exists = false;
+		$("#expquantfiltlbl option").each(function(idx, my_option)
+		{
+			if($(this).val() == my_sel_item)
+			{
+				prev_selected_item_exists = true;
+			}
+		});
+		if(prev_selected_item_exists)
+		{
+			$("#expquantfiltlbl").val(my_sel_item);
+		}
+		else
+		{
+			if($("#expquantfilt").prop("checked") == true)
+			{
+				setItemAttrColor("#expquantfiltlbl", "border", "#E60000");
+			}
+		}
+	}
+	//Make sure that after altering the valid labels, there are no label swaps assigned that contain invalid labels. In such a case delete the swaps and prompt the user
+	//First get all current valid labels:
+	if (!AllowLS) return;
+	var my_valid_options = [];
+	$("#conditions_list option").each(function(idx, my_valid_opt)
+	{
+		my_valid_options.push($(my_valid_opt).val());
+	});
+	var my_invalid_LSwaps = [];
+	if (!RenameFromTestData)
+	{
+		//the last element of LS_counters_per_Add is an array of the labels that are swapped in a single swap assignment
+		$.each(LS_counters_per_Add, function(idx, my_swap_assignment)
+		{
+			//in case at least one of the labels in an assignment is not valid remove it from the LSwaps and inform the user
+			if($.inArray(my_swap_assignment[2][0], my_valid_options) == -1 || $.inArray(my_swap_assignment[2][1], my_valid_options) == -1)
+			{
+				my_invalid_LSwaps.push(my_swap_assignment[0]);
+			}
+		});
+	}
+	//Now my_invalid_LSwaps contains the descriptions of all the LSwaps assignments to be removed, select them in LSLabelSwaps and call onLSRemoveclick to remove them safely
+	if(my_invalid_LSwaps.length >0 )
+	{
+		//Note that if a LS assignment has been removed manually or not in the past, it is candidate to be considered invalid again since no function erases any elements of LS_counters_per_Add. So before trying to remove an LSassignment always check if it exists in LSLabelSwaps list
+		var real_invalid_LSs = 0;
+		var text_to_display = "";
+		$("#LSLabelSwaps option").each(function(idx, my_opt)
+		{
+			if ($.inArray($(my_opt).val(), my_invalid_LSwaps) != -1)
+			{
+				$(my_opt).prop("selected", true);
+				text_to_display = text_to_display + '<i>"' + $(my_opt).val() + '"</i>, ';
+				real_invalid_LSs++;
+			}
+			else
+			{
+				$(my_opt).prop("selected", false);
+			}
+		});
+		if (real_invalid_LSs > 1)
+		{
+			onLSRemoveclick();
+			text_to_display = "Label swaps: " + text_to_display;
+			text_to_display = text_to_display + "are no longer valid and were removed";
+			msgbox(text_to_display);//Prompt the user
+		}
+		else if(real_invalid_LSs == 1)
+		{
+			onLSRemoveclick();
+			text_to_display = "Label swap: " + text_to_display;
+			text_to_display = text_to_display + "is no longer valid and was removed";
+			msgbox(text_to_display);//Prompt the user
+		}
+	}
+}
+
+var Refresh_conds_list_cmenu_items = function()
+{
+	//Check which items on the cmenu of conditions list should be visible Merge button:
+	var my_items = [];
+	var show_Merge = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) == -1)
+		{
+			show_Merge = false;
+		}
+		my_items.push(my_item);
+	});
+	// console.log(my_items.length);
+	if(my_items.length < 2)
+	{
+		show_Merge = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "same_cond", show_Merge);
+	//Check which items on the cmenu of conditions list should be visible Restore button:
+	var my_items = [];
+	var show_restore = true;//Show merge if and only if all selected options are authentic
+	$("#conditions_list option:selected").each(function(idx, my_item){
+		if ($.inArray($(this).val(), AuthenticItemsinRename) != -1)
+		{
+			show_restore = false;
+		}
+		my_items.push(my_item);
+	});
+	// console.log(my_items.length);
+	if(my_items.length == 0)
+	{
+		show_restore = false;
+	}
+	$("#conds_list_container").contextmenu("showEntry", "restore_conds", show_restore);
+	if (!show_restore && !show_Merge)
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", false);
+	}
+	else
+	{
+		$('#conds_list_container').contextmenu("option", "autoTrigger", true);
+	}
+}
+
+var InitializeLS = function()
+{
+	if (!AllowLS) return;
+	//initialize the popup div
+	//first get all the bioreps available
+	var my_bioreps = [];
+	var my_techreps = [];
+	 $.each(rawfiles_structure, function (idx, my_raw_file)
+	 {
+		 if (my_raw_file.used == false) return;
+		 my_bioreps.push(my_raw_file.biorep);
+		 my_techreps.push(my_raw_file.techrep);
+	 });
+	 var unique_breps = ArrNoDupe(my_bioreps);
+	 var unique_treps = ArrNoDupe(my_techreps);
+	 $("#LSbrep").empty();
+	 $("#LStrep").empty();
+	 $("#LSbrep").append("<option value='" + "BioReps" + "' selected='true'>" + "Bio Reps" + "</option>");
+	 $("#LStrep").append("<option value='" + "TechReps" + "' selected='true'>" + "Tech Reps" + "</option>");
+	 $.each(unique_breps, function (idx, my_brep)
+	 {
+		 $("#LSbrep").append("<option value='" + my_brep + "'>" + my_brep + "</option>");
+	 });
+	 $.each(unique_treps, function (idx, my_trep)
+	 {
+		 $("#LStrep").append("<option value='" + my_trep + "'>" + my_trep + "</option>");
+	 });
+	 //now refresh the label selects
+	 $("#LSfirstlabel").empty();
+	 $("#LSsecondlabel").empty();
+	 $("#LSRawFilesList").empty();
+	$("#conditions_list option").each(function(idx, my_item){
+		
+		$("#LSfirstlabel").append("<option value='" + $(this).val() + "'>" + $(this).val() + "</option>");
+		$("#LSsecondlabel").append("<option value='" + $(this).val() + "'>" + $(this).val() + "</option>");
+	});
+	LSselected_raws = [];
+}
+
+var onLSbackclick = function()
+{
+	//Reset the border colors back to their initial value
+	setItemAttrColor("#LSfirstlabel", "border", "#DDDDDD");
+	setItemAttrColor("#LSsecondlabel", "border", "#DDDDDD");
+	setItemAttrColor("#LSbrep", "border", "#DDDDDD");
+	setItemAttrColor("#LStrep", "border", "#DDDDDD");
+	setItemAttrColor("#LSLabelSwaps", "border", "#DDDDDD");
+}
+var onLSrepchange = function()
+{
+	if(!AllowLS) return;
+	//get all raw files corresponding the selected brep and trep
+	 LSselected_raws = [];
+	 var my_selectedbrep = $("#LSbrep").val();
+	 var my_selectedtrep = $("#LStrep").val();
+	 $("#LSRawFilesList").empty();
+	 $.each(rawfiles_structure, function (idx, my_raw_file)
+	 {
+		 if (my_raw_file.used == false) return;
+		 if (my_raw_file.biorep == my_selectedbrep && my_raw_file.techrep == my_selectedtrep)
+		 {
+			 LSselected_raws.push(my_raw_file.rawfile);
+		 }
+	 });
+	 if(!(LSselected_raws.length < 1))
+	 {
+		 $.each(LSselected_raws, function (idx, my_raw_file)
+		 {
+			$("#LSRawFilesList").append("<option value='" + my_raw_file + "'>" + my_raw_file + "</option>");
+		 });
+	 }
+}
+
+var onLSlabelchange = function()
+{	
+	if(!AllowLS) return;
+	var myfirstlabel = $("#LSfirstlabel").val();
+	var myseclabel = $("#LSsecondlabel").val();
+	if (myfirstlabel == myseclabel)
+	{
+		setItemAttrColor("#LSfirstlabel", "border", "#E60000");
+		setItemAttrColor("#LSsecondlabel", "border", "#E60000");
+	}
+	else
+	{
+		setItemAttrColor("#LSfirstlabel", "border", "#DDDDDD");
+		setItemAttrColor("#LSsecondlabel", "border", "#DDDDDD");
+	}
+}
+
+var onLSrepclick = function()
+{
+	if(!AllowLS) return;
+	setItemAttrColor("#LSbrep", "border", "#DDDDDD");
+	setItemAttrColor("#LStrep", "border", "#DDDDDD");
+}
+
+var onLSLabelSwapsclick = function()
+{
+	if(!AllowLS) return;
+	setItemAttrColor("#LSLabelSwaps", "border", "#DDDDDD");
+}
+
+var onLSAddclick = function()
+{
+	if(!AllowLS) return;
+	var proc_failed = false;
+	var myfirstlabel = $("#LSfirstlabel").val();
+	var myseclabel = $("#LSsecondlabel").val();
+	if (myfirstlabel == myseclabel)
+	{
+		setItemAttrColor("#LSfirstlabel", "border", "#E60000");
+		setItemAttrColor("#LSsecondlabel", "border", "#E60000");
+		proc_failed = true;
+	}
+	if (LSselected_raws.length < 1 )
+	{
+		setItemAttrColor("#LSbrep", "border", "#E60000");
+		setItemAttrColor("#LStrep", "border", "#E60000");
+		proc_failed = true;
+	}
+	if (proc_failed) return;
+	var my_desc = myfirstlabel + " - " + myseclabel + " in b" + $("#LSbrep").val() + "t" + $("#LStrep").val();
+	var shifted_desc = myseclabel + " - " + myfirstlabel + " in b" + $("#LSbrep").val() + "t" + $("#LStrep").val();
+	var found_duplicate = false;
+	$("#LSLabelSwaps option").each(function(idx, my_item){	
+		if ($(this).val() == my_desc || $(this).val() == shifted_desc)
+		{
+			$(this).prop("selected", true);
+			found_duplicate = true;
+		}
+		else
+		{
+			$(this).prop("selected", false);
+		}
+	});
+	if (found_duplicate)
+	{
+		setItemAttrColor("#LSLabelSwaps", "border", "#E60000");
+		return;
+	}
+	var ArrayOfIndices = [];
+	 $.each(LSselected_raws, function (idx, my_raw_file)
+	 {
+		 ArrayOfIndices.push(LS_array_counter);
+		 var toadd = [];
+		 toadd[0] = my_raw_file;
+		 toadd[1] = myfirstlabel;
+		 toadd[2] = myseclabel;
+		 toadd[3] = LS_array_counter++;
+		 LabelSwapArray.push(toadd);
+	 });
+	 var to_add2 = [];
+	 to_add2[0] = my_desc;
+	 to_add2[1] = ArrayOfIndices;
+	 to_add2[2] = [myfirstlabel, myseclabel];
+	 LS_counters_per_Add.push(to_add2);
+	 console.log(LabelSwapArray);	
+	 $("#LSLabelSwaps").append("<option value='" + my_desc + "'>" + my_desc + "</option>");
+	 setItemAttrColor("#LSLabelSwaps", "border", "#DDDDDD");
+}
+var onLSRemoveclick = function()
+{
+	if(!AllowLS) return;
+	var my_counters = [];
+	var options_to_erase = []; // to refresh the lslabelswaps list
+	$("#LSLabelSwaps option:selected").each(function(idx, my_opt){
+		$.each(LS_counters_per_Add, function(idx, LS_counters_val)
+		{
+			if(LS_counters_val[0] == $(my_opt).val())
+			{
+				// console.log("about to erase: " + $(my_opt).val());
+				options_to_erase.push($(my_opt).val());
+				$.each(LS_counters_val[1], function(idx, my_cval)
+				{
+					my_counters.push(my_cval);
+				})
+			}
+		});
+	});
+	for(var i = LabelSwapArray.length - 1; i >= 0;i--)
+	{
+		if($.inArray(LabelSwapArray[i][3], my_counters) != -1)
+		{
+			LabelSwapArray.splice(i, 1);
+		}
+	}
+	// console.log("LSArray after :");
+	// console.log(LabelSwapArray);
 	
+	//Now refresh the lslabelswaps
+	options_that_remain = [];
+	// console.log(options_to_erase);
+	$("#LSLabelSwaps option").each(function(idx, my_option)
+	{
+		if($.inArray($(my_option).val(), options_to_erase) == -1)
+		{
+			console.log($(my_option).val());
+			options_that_remain.push($(my_option).val());
+		}
+	});
+	$("#LSLabelSwaps").empty();
+	$.each(options_that_remain, function(idx, my_option)
+	{
+		$("#LSLabelSwaps").append("<option value='" + my_option + "'>" + my_option + "</option>");
+	});
+	setItemAttrColor("#LSLabelSwaps", "border", "#DDDDDD");
+}
 var onlistclick = function()
 {
 	setItemAttrColor("#conditions_list", "border", "#DDDDDD");
+}
+var onexpquantfiltlblclick = function()
+{
+	setItemAttrColor("#expquantfiltlbl", "border", "#DDDDDD");
 }
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
@@ -127,6 +566,20 @@ var SwitchLFQList = function(e) {
     $("#s2LFQConditionsList").attr("disabled", srcelem.value != "");
 }
 
+var onVIDDiscard_click = function()
+{
+	dlgFadeoutInfo();
+}
+
+var msgbox = function(displaytext)
+{
+	$(".expparamsDlgInfo").css({"left": ($("body").width() / 2) - ($("#VariousInfoDialog").width() / 2)});
+	$('body').append('<div id="maskInfo"></div>');
+	$("#VariousInfoDialog").fadeIn(300);
+	$('#maskInfo').fadeIn(300);
+	$("#InfoDiv").empty();
+	$("#InfoDiv").append("<span>" + displaytext + "</span>");
+}
 // from http://codereview.stackexchange.com/questions/7001/better-way-to-generate-all-combinations
 var combinations = function (str) {
    var fn = function (active, rest, a) {
@@ -282,6 +735,8 @@ var resetResultsInfoItms = function () {
 var postFireUpAnalysisAndWait = function () {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
+   thedata.append("AllowLS", AllowLS ? "T" : "F");
    if(!sectionSpinnerOn)
    {
 	   toggleCurrentSectionSpinner();
@@ -306,6 +761,7 @@ var postFireUpAnalysisAndWait = function () {
 	  {
 		  return;
 	  }
+	  var R_returned_error = false;
 	  $("#s4btnb").prop('disabled', true);
 	  if(sectionSpinnerOn)
 	  {
@@ -313,6 +769,33 @@ var postFireUpAnalysisAndWait = function () {
 	  }
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
+	  var my_UserInfo = data.UserInfo;
+	  var UserInfoDisplay = "";
+	  if(typeof(my_UserInfo) != "undefined" && my_UserInfo != "")
+	  {
+		  	var lines = my_UserInfo.split("\t\t");
+			$.each(lines, function(idx, my_line){
+				UserInfoDisplay = UserInfoDisplay + my_line.replace(/\[.*?\]/i, "</p>&#13");
+			});
+	  }
+	  if (UserInfoDisplay != "")
+	  {
+		  UserInfoDisplay = UserInfoDisplay.replace("Warn User: ", '<p style="color: #BA4A00">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Error User: ", '<p style="color: #E60000">')
+		  UserInfoDisplay = UserInfoDisplay.replace("Info User: ", '<p>')
+		  $("#s4UserInfoText").empty();
+		  $("#s4UserInfoText").append(UserInfoDisplay);
+		  $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4UserInfo").width() / 2)});
+		  $('body').append('<div id="mask"></div>');
+		  $("#s4UserInfo").fadeIn(300);
+		  $('#mask').fadeIn(300);
+		  var lbl = $(this);
+		  $("#s4UserInfoOK").unbind();
+		  $("#s4UserInfoOK").on("click", function () {
+			 dlgFadeout();
+			 //ADD OK RESULT HERE
+		  });
+	  }
       if (data.success) {
          $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
 		 //WIN TODO: \\ in next line
@@ -334,8 +817,10 @@ var postFireUpAnalysisAndWait = function () {
             //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
             //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
          }
+		 R_returned_error = true;
+		 $("#s4btnb").prop("disabled", false);
       }
-	  analysis_finished = true;
+	  if (!R_returned_error) analysis_finished = true;
    }).fail(function (jqXHR, textStatus, errorThrown) {
    	toggleCurrentSectionSpinner();
       $("#server_feedback").empty();
@@ -416,10 +901,38 @@ var postParameters = function (params) {
 				var mytmp = "#" + $(param_i).attr('id') +  " option:selected";
 				var tmp_i = 0;
 				$(mytmp).map(function () {
-					thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
-					thedata.append("explbl" + (tmp_i + 1) + "def", "");
-					// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
-					tmp_i++;
+					if (!AllowMergeLabels)
+					{
+						thedata.append("explbl" + (tmp_i + 1) + "name", $(this).text());
+						thedata.append("explbl" + (tmp_i + 1) + "def", "");
+						// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+						tmp_i++;	
+					}
+					else
+					{
+						var my_temp_text = $(this).text();
+						if($.inArray(my_temp_text, AuthenticItemsinRename) != -1)
+						{
+							thedata.append("explbl" + (tmp_i + 1) + "name", my_temp_text);
+							thedata.append("explbl" + (tmp_i + 1) + "def", "");
+							// console.log("each at 354 " + $("#explbl" + (tmp_i + 1) + "name_").val());
+							tmp_i++;
+						}
+						else
+						{
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if(my_row[1] == my_temp_text)
+								 {
+									thedata.append("explbl" + (tmp_i + 1) + "name", my_row[0]);
+									thedata.append("explbl" + (tmp_i + 1) + "def", "");
+									tmp_i++;
+								 }
+							 });						
+						}
+	
+					}
+
 				});
 			}
 			else
@@ -434,14 +947,19 @@ var postParameters = function (params) {
          tmp[$(param_i).attr('name')] = theval;
       }
    });
-	for (var pair of thedata.entries()) {
-		// console.log(pair[0]+ ', ' + pair[1]); 
-	}
+	// for (var pair of thedata.entries()) {
+		// // console.log(pair[0]+ ', ' + pair[1]); 
+	// }
    dumpExpParamSQL(tmp);
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
+   thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
+   thedata.append("AllowLS", AllowLS ? "T" : "F");
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
+   if(AllowMergeLabels) thedata.append("Rename_Array", gen_RenameFile(RenameArray));
+   if(AllowLS) thedata.append("LabelSwapArray", gen_LSArray(LabelSwapArray));
    thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
+   thedata.append("All_MQ_Labels", my_all_mq_labels);
    $.ajax({
       url: cgi_bin_path + 'upload_parameters.php', //Server script to receive parameters
       type: 'POST',
@@ -566,10 +1084,30 @@ var validateParameters = function (params) {
 	{
 		setItemAttrColor("#conditions_list", "border", "#E60000");
 	}
-   return (nInvalid == 0 && tmp_i > 1);
+	var found_cond = false;
+	if ($("#expquantfilt").prop("checked") == true)
+	{
+		var my_text = $("#expquantfiltlbl option:selected").text();
+		$("#conditions_list > option:selected").each(function() {
+			if (this.text == my_text)
+			{
+				found_cond = true;
+			}
+		});
+		if (found_cond == false)
+		{
+			setItemAttrColor("#expquantfiltlbl", "border", "#E60000");
+		}
+	}
+	else
+	{
+		found_cond = true;
+	}
+
+   return (nInvalid == 0 && tmp_i > 1 && found_cond);
 }
 
-// reset "counters"/states
+// reset "counters"/states reset state(false) is called whenever the program starts from the very beggining
 var resetState = function (uploading_new_file = false) {
    unsuccessfullyUploadedFiles = {};
    uploadEfforts = {};
@@ -601,6 +1139,21 @@ var resetState = function (uploading_new_file = false) {
 		RawFileConditions = [];
 		isLabelFree = false;
 		LFQconditions = [];
+		isIsobaricLabel = false;
+		RenameFromTestData = false;
+		LabelSwapArray = [];
+		LSselected_raws = [];
+		LS_counters_per_Add = [];
+		my_all_mq_labels = "";
+		itemsToRename = [];
+		AuthenticItemsinRename = [];
+		RenameArray = [];
+		AppendNewLabels = false;
+		analysis_finished = false;
+		datatestOK_clicked = false;
+		tmp_nToUpload = 0;
+		my_lbls_toselect = [];
+
 	}
 	
    nUploaded = uploaded_files;
@@ -779,7 +1332,7 @@ types_of_files_uploaded.push(data.file_type);
 					// $("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
 				   // // $("#explbl1name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
 				   // // $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
-				   $("#s3advparams select[name='expquantfiltlbl']").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
+				   $("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
                });
 				addFormLabel();
 			   AddedLabels = true;
@@ -864,7 +1417,9 @@ var ons22btnfclick = function()
 		{
 			$("#conditions_list").append("<option value='" + my_un_cond + "' style='padding: 2px; font-size: 125%;' selected='true'>" + my_un_cond + "</option>");
 		});
-
+		select_labels_according_to_test_dataset();
+		if(AllowMergeLabels) InitializeRename();
+		create_my_all_mq_labels();
 	}
 }
 var onShowDialog = function (selector){
@@ -900,33 +1455,54 @@ var addFormLabel = function()
 			}
 			if (methods_mismatch == true)
 			{
-				console.log("Methods mismatch in rearranging maxquant labels!!");
+				// console.log("Methods mismatch in rearranging maxquant labels!!");
 			}
 			peptideLabelsNamesFromFile = data.labels;
 		}
 		if (peptideLabelsNamesFromFile.length > 0) {
-		  $.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
-				$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
-				// $("#conditions_list").after("<select class='hidden' data-required='true' id='explbl" + (idx + 1) + "name_' name='explbl" + (idx + 1) + "name'></select></td><td><input data-required='true' id='explbl" + (idx + 1) + "definition' name='explbl" + (idx + 1) + "def' type='text' placeholder='Definition' readonly" + " class='hidden'" + "/>")
-				// $.each(peptideLabelsNamesFromFile, function (idx2, lblname_i2) {
-					// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
-				// });
-		  });
+			if(!AllowMergeLabels)
+			{
+				$.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+					$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+				});
+			}
+			else{
+				if (!RenameFromTestData)
+				{
+					$.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+						$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+					});
+					InitializeRename();
+				}
+			}
+			select_labels_according_to_test_dataset();
+		  create_my_all_mq_labels();
 		  //Inform ProteoSign if this file is a reporter-ion derived file
 		  isIsobaricLabel = data.isIsobaricLabel;
-		  $("#adv_parameters_div").show();
+		  $("#s3QuantitationFiltering").show();
 	   } else {
 	//label-free case
 		  if (peptideLabelsFromFile.length > 0) {
-			  $.each(peptideLabelsFromFile, function (idx, lblname_i) {
-					$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
-					// $("#conditions_list").after("<select class='hidden' data-required='true' id='explbl" + (idx + 1) + "name_' name='explbl" + (idx + 1) + "name'></select></td><td><input data-required='true' id='explbl" + (idx + 1) + "definition' name='explbl" + (idx + 1) + "def' type='text' placeholder='Definition' readonly" + " class='hidden'" + "/>")
-					// $.each(peptideLabelsNamesFromFile, function (idx2, lblname_i2) {
-						// $("#explbl" + (idx + 1) + "name_").append("<option value='" + lblname_i2 + "'>" + lblname_i2 + "</option>");
-					// });
-			  });
+				if(!AllowMergeLabels)
+				{
+				  $.each(peptideLabelsFromFile, function (idx, lblname_i) {
+						$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+				  });
+				}
+				else
+				{
+					if(!RenameFromTestData)
+					{
+						$.each(peptideLabelsFromFile, function (idx, lblname_i) {
+							$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+						});
+						InitializeRename();
+					}
+				}
+				select_labels_according_to_test_dataset();
+			  create_my_all_mq_labels();
 			  //hide the advanced parameters (Quantitation filtering) in case we have label-free data
-			  $("#adv_parameters_div").hide();
+			  $("#s3QuantitationFiltering").hide();
 		  }
 	   }
 	   // label-free case
@@ -1141,6 +1717,77 @@ var postTestDatasetInfo = function (dataset_desc) {
 					  if (isLabelFree == true) $(tds[4])["0"].style = "text-decoration: line-through";
 				  }
                }
+			   if (typeof data.queryres.option !== "undefined")
+			   {
+				for (var i = 0; i< data.queryres.option.length; i++)
+				{
+					switch (data.queryres.option[i])
+					{
+						//For the extra options:
+						case "Rename":
+							//The following automates the load of a test dataset that contains merged labels:
+							if(!AllowMergeLabels) break;
+							RenameArray = [];
+							AuthenticItemsinRename = [];
+							var my_val = data.queryres.opt_value[i];
+							var lines = my_val.split("||");
+							$.each(lines, function(idx, my_line){
+								var my_values = my_line.split("|");
+								RenameArray.push(my_values);
+								AuthenticItemsinRename.push(my_values[0]);
+							});
+							RenameFromTestData = true;
+							Refresh_conds_list();
+							break;
+						case "LS_Array":
+							//The following automates the loading of a dataset that contains label swap, specifically it builds the LabelSwapArray
+							if(!AllowLS) break;
+							LabelSwapArray = [];
+							var my_val = data.queryres.opt_value[i];
+							var lines = my_val.split("||");
+							$.each(lines, function(idx, my_line){
+								var my_values = my_line.split("|");
+								var to_add = [];
+								to_add.push(my_values[0]);
+								to_add.push(my_values[1]);
+								to_add.push(my_values[2]);
+								to_add.push(parseInt(my_values[3]));
+								LabelSwapArray.push(to_add);
+							});
+							LS_array_counter = lines.length;
+							break;
+						case "LS_c_p_Add":
+							//The following builds the LS_counters_per_Add array:
+							if(!AllowLS) break;
+							LS_counters_per_Add = [];
+							var my_val = data.queryres.opt_value[i];
+							var lines = my_val.split("||");
+							$.each(lines, function(idx, my_line){
+								var my_values = my_line.split("|");
+								//my_values loads 5 values: the first one is the LS assignment's description, the second and third are the first and last indices of rows in LabelSwapArray that correspond to the specific assignment. The 4th and 5th are the two labels that are swapped
+								var to_add = [];
+								to_add[0] = my_values[0];
+								to_add[1] = [];
+								for(var i = parseInt(my_values[1]); i<= my_values[2]; i++)
+								{
+									to_add[1].push(i);
+								}
+								to_add[2] = [];
+								to_add[2].push(my_values[3]);
+								to_add[2].push(my_values[4]);
+								LS_counters_per_Add.push(to_add);
+								//Add the respective lines in LSLabelSwaps
+								$("#LSLabelSwaps").append("<option value='" + my_values[0] + "'>" + my_values[0] + "</option>");
+							});
+							break;
+						case "Select_Labels":
+							//Selectes only the labels that are written in the database
+							var my_val = data.queryres.opt_value[i];
+							my_lbls_toselect = my_val.split("|");
+							break;
+					}
+				}
+			   }
                set_reps();
 			   refresh_fractions();
 			   if (isLabelFree == true) refresh_LFQ_conditions_from_test_data();
@@ -1155,6 +1802,23 @@ var postTestDatasetInfo = function (dataset_desc) {
    });
 }
 
+var select_labels_according_to_test_dataset = function()
+{
+	if (my_lbls_toselect.length > 0 )
+	{
+		$("#conditions_list option").each(function(idx, my_opt)
+		{
+			if($.inArray($(my_opt).val(), my_lbls_toselect) != -1)
+			{
+				$(my_opt).prop("selected", true);
+			}
+			else
+			{
+				$(my_opt).prop("selected", false);
+			}
+		});
+	}
+}
 var refresh_LFQ_conditions_from_test_data = function()
 {
 	RawFileConditions_copy = RawFileConditions.slice();
@@ -1217,6 +1881,58 @@ var rawfiles;
 var rawfiles_structure;
 var rep_counts;
 var lastclicked_rawfiles_tbl_tr = null;
+
+//The following sub is for DEBUGGING purposes only, comment-out in deployment
+var add_raw_file_structure = function(tab_sep_string)
+{
+	//This function prints all file names if tab_rep_string == "" or sets the rawfile_structure otherwise
+	if(typeof(tab_sep_string) == "undefined" || tab_sep_string == "")
+	{
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		for (var i = 0; i < all_items.length; i++) {
+			var items_tds = $(all_items[i]).find('td');
+			console.log($(items_tds[0]).text() + "\n");
+		}
+		return;
+	}
+	rawfiles_structure = [];
+	var lines = tab_sep_string.split("\t\t");
+	$.each(lines, function(idx, my_line){
+		var my_vals = my_line.split("\t");
+		if(my_vals[0] == "rawfile")
+		{
+			return;
+		}
+		rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
+	});
+	
+	//Show everything back to the user
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		// console.log(all_items);
+		for (var i = 0; i < all_items.length; i++) {
+         var items_tds = $(all_items[i]).find('td');
+         var items_brep = items_tds[1];
+         var items_trep = items_tds[2];
+         var items_frac = items_tds[3];
+		 $.each(rawfiles_structure, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.rawfile == $(items_tds[0]).text())
+			 {
+				 $(items_brep).text(my_raw_file.biorep);
+				 $(items_trep).text(my_raw_file.techrep);
+				 $(items_frac).text(my_raw_file.fraction);
+				 if(my_raw_file.used == false)
+				 {
+					 $(items_tds[0])["0"].style = "text-decoration: line-through";
+				 }
+				 return false;
+			 }
+		 });
+		}
+		refresh_fractions();
+		set_s22btnf();
+}
+
 var reset_reps = function () {
    bioreps = 0;
    techreps = 0;
@@ -1367,7 +2083,6 @@ function set_s22btnf()
 	   $("#s22btnf").prop('disabled', true);
    }
 }
-
 var gen_expdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
@@ -1384,6 +2099,28 @@ var gen_lfqdesign = function (struct) {
    var ret = "";
    for (var i = 0; i < struct.length; i++) {
 		ret = ret + struct[i].name + "\t" + struct[i].condition + "\n"; 
+   }
+   // console.log("ret: " + ret);
+   return ret;
+}
+var gen_LSArray = function (struct) {
+   if(!AllowLS) return;
+   var ret = "";
+   for (var i = 0; i < struct.length; i++) {
+		ret = ret + struct[i][0] + "\t" + struct[i][1] + "\t" + struct[i][2] + "\n"; 
+   }
+   if (ret == "")
+   {
+	   ret = "This run contains\tno label\tswaps\n"
+   }
+   console.log("ret: " + ret);
+   return ret;
+}
+
+var gen_RenameFile = function (struct) {
+   var ret = "";
+   for (var i = 0; i < struct.length; i++) {
+		ret = ret + struct[i][0] + "\t" + struct[i][1] + "\n"; 
    }
    // console.log("ret: " + ret);
    return ret;
@@ -1510,15 +2247,30 @@ var getRSS = function (rssurl, renderelem) {
    });
 }
 
+var oncondslistclick = function(){
+	   if (AllowMergeLabels)
+	   {
+		   Refresh_conds_list_cmenu_items();	
+	   }
+}
+
 var dlgFadeout = function () {
    $(".expparamsDlg").fadeOut(300, function () {
       $('#mask').remove();
    });
 }
 
+var dlgFadeoutInfo = function () {
+   $(".expparamsDlgInfo").fadeOut(300, function () {
+      $('#maskInfo').remove();
+   });
+}
+
+var label_context_menu;
 
 $(document).ready(function () {
 	// 	document.getElementById("s2LFQConditionsNew").onkeydown = inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20);
+   if(!AllowLS)  $("#s3showdivLabelSwapRow").hide();
    var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
    var backward_buttons = getItems("button.main", /s[0-9]+btnb/);
    // Binds the click event to "toggleNextClass" for each "forward button" (button with class button.main and id /s[0-9]+btnf/) 
@@ -1544,9 +2296,12 @@ $(document).ready(function () {
    });
    // Bind event when file(s) is/are chosen
    $("#__s2btnupld").change(function () {
+		if ($("#__s2btnupld").val() == "") {
+			return;
+		}
       var fnames = "";
        //$("#s2uluploaders > table").empty();
-	   // console.log("files: " + this.files.length)
+	   //console.log("files: " + this.files.length)
       if (this.files.length > 0) {
 //Start uploading ...
          uploadingFiles = this.files;
@@ -1623,6 +2378,7 @@ $(document).ready(function () {
       } else {
          //$("#s2btnf").prop('disabled', true);
       }
+		$("#__s2btnupld").val("");
    });
    //Toggle visibility of table with advanced params
    $("#s3showhideadvparams").on("click", function () {
@@ -1636,7 +2392,19 @@ $(document).ready(function () {
          $("#s3advparams").addClass("hidden");
          $(this).text(txt.replace("Hide", "Show"));
       }
-   });
+   });  
+   $("#s3showdivLabelSwap").on("click", function () {
+	    if(!AllowLS) return;
+	   	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#divLabelSwap").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#divLabelSwap").fadeIn(300);
+		$('#mask').fadeIn(300);
+		$("#LSBack").on("click", function () {
+			 dlgFadeout();
+			 //ADD BACK RESULT HERE
+		});
+		InitializeLS();
+   }); 
    //Add functionality of add/remove labels buttons
    $("#btnAddLabel").on("click", addFormLabel);
    $("#btnRemLabel").on("click", removeFormLabel);
@@ -2068,8 +2836,67 @@ $(document).ready(function () {
 			ui.menu.zIndex(9999);
 		}
 	  });
-  
-  
+		if(AllowMergeLabels){
+		 label_context_menu = $('#conds_list_container').contextmenu({
+			 delegate: ".conditions_list",
+			 menu: [
+				{title: "Same Condition", cmd: "same_cond"},
+				{title: "Restore Conditions", cmd: "restore_conds"}
+			 ],
+			 select: function(event, ui) {
+				 switch(ui.cmd){
+					 case "same_cond":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						// console.log(my_items);
+						$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#condsadvancedDlg").width()/2)});
+						$('body').append('<div id="mask"></div>');
+						$("#condsadvancedDlg").fadeIn(300);
+						$('#mask').fadeIn(300);
+						$("#s3AdvancedOK").on("click", function () {
+							 dlgFadeout();
+							 if($("#s3AdvNewCondition").val() == "") return;
+							 $.each(RenameArray, function(idx, my_row)
+							 {
+								 if($.inArray(my_row[0], itemsToRename) != -1)
+								 {
+									 RenameArray[idx][1] = $("#s3AdvNewCondition").val();
+								 }
+							 });
+							 // console.log(RenameArray);
+							 $("#s3AdvNewCondition").val("");
+							 RenameFromTestData = false;
+							 Refresh_conds_list();
+							 //ADD OK RESULT HERE
+						});
+						$("#s3AdvancedCancel").on("click", function () {
+							 dlgFadeout();
+							 //ADD cancel RESULT HERE
+						});
+						break;
+					 case "restore_conds":
+						itemsToRename = [];
+						$("#conditions_list option:selected").each(function(){ itemsToRename.push($(this).val());});
+						$.each(RenameArray, function(idx, my_row)
+						 {
+							 if($.inArray(my_row[1], itemsToRename) != -1)
+							 {
+								 RenameArray[idx][1] = RenameArray[idx][0];
+							 }
+						 });
+						 RenameFromTestData = false;
+						 Refresh_conds_list();
+						break;
+				 }
+			 },
+			 beforeOpen: function(event, ui) {
+				var $menu = ui.menu,
+					$target = ui.target,
+					extraData = ui.extraData;
+				ui.menu.zIndex(9999);
+			}
+		 });
+		}
    $('#rawfiles_tbl_allfiles').css({border: 'none'});
    $('#rawfiles_tbl_allfiles').css({margin: '0px'});
    $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
@@ -2113,7 +2940,10 @@ $(document).ready(function () {
 	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
 	$("#conditions_list").mousedown(function(e){
 		e.preventDefault();
-
+		if (event.which == 3)
+		{
+			return;
+		}
 		var select = this;
 		var scroll = select .scrollTop;
 
@@ -2123,6 +2953,7 @@ $(document).ready(function () {
 
 		$(select ).focus();
 	}).mousemove(function(e){e.preventDefault()});
+	
    // TEST DATA INIT
    postTestDatasetsInfo();
    //

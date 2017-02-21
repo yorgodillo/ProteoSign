@@ -36,7 +36,7 @@
 				<p>
 				<dl style="font-family: 'Courier New'; font-size: 75%; padding-left: 5%;">
 					<dt>Input file support:</dt>
-					<dd>&#8212 <a href="http://www.google.com/search?q=Thermo%20Proteome%20Discoverer&btnI" target="_blank">Proteome Discoverer&#8482</a> (PD) v1.4+ PSM file.<span class="tooltip" style="position: relative">?<div style="left: -25em; min-width: 50em;"><img class="callout" src="images/callout_black.gif" style="margin-left: 24.3em"/>The <em>peptide spectrum match</em> (PSM) file, comprising the necessary information required for protein quantitation, has to be produced manually through the PD desktop application (see the <em>Export&#x2192;To Text</em> option under the <em>File</em> menu).<p>The PSM file must be created from within a PD report which combines the information from all relevant MS analyses (i.e. replicates, conditions etc). Such a PD report is sometimes required to be created based on separate reports and is referred to as a multi-consensus report.</p><p>Before exporting the information, please <strong>disable</strong> peptide grouping and edit the report's <em>Quantification&nbsp;Method</em> by configuring the <em>Ratio&nbsp;Calculation</em> parameters as shown below. The following screen-shots show where the aforementioned changes can be made from within the PD application.</p><figure style="float: left; width: 49%; margin: 0 auto;"><img src="images/pdpepgroup.png" style="width: 100%;"/><figcaption style="text-align: center;">Disabling peptide grouping.</figcaption></figure><figure style="float: right; width: 49%; margin: 0 auto;"><img src="images/pdquantmeth.png" style="width: 100%;"/><figcaption style="text-align: center;">Editing ratio calculation parameters.</figcaption></figure></div></span></dd>
+					<dd>&#8212 <a href="http://www.google.com/search?q=Thermo%20Proteome%20Discoverer&btnI" target="_blank">Proteome Discoverer&#8482</a> (PD) v1.4+ PSM file.<span class="tooltip" style="position: relative">?<div style="left: -25em; min-width: 50em;"><img class="callout" src="images/callout_black.gif" style="margin-left: 24.3em"/>The <em>peptide spectrum match</em> (PSM) file, comprising the necessary information required for protein quantitation, has to be produced manually through the PD desktop application (see the <em>Export&#x2192;To Text</em> option under the <em>File</em> menu).<p>The PSM file must be created from within a PD report which combines the information from all relevant MS analyses (i.e. replicates, conditions etc). Such a PD report is sometimes required to be created based on separate reports and is referred to as a multi-consensus report.</p><p>Before exporting the information, please <strong>disable</strong> peptide grouping and edit the report's <em>Quantification&nbsp;Method</em> by configuring the <em>Ratio&nbsp;Calculation</em> parameters as shown below. The following screen-shots show where the aforementioned changes can be made from within the PD application.</p><figure style="float: left; width: 49%; margin: 0 auto;"><img src="images/pdpepgroup_help.PNG" style="width: 100%;"/><figcaption style="text-align: center;">Disabling peptide grouping.</figcaption></figure><figure style="float: right; width: 49%; margin: 0 auto;"><img src="images/pdquantmeth_help.PNG" style="width: 100%;"/><figcaption style="text-align: center;">Editing ratio calculation parameters.</figcaption></figure></div></span></dd>
 					<dd>&#8212 <a href="http://www.google.com/search?q=Max%Planck%MaxQuant&btnI" target="_blank">MaxQuant</a> (MQ) v1.3.0.5+ 'proteinGroups' and 'evidence' files.</dd>
 					<dt><br>Experiment support:</dt>
 					<dd>&#8212 Label-free, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=15385600" target="_blank">iTRAQ</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12713048" target="_blank">TMT</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=12118079" target="_blank">SILAC</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=19053139" target="_blank">pulsed SILAC</a>, <a href="http://www.ncbi.nlm.nih.gov/pubmed/?term=19300442" target="_blank">dimethyl</a>.</dd>
@@ -131,15 +131,16 @@
 						<tr>
 							<td>&#8212 Conditions to compare </td>
 							<td></td>
-							<td>
-								<select name = "conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple>
+							<td id="conds_list_container">
+								<select name = "conditions_list" class="conditions_list" onclick="onlistclick()" id = "conditions_list" style="width: 100%" multiple oncontextmenu="return false;" onmouseup="oncondslistclick()">
+								
 									
 								</ul>
 							</td>
 						</tr>
 					</table>
 					<div id="adv_parameters_div"> <!-- WARNING!! in case we add another advanced parameter other than Quantitation filtering change script.js function addformlabel so that if label-free data are detected, only Quantitation filtering will be hidden and not advanced parameters as a whole -->
-					<p><u class="astyle" id="s3showhideadvparams">Show advanced parameters</u></p>
+					<u class="astyle" id="s3showhideadvparams">Show advanced parameters</u>
 					<table id="s3advparams" class="hidden" style="border-spacing: 5px 5px;">
 						<tr class="hidden">
 							<td>&#8212 Protein (as opposed to peptide) quantitation?</td>
@@ -156,21 +157,23 @@
 							<td></td>
 							<td><select id="explbl0name_" name="explbl0"></select></td>
 						</tr>
-						<tr>
+						<tr id="s3QuantitationFiltering">
 							<td>&#8212 Quantitation filtering?</td>
 							<td><span class="tooltip">?<span><img class="callout" src="images/callout_black.gif" /><strong>Warning!</strong><br><u>For labelled experiments only</u>. If enabled, two options will become available: <strong>a)</strong> singlets (peptides with no signal at the MS level in all but one labelled version) can be excluded from protein quantitation (this is referred to as <u>peptide-level filtering</u>).<br><strong>b)</strong> Proteins identified just by peptides with a certain label can be excluded from the analysis (this is referred to as <u>protein-level filtering</u>).</span></span></td>
-							<td><input name="expquantfilt" type="checkbox"/></td>
+							<td><input name="expquantfilt" id="expquantfilt" type="checkbox"/></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Filtering based on which label?</td>
 							<td><span class="tooltip2">?<span><img class="callout2" src="images/callout_black.gif" />The singlet label.</span></span></td>
-							<td><select name="expquantfiltlbl"></select></td>
+							<td><select name="expquantfiltlbl" id = "expquantfiltlbl" onclick="onexpquantfiltlblclick()"></select></td>
 						</tr>
 						<tr class='hidden'>
 							<td>&#8212 Type of filtering: Peptide-level (as opposed to protein-level)?</td>
 							<td><input name="expquantfiltprot" type="checkbox"/></td>
 						</tr>
-						
+						<tr id = "s3showdivLabelSwapRow">
+							<td>&#8212 <u class = "astyle" id="s3showdivLabelSwap">Label Swap options...</u>
+						</tr>
 					</table>
 					</div>
 				</div>
@@ -254,6 +257,68 @@
 				<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s2LFQConditionsCancel">Cancel</button>
 			</div>			
 		</div>	
+		
+		<div class="expparamsDlg" id="s4UserInfo" style="width: 600px">
+			<div style="text-align: center;">
+				<span style="font-size: 100%;"><strong>ProteoSign</strong> says:</span>
+				<div style="text-align: left; font-size: 85%;" id= "s4UserInfoText"></div>
+				<br>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="s4UserInfoOK">Discard</button>
+			</div>			
+		</div>
+		
+		<div class="expparamsDlg" id="condsadvancedDlg" style="width: 350px">
+			<div style="text-align: center;">
+				<span style="font-size: 85%;">Please type the Name of the <strong>New condition:</strong></span>
+				<input id="s3AdvNewCondition" placeholder="New Condition" style="width:70%" onkeypress="inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',10);"></input>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="s3AdvancedOK">OK</button>
+			<button type="button" class="main inline" style="font-size: 80%; margin-left: 1em" id="s3AdvancedCancel">Cancel</button>
+			</div>	
+		</div>
+		<div class="expparamsDlg" id="divLabelSwap" style="width: 450px">
+		<div name="LStitlediv" style="text-align: center; display: block; align-items: center; position: relative; border-bottom-style: solid; padding-bottom: 10px;">
+		<span ><strong>Label Swap Assignment</strong></span>
+		</div>
+			<div name="LS1stdiv" style="text-align: center; display: block; align-items: center; position: relative; border-bottom-style: solid;">
+				<span style="font-size: 85%; display: block; align-items: center; margin-bottom: 10px; margin-top: 10px;">Please select the <strong>Biological</strong> and <strong>Technical</strong> replicate where labels were swapped</span>
+				<div style="position: relative;">
+					<select class="inline" id="LSbrep" style="min-width: 50px; width: 87px; align-items: center; vertical-align: middle;" onchange="onLSrepchange();" onclick="onLSrepclick();"></select>
+					<select class="inline" id="LStrep" style="min-width: 50px; width: 87px; align-items: center; vertical-align: middle;" onchange="onLSrepchange();" onclick="onLSrepclick();"></select>
+					<span class="inline" style="font-size: 80%; top:50%;">Raw files affected:</span>
+					<select name = "LSRawFilesList" class="LSRawFilesList inline" id = "LSRawFilesList" style="width: 33%; height:70px; align-items: center; vertical-align: middle;" multiple></select>
+				</div>
+			</div>
+			<div name="LS2nddiv" style="text-align: center; display: block; border-bottom-style: solid;">
+				<span style="font-size: 85%; display:block; margin-top:10px; margin-bottom: 10px;">&nbsp Then, select the <strong>Labels</strong> that were swapped and click <strong>Add</strong> to assign the swap</span>
+				<select class="inline" id="LSfirstlabel" style="min-width: 50px; width: 75px; vertical-align: middle;" onchange="onLSlabelchange();"></select>
+				<img src="images/swap_arrows.png" class="inline" style="height:20px; vertical-align: middle;"/>
+				<select class="inline" id="LSsecondlabel" style="min-width: 50px; width: 75px; vertical-align: middle;" onchange="onLSlabelchange();"></select>
+				<button type="button" class="main inline" style="font-size: 80%; margin-bottom: 10px;" id="LSAdd" onclick="onLSAddclick();">Add</button>
+			</div>
+			<div name="LS3rddiv" style="text-align: center; display: block; padding-top: 10px;">
+				<span style="font-size: 85%; vertical-align: middle;">Current label swaps assigned:</span>
+				<select name = "LSLabelSwaps" class="LSLabelSwaps inline" id = "LSLabelSwaps" style="width: 40%; vertical-align: middle; margin-top: 10px;" multiple onclick="onLSLabelSwapsclick();"></select>
+				
+				<button type="button" class="main inline" style="font-size: 80%;" id="LSRemove" onclick="onLSRemoveclick();">Remove</button>
+			</div>
+			<div name="LSbuttondiv" class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%; width: 50px" id="LSBack" onclick="onLSbackclick();">Back</button>
+			</div>	
+		</div>	
+		
+		<div class="expparamsDlgInfo" id="VariousInfoDialog" style="width: 350px">
+			<div style="text-align: center;">
+				<div id="InfoDiv" style="font-size: 85%;"></div>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="VIDDiscard" onclick="onVIDDiscard_click();">Discard</button>
+			</div>	
+		</div>
+		
 		
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/jquery.dataTables.min.js"></script>

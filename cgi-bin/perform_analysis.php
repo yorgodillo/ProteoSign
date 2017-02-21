@@ -9,6 +9,7 @@ $server_response['R_success'] = false;
 $server_response['R_dump'] = "";
 $server_response['dump'] = "";
 $server_response['ret_session'] = $_POST["session_id"];
+$server_response['UserInfo'] = "";
 
 $session_folder = $_POST["session_id"];
 $document_root = dirname(__DIR__);
@@ -34,6 +35,8 @@ copy($cgibin_dir . '/MSdiffexp.R', $upload_dir . '/msdiffexp_wd/MSdiffexp.R');
 rename('MSdiffexp_definitions.R', 'msdiffexp_wd/MSdiffexp_definitions.R');
 rename('exp_struct.txt', 'msdiffexp_wd/exp_struct.txt');
 rename('LFQ_conditions.txt', 'msdiffexp_wd/LFQ_conditions.txt');
+if ($_POST["AllowMergeLabels"] == "T") rename('Rename_array.txt', 'msdiffexp_wd/Rename_array.txt');
+if ($_POST["AllowLS"] == "T") rename('LS_array.txt', 'msdiffexp_wd/LS_array.txt');
 rename('msdiffexp_peptide.txt', 'msdiffexp_wd/msdiffexp_peptide.txt');
 if(file_exists('msdiffexp_protein.txt'))
 {
@@ -52,6 +55,9 @@ if ($R_logfile) {
       $server_response['dump'] = $server_response['R_dump'];
    } else {
       $server_response['R_success'] = true;
+   }
+   if (preg_match_all("/(Warn User:.*|Error User:.*|Info User:.*)/", $R_logfile, $r_logfile_error_lines) > 0) {
+	   $server_response['UserInfo'] .= implode(array_values($r_logfile_error_lines[1]), "\t\t");
    }
 }
 if (!file_exists("msdiffexp_out"))

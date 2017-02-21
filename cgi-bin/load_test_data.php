@@ -70,6 +70,19 @@
 			//echo "\n";
 		}
 		$qres->finalize();
+		$qres = $db->query('select option,opt_value from extra_options inner join dataset on dataset.id=extra_options.dataset_id where dataset.desc="' . $_POST["dataset_info_requested"] . '"');
+		if(!$qres){
+			$server_response['msg'] = "Failed to query the database: " . $sqlite->lastErrorMsg();
+			goto end;		
+		}
+		while($qrow = $qres->fetchArray(SQLITE3_ASSOC)){
+			foreach($qrow as $col => $val){
+				$server_response['queryres'][$col][] = $val;
+				//echo $col . ": " . $val . " ";
+			}
+			//echo "\n";
+		}
+		$qres->finalize();
 	}
 	
 	$db->close();
