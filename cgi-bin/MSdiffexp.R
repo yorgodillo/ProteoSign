@@ -15,6 +15,7 @@ options(warn=1)
 # if(!require("gtools")){ install.packages("labeling", repos="http://cran.fhcrc.org") }
 # # WARNING! please install version 1.9.6 of data.table package!
 # if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
+# if(!require("data.table")){ install.packages("data.table", repos="http://cran.fhcrc.org") }
 # if(!require("outliers")){ install.packages("outliers", repos="http://cran.fhcrc.org") }
 # if(!require("pryr")){ install.packages("pryr", repos="http://cran.fhcrc.org") }
 # #if(!require("devtools")){ { install.packages("devtools", repos="http://cran.fhcrc.org") }
@@ -345,13 +346,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     }else{
       if(!PDdata)
       {
-        myxlab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
-        myxlab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+        myxlab <- paste("average log2 ", ratio_i_str, sep="")
+        myxlab <- gsub("Reporter\\.intensity\\.", "Reporter ", myxlab)
       }else{
-        myxlab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
+        myxlab <- paste("average log2 ",ratio_i_str ,sep="")
         myxlab <- gsub("X([[:digit:]])", "\\1", myxlab)
       }
     }
+    myxlab <- gsub("\\.", "/", myxlab)
     p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.75) +
       theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
@@ -377,6 +379,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
       geom_text(size=5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000") 
     print(p)
     dev.off()
+    
     # 2 - value-ordered - log ratio
     levellog("Making value-ordered plot ...")
     figsuffix<-paste("_",ratio_i_str,"-value-ordered-log-ratio","_",sep="")
@@ -398,14 +401,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     }else{
       if(!PDdata)
       {
-        myylab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
-        myylab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+        myylab <- paste("average log2 ", ratio_i_str, sep="")
+        myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
       }else{
-        myylab <- paste("average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),sep="")
-        myylab <- gsub("X([[:digit:]])", "\\1", myxlab)
+        myylab <- paste("average log2 ", ratio_i_str, sep="")
+        myylab <- gsub("X([[:digit:]])", "\\1", myylab)
       }
     }
-    
+    myylab <- gsub("\\.", "/", myylab)
     p<-ggplot(data=results, aes_string(x="nID", y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.5) +
       geom_errorbar(aes_string(ymin=ratio_i_avg_col_ymin, ymax=ratio_i_avg_col_ymax), width=1.5) +
@@ -434,14 +437,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     }else{
       if(!PDdata)
       {
-        myylab <- paste("A (average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),")",sep="")
-        myylab <- gsub("Reporter\\.intensity", "Reporter", myxlab)
+        myylab <- paste("A (average log2 ", ratio_i_str, ")", sep="")
+        myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
       }else{
-        myylab <- paste("A (average log2 ",sub("([[:digit:]])\\.","\\1/",ratio_i_str),")",sep="")
-        myylab <- gsub("X([[:digit:]])", "\\1", myxlab)
+        myylab <- paste("A (average log2 ",ratio_i_str,")",sep="")
+        myylab <- gsub("X([[:digit:]])", "\\1", myylab)
       }
     }
-    
+    myylab <- gsub("\\.", "/", myylab)
     p<-ggplot(data=results, aes_string(x=ratio_i_avgI_col, y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
       geom_point(alpha=0.7, size=1.75) +
       theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
@@ -465,14 +468,14 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
       colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))
     }else{
       if(!PDdata){
-        colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("([[:digit:]])\\.","\\1/",ratio_i_str),") ",sep=""),colnames(allratios))
-        colnames(allratios) <- gsub("Reporter\\.intensity", "Reporter", colnames(allratios))
+        colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
+        colnames(allratios) <- gsub("Reporter\\.intensity\\.", "Reporter ", colnames(allratios))
       }else{
-        colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("([[:digit:]])\\.","\\1/",ratio_i_str),") ",sep=""),colnames(allratios))
+        colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
         colnames(allratios) <- gsub("X([[:digit:]])", "\\1", colnames(allratios))
       }
     }
-    
+    colnames(allratios) <- gsub("\\.", "/", colnames(allratios))
     if(exportFormat == "pdf"){
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
     }
@@ -855,9 +858,13 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
         Rename_Array$old_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$old_label)
         Rename_Array$new_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$new_label)
       }
-      
+      if (AllowLS == T)
+      {
+        Ls_array$first_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  Ls_array$first_label)
+        Ls_array$second_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  Ls_array$second_label)
+      }
       LabelFree<-T;
-      filterL_lbl <- paste0("Reporter.intensity.", filterL_lbl)
+      filterL_lbl <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  filterL_lbl)
     }
     else{
       evidence$Intensity <- NULL
@@ -869,9 +876,18 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
         Rename_Array$old_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$old_label)
         Rename_Array$new_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$new_label)
       }
-      filterL_lbl <- paste0("X", filterL_lbl)
+      if (AllowLS == T)
+      {
+        Ls_array$first_label <- sub("^([[:digit:]]*)$", "X\\1", Ls_array$first_label)
+        Ls_array$second_label <- sub("^([[:digit:]]*)$", "X\\1", Ls_array$second_label)
+      }
+      filterL_lbl <- sub("^([[:digit:]]*)$", "X\\1", filterL_lbl)
     }
   }
+  # #Erase all rows in rename_array that try to rename a label to an already existing
+  # mi<-which(Rename_Array$new_label %in% conditions.labels)
+  # Rename_Array <- Rename_Array[-mi,]
+  # Rename_Array <<- Rename_Array
   
   levellog(paste0("read.pgroups_v3: Identified proteins: ",length(unique(evidence$Protein.IDs))," (",time.point,")"))
   
@@ -954,16 +970,54 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   #Rename any labels if necessary
   if (AllowLabelRename == T)
   {
-    for(i in 1:length(Rename_Array$old_label))
+    if (length(Rename_Array$old_label) != 0)
     {
-      if(Rename_Array$old_label[i] != Rename_Array$new_label[i])
+      for(i in 1:length(Rename_Array$old_label))
       {
-        mi<-which(evidence$label_ == Rename_Array$old_label[i])
-        evidence$label_[mi] <- Rename_Array$new_label[i]
+        if(Rename_Array$old_label[i] != Rename_Array$new_label[i])
+        {
+          #The case where old label = new label is common since if the user did not ask for a label rename (merge) for a label
+          #this label is sent to be renamed in R to itself
+          #in any other case rename the labels that are merged to the same label so that they become indistinguishable
+          #and refresh the conditions labels by erasing the old label and adding the new if necessary
+          mi<-which(evidence$label_ == Rename_Array$old_label[i])
+          evidence$label_[mi] <- Rename_Array$new_label[i]
+          mi<-which(conditions.labels == Rename_Array$old_label[i])
+          if (length(mi) > 0)
+          {
+            conditions.labels <- conditions.labels[-mi]
+          }
+          mi<-which(conditions.labels == Rename_Array$new_label[i])
+          if (length(mi) == 0)
+          {
+            conditions.labels <- c(conditions.labels, Rename_Array$new_label[i])
+          }
+        }
+      } 
+      conditions.labels <<- conditions.labels
+      nConditions<<-length(conditions.labels)
+    }
+    #No condition can be named "N" in ProteoSign so take care of this scarce situation:
+    for(i in 1:length(conditions.labels)){
+      if(conditions.labels[i] == "N")
+      {
+        conditions.labels[i] <- "condN"
+        conditions.labels <<- conditions.labels
+        evidence$label_ <- sub("^N$", "condN", evidence$label_)
       }
     }
-    conditions.labels <<- unique(Rename_Array$new_label)
-    nConditions<<-length(conditions.labels)
+  }
+  
+  #Rename again the labels in case of label swapping
+  if (AllowLS == T)
+  {
+    for(i in 1:length(Ls_array$first_label))
+    {
+      mi1<-which(evidence[, rawfile_col] == Ls_array$selected_raw_file[i] & evidence$label_ == Ls_array$first_label[i])
+      mi2<-which(evidence[, rawfile_col] == Ls_array$selected_raw_file[i] & evidence$label_ == Ls_array$second_label[i])
+      evidence$label_[mi1] <- as.character(Ls_array$second_label[i])
+      evidence$label_[mi2] <- as.character(Ls_array$first_label[i])
+    }
   }
   levellog("",change=-1)
   mi<-which(is.na(evidence$label_))
@@ -1354,6 +1408,8 @@ LabelFree<-F
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/L2_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF/msdiffexp_wd/MSdiffexp_definitions.R")
 #source("/home/gefstathiou/Documents/ProteoSign/ProteoSign/uploads/LF_MQ/msdiffexp_wd/MSdiffexp_definitions.R")
+AllowLabelRename<-F
+AllowLS<-F
 source("MSdiffexp_definitions.R")
 
 perform_analysis<-function(){
@@ -1365,11 +1421,15 @@ perform_analysis<-function(){
   if(LabelFree)
   {
     #if labelfree load the lfq conditions structure
-    LFQ_conds<-read.table(LFQ_conditions_file, col.names=c('raw_file', 'condition'))
+    LFQ_conds<-read.table(LFQ_conditions_file, col.names=c('raw_file', 'condition'), stringsAsFactors = F)
   }
   if (AllowLabelRename == T)
   {
-      Rename_Array <<- read.table(Rename_Array_file, col.names=c('old_label', 'new_label'))
+      Rename_Array <<- read.table(Rename_Array_file, col.names=c('old_label', 'new_label'), stringsAsFactors = F)
+  }
+  if (AllowLS == T)
+  {
+    Ls_array <<- read.table(LS_Array_file, col.names=c('selected_raw_file', 'first_label', 'second_label'), stringsAsFactors = F)
   }
   #Because a condition can not be named "N" in ProteoSign, rename it to condN
   mi <- which(LFQ_conds$condition == "N")
@@ -1387,6 +1447,10 @@ perform_analysis<-function(){
       conditions.labels[i] <- "condN"
       conditions.labels <<- conditions.labels
     }
+  }
+  if(filterL_lbl == "N")
+  {
+    filterL_lbl <<- "condN"
   }
   #we will keep a copy of the original rep_structure to display in the graphs
   original_rep_structure <- rep_structure
@@ -1495,7 +1559,12 @@ perform_analysis<-function(){
     {
       conditions.labels[i] <- "N"
       conditions.labels <<- conditions.labels
+      colnames(protein_groups) <- sub("condN", "N", colnames(protein_groups))
     }
+  }
+  if(filterL_lbl == "condN")
+  {
+    filterL_lbl <<- "N"
   }
   #Rename condN back to N in lfq_conds and protein_groups
   mi <- which(LFQ_conds$condition == "condN")
