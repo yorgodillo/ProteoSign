@@ -88,37 +88,52 @@
               <br><br>
               Usage note: When multiple raw files are selected, if just the biological replicate is entered, the software will assume that the selected raw files are technical replicates of the entered biological replicate. If both the biological and technical replicates are entered, the software will assume that the selected raw files are fractions of the entered technical replicate.
             </dt>
-            <dd><img src="images/scrshot5_help.PNG"/></dd>
-			<dt><h3>Label Free conditions definition</h3>
-              In the case of Label Free data the figure on the right illustrates the condition assignment procedure: the user first selects the table rows (i.e. raw files) and - using the right click - selects <i>Assign Condition</i>. Also notice the extended functionality provided by this menu.
+            <dt><h3>Experimental design definition page (continued): Label-free experiments</h3>
+              In the case of label-free data, the figures on the right illustrate the condition assignment procedure: the user first selects the table rows (i.e. raw files) and by right-click, selects <i>Assign Condition</i> from the popup menu, after which he is asked to either define new condition or choose one defined previously.
             </dt>
-            <dd><img src="images/scrshotan1_help.PNG"/></dd>
-			<dt><h3>Label Free conditions definition (continued)</h3>
-              The user is then asked to type the <i>name</i> of the condition or select one he/she typed before. By pressing OK the condition is assigned to the selected raw files.
-            </dt>
+            <dd>
+              <figure style="width: 77%">
+                <img src="images/scrshot5_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+              <figure style="width: 77%; margin-top: 30px">
+                <img src="images/scrshotan1_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+            </dd>
             <dd><img src="images/scrshotan2_help.PNG"/></dd>
             <dt><h3>Experimental parameters definition page</h3>
               Here the user can enter some meta information regarding the experiment (<i>Experiment ID</i> and <i>Experiment description</i>) but most importantly choose the set of biological conditions/treatments to compare against each other. Typically all conditions are selected here via the <i>Conditions to compare</i> list. The <i>advanced parameters</i> section comprises options for filtering-out certain kinds of measurements. More details can be found by hovering the mouse over the question mark icon (at the actual page).
               <br><br>
               By clicking <i>Submit</i> the user initiates the statistical analysis.
             </dt>
-			<dd><img src="images/scrshot6_help.PNG"/></dd>
-			<dt><h3>Advanced Options</h3>
-              In case more than one labels was used for the same condition (usual in TMT experiments) the user can mark these labels and select <i>Same Condition</i> as illustrated on the picture using the right click. Afterwards, the user is asked to name the respective condition (e.g. Lung_ADC).
+		<dd><img src="images/scrshot6_help.PNG"/></dd>
+            <dt><h3>Advanced Options</h3>
+              In case more than one labels was used for the same condition (common in TMT experiments) the user can mark these labels and select <i>Same Condition</i> as illustrated on the picture by right-click. Afterwards, the user is asked to name the respective condition (e.g. Lung_ADC). The conditions that were labelled by more than one labels are always displayed in <strong>bold</strong>. In order to revert such a condition back to its original labels select <i>Restore Conditions</i>.
             </dt>
-            <dd><img src="images/scrshotan3_help.PNG"/></dd>
-			<dt><h3>Advanced Options (continued)</h3>
-              The conditions that were labelled by more than one labels are always displayed in <strong>bold</strong>. In order to expand such a condition back to its original labels select <i>Restore Conditions</i> as illustrated on the right.
+            <dd>
+              <figure style="width: 77%">
+                <img src="images/scrshotan3_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+              <figure style="width: 77%; margin-top: 30px">
+                <img src="images/scrshotan4_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+            </dd>
+            <dt><h3>Advanced Options (continued): Label swap</h3>
+              In the case of experiments where <i>label swap</i> is utilized,  the user should declare the swap by pressing <i>Label swap options...</i> as shown on the figure. Then, from within the popup window titled <i>Label Swap Assignment</i>, the user should specify the biological and technical replicates involved as well as the labels swaped by pressing the <i>Add</i> button. The list on the top-right shows the relevant raw files and the list at the bottom the declared label swaps.
             </dt>
-            <dd><img src="images/scrshotan4_help.PNG"/></dd>
-			<dt><h3>Advanced Options (label swap)</h3>
-              ProteoSign supports experiments that contain <i>label swap</i>. In such a case, the user should declare the swap by pressing <i>Label swap options...</i> as shown on the right.
-            </dt>
-            <dd><img src="images/scrshotan5_help.PNG"/></dd>
-			<dt><h3>Advanced Options (label swap)</h3>
-              Using the window <i>Label Swap Assignment</i> the user must specify the biological and technical replicate where the label swap has been done. Then, he/she must specify the labels that were swapped and press the <i>Add</i> button. The list on top shows the raw files that derive from the selected replicates and the one on the bottom the label swaps that the user has declared.
-            </dt>
-            <dd><img src="images/scrshotan7_help.PNG"/></dd>
+            <dd>
+              <figure style="width: 77%">
+                <img src="images/scrshotan5_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+              <figure style="width: 77%; margin-top: 30px">
+                <img src="images/scrshotan7_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+            </dd>	      
             <dt><h3>Statistical analysis wait page</h3>
               Here the user waits for the software to finish the statistical analysis, while presented with current <i>Nature Methods</i> articles hyperlinks. When the analysis is finished, the user is navigated automatically to the next page (see below).
             </dt>
