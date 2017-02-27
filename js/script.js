@@ -485,7 +485,7 @@ var onLSAddclick = function()
 	 to_add2[1] = ArrayOfIndices;
 	 to_add2[2] = [myfirstlabel, myseclabel];
 	 LS_counters_per_Add.push(to_add2);
-	 console.log(LabelSwapArray);	
+	 // console.log(LabelSwapArray);	
 	 $("#LSLabelSwaps").append("<option value='" + my_desc + "'>" + my_desc + "</option>");
 	 setItemAttrColor("#LSLabelSwaps", "border", "#DDDDDD");
 }
@@ -525,7 +525,7 @@ var onLSRemoveclick = function()
 	{
 		if($.inArray($(my_option).val(), options_to_erase) == -1)
 		{
-			console.log($(my_option).val());
+			// console.log($(my_option).val());
 			options_that_remain.push($(my_option).val());
 		}
 	});
@@ -549,7 +549,12 @@ var inputChCheck = function (e, repatt, maxCharacters) {
    var key = theEvent.keyCode || theEvent.which;
    var re = new RegExp(repatt);
    var srcelem = e.target || e.srcElement;
-   var txt = srcelem.value + String.fromCharCode(e.which);
+   var carposition = srcelem.selectionStart; // the carret position
+   if (srcelem.selectionEnd - srcelem.selectionStart >= 1)
+   {
+	   maxCharacters = 9999;
+   }
+   var txt = [srcelem.value.slice(0, carposition), String.fromCharCode(e.which), srcelem.value.slice(carposition)].join('');
    if (key === 8) {
       return;
    }
@@ -560,6 +565,39 @@ var inputChCheck = function (e, repatt, maxCharacters) {
 
 }
 
+var inputPasteCheck = function(e, repatt, maxCharacters)
+{
+	//this function makes sure that in case the user pastes data in a text box where character rules apply, the data will contain only valid characters
+	var re = new RegExp(repatt);
+	var srcelem = e.target || e.srcElement;
+	var carposition = srcelem.selectionStart; // the carret position
+	var clipboardData, pastedData;
+	e.preventDefault();
+	clipboardData = e.clipboardData || window.clipboardData;
+	pastedData = clipboardData.getData('Text'); //the data that the user tries to paste
+	if (pastedData == "") return;
+	//make sure that the data contain only valid characters, in case of invalid chars transform them to underscores
+	if (!re.test(pastedData))
+	{
+		pastedData = pastedData.replace(/[^a-zA-Z0-9]+/g, "_");
+	}
+	if(pastedData.slice(0,1) == "_")
+	{
+		pastedData = pastedData.slice(1);
+	}
+	var srcValue = srcelem.value;
+	if (srcelem.selectionEnd - srcelem.selectionStart >= 1)
+	{
+		srcValue = [srcValue.slice(0, srcelem.selectionStart), srcValue.slice(srcelem.selectionEnd)].join('');
+	}
+	//the text that will be produced will be:
+	var txt = [srcValue.slice(0, carposition), pastedData, srcValue.slice(carposition)].join('');
+	if(txt.length > maxCharacters)
+	{
+		txt = txt.slice(0, maxCharacters)
+	}
+	srcelem.value = txt;
+}
 var SwitchLFQList = function(e) {
    var theEvent = e || window.event;
    var srcelem = e.target || e.srcElement;
@@ -780,9 +818,9 @@ var postFireUpAnalysisAndWait = function () {
 	  }
 	  if (UserInfoDisplay != "")
 	  {
-		  UserInfoDisplay = UserInfoDisplay.replace("Warn User: ", '<p style="color: #BA4A00">')
-		  UserInfoDisplay = UserInfoDisplay.replace("Error User: ", '<p style="color: #E60000">')
-		  UserInfoDisplay = UserInfoDisplay.replace("Info User: ", '<p>')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Warn User: /g, '<p style="color: #BA4A00">')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Error User: /g, '<p style="color: #E60000">')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Info User: /g, '<p>')
 		  $("#s4UserInfoText").empty();
 		  $("#s4UserInfoText").append(UserInfoDisplay);
 		  $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4UserInfo").width() / 2)});
@@ -972,7 +1010,7 @@ var postParameters = function (params) {
    }).done(function (data, textStatus, jqXHR) {
 //if there was a server-side error alert.
       if (!data.success) {
-         alert("ERROR on SERVER: " + data.msg);
+         msgbox("ERROR on SERVER: " + data.msg);
       } else {
          postFireUpAnalysisAndWait();
       }
@@ -1648,7 +1686,7 @@ var postTestDatasetInfo = function (dataset_desc) {
    }).done(function (data, textStatus, jqXHR) {
 //if there was a server-side error alert.
       if (!data.success) {
-         alert("ERROR on SERVER: " + data.msg);
+         msgbox("ERROR on SERVER: " + data.msg);
       } else {
          uploadingFiles = data.queryres.file;
          if (uploadingFiles && uploadingFiles.length > 0) {
@@ -1710,11 +1748,11 @@ var postTestDatasetInfo = function (dataset_desc) {
 				  }
 				  if (data.queryres.used[i] == 0)
 				  {
-					  $(tds[0])["0"].style = "text-decoration: line-through";
-					  $(tds[1])["0"].style = "text-decoration: line-through";
-					  $(tds[2])["0"].style = "text-decoration: line-through";
-					  $(tds[3])["0"].style = "text-decoration: line-through";
-					  if (isLabelFree == true) $(tds[4])["0"].style = "text-decoration: line-through";
+					  $(tds[0]).css("text-decoration", "line-through");
+					  $(tds[1]).css("text-decoration", "line-through");
+					  $(tds[2]).css("text-decoration", "line-through");
+					  $(tds[3]).css("text-decoration", "line-through");
+					  if (isLabelFree == true) $(tds[4]).css("text-decoration", "line-through");
 				  }
                }
 			   if (typeof data.queryres.option !== "undefined")
@@ -1798,7 +1836,7 @@ var postTestDatasetInfo = function (dataset_desc) {
          }
       }
    }).fail(function (jqXHR, textStatus, errorThrown) {
-      alert("An AJAX error occurred: " + errorThrown);
+      msgbox("An AJAX error occurred: " + errorThrown);
    });
 }
 
@@ -1860,7 +1898,7 @@ var postTestDatasetsInfo = function () {
    }).done(function (data, textStatus, jqXHR) {
 //if there was a server-side error alert.
       if (!data.success) {
-         alert("ERROR on SERVER: " + data.msg);
+         msgbox("ERROR on SERVER: " + data.msg);
       } else if(data.queryres.desc) {
          var i = 1;
          $.each(data.queryres.desc, function (idx, dataset_desc)
@@ -1870,7 +1908,7 @@ var postTestDatasetsInfo = function () {
       }
 
    }).fail(function (jqXHR, textStatus, errorThrown) {
-      alert("An AJAX error occurred: " + errorThrown);
+      msgbox("An AJAX error occurred: " + errorThrown);
    });
 }
 
@@ -1923,7 +1961,7 @@ var add_raw_file_structure = function(tab_sep_string)
 				 $(items_frac).text(my_raw_file.fraction);
 				 if(my_raw_file.used == false)
 				 {
-					 $(items_tds[0])["0"].style = "text-decoration: line-through";
+					 $(items_tds[0]).css("text-decoration", "line-through");
 				 }
 				 return false;
 			 }
@@ -2113,7 +2151,7 @@ var gen_LSArray = function (struct) {
    {
 	   ret = "This run contains\tno label\tswaps\n"
    }
-   console.log("ret: " + ret);
+   // console.log("ret: " + ret);
    return ret;
 }
 
@@ -2269,6 +2307,7 @@ var dlgFadeoutInfo = function () {
 var label_context_menu;
 
 $(document).ready(function () {
+	
 	// 	document.getElementById("s2LFQConditionsNew").onkeydown = inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20);
    if(!AllowLS)  $("#s3showdivLabelSwapRow").hide();
    var forward_buttons = getItems("button.main", /s[0-9]+btnf/);
@@ -2337,7 +2376,7 @@ $(document).ready(function () {
 					 {
 						procProgram = "";
 						//Both MQ and PD files were uploaded:
-						alert("WARNING: Some of the files you uploaded are processed by MaxQuant and some by Proteome Discoverer, we are sorry to inform you that it is impossible to proceed.");
+						msgbox("WARNING: Some of the files you uploaded are processed by MaxQuant and some by Proteome Discoverer, we are sorry to inform you that it is impossible to proceed.");
 						$("#s2btnf").prop('disabled', true);
 						Files_valid = false;
 					 }
@@ -2358,7 +2397,7 @@ $(document).ready(function () {
 				 //If the user has uploaded more than one file from the same type alert them:
 				if ((procProgram == "MQ" && types_of_files_uploaded.filter(filterFunction).length > 2) 	|| (procProgram == "PD" && types_of_files_uploaded.filter(filterFunction).length > 1))
 				{
-					alert("WARNING: You uploaded too many files from " + procProgram + "! Please make sure you upload MultiConsensus files. Please refresh the current page and try again.");
+					msgbox("WARNING: You uploaded too many files from " + procProgram + "! Please make sure you upload MultiConsensus files. Please refresh the current page and try again.");
 					$("#s2btnf").prop('disabled', true);
 					Files_valid = false;
 				}
@@ -2372,7 +2411,7 @@ $(document).ready(function () {
 			}
 			else
 			{
-				alert("WARNING: At least one of the files chosen is oversized, we are sorry to inform you that it is impossible to proceed.");
+				msgbox("WARNING: At least one of the files chosen is oversized, we are sorry to inform you that it is impossible to proceed.");
 	         $("#s2btnf").prop('disabled', true);
 			}
       } else {
@@ -2544,11 +2583,11 @@ $(document).ready(function () {
             }
 			curr_used = true;
             rawfiles_structure.push({rawfile: $(items_tds[0]).text(), biorep: curr_biorep, techrep: curr_techrep, fraction: curr_fraction, used : curr_used});
-			$(items_tds[0])[0].style = "text-decoration: none";
-			$(items_tds[1])[0].style = "text-decoration: none";
-			$(items_tds[2])[0].style = "text-decoration: none";
-			$(items_tds[3])[0].style = "text-decoration: none";
-			if (isLabelFree == true) $(items_tds[4])[0].style = "text-decoration: none";
+			$(items_tds[0]).css("text-decoration", "none");
+			$(items_tds[1]).css("text-decoration", "none");
+			$(items_tds[2]).css("text-decoration", "none");
+			$(items_tds[3]).css("text-decoration", "none");
+			if (isLabelFree == true) $(items_tds[4]).css("text-decoration", "none");
             $(items_biorep).text(curr_biorep == 0 ? '-' : curr_biorep);
             $(items_techrep).text(curr_techrep == 0 ? '-' : curr_techrep);
             $(items_frac).text(curr_fraction == 0 ? '-' : curr_fraction);
@@ -2706,7 +2745,7 @@ $(document).ready(function () {
 						$.each(rawfiles_structure, function (idx, my_raw_file)
 						{
 							// console.log(my_raw_file.rawfile);
-							if(my_raw_file.rawfile == $(items_tds[0])["0"].textContent)
+							if(my_raw_file.rawfile == $(items_tds[0])[0].textContent)
 							{
 
 								my_raw_file.used = false;
@@ -2722,11 +2761,11 @@ $(document).ready(function () {
 						// console.log("stopped!");
 						// console.log("rawfiles_structure after delete");
 						// console.log(rawfiles_structure);
-						$(items_tds[0])["0"].style = "text-decoration: line-through";
-						$(items_tds[1])["0"].style = "text-decoration: line-through";
-						$(items_tds[2])["0"].style = "text-decoration: line-through";
-						$(items_tds[3])["0"].style = "text-decoration: line-through";
-						if (isLabelFree == true) $(items_tds[4])["0"].style = "text-decoration: line-through";
+						$(items_tds[0]).css("text-decoration", "line-through");
+						$(items_tds[1]).css("text-decoration", "line-through");
+						$(items_tds[2]).css("text-decoration", "line-through");
+						$(items_tds[3]).css("text-decoration", "line-through");
+						if (isLabelFree == true) $(items_tds[4]).css("text-decoration", "line-through");
 					}
 					set_s22btnf();
 					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
@@ -2744,7 +2783,7 @@ $(document).ready(function () {
 						$.each(rawfiles_structure, function (idx, my_raw_file)
 						{
 							// console.log(my_raw_file.rawfile);
-							if(my_raw_file.rawfile == $(items_tds[0])["0"].textContent)
+							if(my_raw_file.rawfile == $(items_tds[0])[0].textContent)
 							{
 								if(!(my_raw_file.biorep == '-' && my_raw_file.techrep == '-' && my_raw_file.fraction == '-'))
 								{
@@ -2763,11 +2802,11 @@ $(document).ready(function () {
 						// console.log("stopped!");
 						// console.log("rawfiles_structure after delete");
 						// console.log(rawfiles_structure);
-						$(items_tds[0])["0"].style = "text-decoration: none";
-						$(items_tds[1])["0"].style = "text-decoration: none";
-						$(items_tds[2])["0"].style = "text-decoration: none";
-						$(items_tds[3])["0"].style = "text-decoration: none";
-						if (isLabelFree == true) $(items_tds[4])["0"].style = "text-decoration: none";
+						$(items_tds[0]).css("text-decoration", "none");
+						$(items_tds[1]).css("text-decoration", "none");
+						$(items_tds[2]).css("text-decoration", "none");
+						$(items_tds[3]).css("text-decoration", "none");
+						if (isLabelFree == true) $(items_tds[4]).css("text-decoration", "none");
 					}
 					set_s22btnf();
 					$('#rawfiles_tbl_allfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
@@ -2940,7 +2979,7 @@ $(document).ready(function () {
 	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
 	$("#conditions_list").mousedown(function(e){
 		e.preventDefault();
-		if (event.which == 3)
+		if (e.which == 3)
 		{
 			return;
 		}
