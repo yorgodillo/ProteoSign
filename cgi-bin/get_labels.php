@@ -16,14 +16,14 @@ function get_labels($data_file, $labelmatch_re, $labeldefcol_re, $labeldef_re) {
                if (preg_match_all($labelmatch_re, $data[$c], $matches) > 0) {
                   foreach ($matches[1] as $match) {
                      #echo "$match ($data[$c])\n";
-                     if (!array_key_exists($match, $labels)) {
+                     if (!array_key_exists($match, $labels) && preg_match('/\+/', $match, $my_matches) == 0) {
                         $labels[$match] = 1;
                      }
                   }
                   if(isset($matches[2])) {
                      foreach ($matches[2] as $match) {
                         #echo "$match ($data[$c])\n";
-                        if (!array_key_exists($match, $labels)) {
+                        if (!array_key_exists($match, $labels) && preg_match('/\+/', $match, $my_matches) == 0) {
                            $labels[$match] = 1;
                         }
                      }
