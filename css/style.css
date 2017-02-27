@@ -635,6 +635,18 @@
 		height: 100%;
 		opacity: 0.4;
 		z-index: 999;
+	}
+	#maskInfo{
+		display: none;
+		background: #000;
+		position: fixed;
+		left: 0;
+		top: 0;
+		z-index: 10;
+		width: 100%;
+		height: 100%;
+		opacity: 0.4;
+		z-index: 999;
 	}	
 	
 	.main_div .expparamsDlg {
@@ -653,6 +665,23 @@
 		border-radius: 3px 3px 3px 3px;
 		-webkit-border-radius: 3px;
 	}
+		.expparamsDlgInfo {
+		display: none;
+		background-color: #eeeeee;
+		color: #222222;
+		padding: 10px;
+		border: 2px solid #ddd;
+		float: left;
+		position: fixed;
+		top: 40%;
+		left: 25%;
+		z-index: 99999;
+		box-shadow: 0px 0px 20px #999;
+		-webkit-box-shadow: 0px 0px 20px #999;
+		border-radius: 3px 3px 3px 3px;
+		-webkit-border-radius: 3px;
+	}
+	
 
 	/* from http://johnsardine.com/freebies/dl-html-css/simple-little-tab/ */
 	.rawfiles_tbl a:active,
@@ -746,6 +775,24 @@
 		margin: 2px 1px 3px 0px;
 		border: 1px solid #DDDDDD;
 		font-size: 75%; /*andreasa: Conditions List Font Size*/
+		font-family: 'Arial';
+	}
+	#LSRawFilesList{
+		outline: none;
+		min-width: 10em;
+		padding: 2px 0px 3px 3px;
+		margin: 2px 1px 3px 0px;
+		border: 1px solid #DDDDDD;
+		font-size: 50%; /*andreasa: LSrawfile List Font Size*/
+		font-family: 'Arial';
+	}
+	#LSLabelSwaps{
+		outline: none;
+		min-width: 10em;
+		padding: 2px 0px 3px 3px;
+		margin: 2px 1px 3px 0px;
+		border: 1px solid #DDDDDD;
+		font-size: 80%; /*andreasa: LSLabelSwaps List Font Size*/
 		font-family: 'Arial';
 	}
 	

@@ -11,6 +11,7 @@ mqValidation<-F
 experimental_structure_file = "exp_struct.txt"
 LFQ_conditions_file = "LFQ_conditions.txt"
 Rename_Array_file = "Rename_array.txt"
+LS_Array_file = "LS_array.txt"
 pgroups_fname<-"msdiffexp_protein.txt"
 evidence_fname<-"msdiffexp_peptide.txt"
 outputFigsPrefix<-REPLACE2
@@ -26,3 +27,4 @@ time.point<-REPLACE3
 ProteinQuantitation<-REPLACE4
 filterL<-REPLACE5
 AllowLabelRename<-REPLACE12
+AllowLS<-REPLACE13
