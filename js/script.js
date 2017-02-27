@@ -818,9 +818,9 @@ var postFireUpAnalysisAndWait = function () {
 	  }
 	  if (UserInfoDisplay != "")
 	  {
-		  UserInfoDisplay = UserInfoDisplay.replace("Warn User: ", '<p style="color: #BA4A00">')
-		  UserInfoDisplay = UserInfoDisplay.replace("Error User: ", '<p style="color: #E60000">')
-		  UserInfoDisplay = UserInfoDisplay.replace("Info User: ", '<p>')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Warn User: /g, '<p style="color: #BA4A00">')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Error User: /g, '<p style="color: #E60000">')
+		  UserInfoDisplay = UserInfoDisplay.replace(/Info User: /g, '<p>')
 		  $("#s4UserInfoText").empty();
 		  $("#s4UserInfoText").append(UserInfoDisplay);
 		  $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4UserInfo").width() / 2)});

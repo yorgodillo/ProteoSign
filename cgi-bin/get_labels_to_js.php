@@ -27,8 +27,12 @@
 			preg_match($pattern, $value, $matches);
 			if (count($matches) > 0)
 			{
-				$server_response['labels'][$counter] = substr($matches[0], 10);
-				$counter++;
+				$label_name = substr($matches[0], 10);
+				if(preg_match('/\+/', $label_name, $my_matches) == 0)
+				{
+					$server_response['labels'][$counter] = $label_name;
+					$counter++;
+				}
 			}
 			preg_match($pattern2, $value, $matches);
 			if (count($matches) > 0)
