@@ -1146,7 +1146,8 @@ var validateParameters = function (params) {
 }
 
 // reset "counters"/states reset state(false) is called whenever the program starts from the very beggining
-var resetState = function (uploading_new_file = false) {
+var resetState = function (uploading_new_file) {
+   uploading_new_file = (typeof uploading_new_file !== 'undefined') ? uploading_new_file : false;
    unsuccessfullyUploadedFiles = {};
    uploadEfforts = {};
    if (!$("#explbl1definition").hasClass("hidden")) {
@@ -2906,6 +2907,7 @@ $(document).ready(function () {
 							 $("#s3AdvNewCondition").val("");
 							 RenameFromTestData = false;
 							 Refresh_conds_list();
+							 Refresh_conds_list_cmenu_items();
 							 //ADD OK RESULT HERE
 						});
 						$("#s3AdvancedCancel").on("click", function () {
@@ -2925,6 +2927,7 @@ $(document).ready(function () {
 						 });
 						 RenameFromTestData = false;
 						 Refresh_conds_list();
+						 Refresh_conds_list_cmenu_items();
 						break;
 				 }
 			 },
