@@ -1279,7 +1279,7 @@ var postFireUpAnalysisAndWait = function () {
       beforeSend: function (jqXHR, settings) {
          //fire-up spinner
          //$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
-         getRSS("https://api.twitter.com/1/statuses/user_timeline.rss?screen_name=nar_open&count=10", "#server_feedback");
+         getRSS("https://academic.oup.com/nar/pages/Top_Articles_Data_Resources", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
 	  if (analysis_finished | data.ret_session != sessionid)
@@ -2747,7 +2747,7 @@ var renderRSSData = function (data, renderelem) {
          return;
       }
       $(renderelem).hide();
-      prev_html = '<p>Inside the current issue of Nature Methods:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
+      prev_html = '<p>Inside the current issue of Nucleic Acids Research:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
       //$("#rsscontent").html('<p><a href="'+data[item]+'" target="_blank">'+item+'</a></p><br><iframe src="'+data[item]+'" style="display: block; width:100%; height:100%;"/>').fadeIn(300);
       $(renderelem).html(prev_html).fadeIn(300);
       var intertime = (Math.log((item.split(/\s/).length) + 1) / Math.log(1.6)) * 1000 + 1000;
@@ -2831,8 +2831,8 @@ var getRSS = function (rssurl, renderelem) {
    thedata.append('session_id', sessionid);
    thedata.append('rssurl', rssurl);
    $.ajax({
-      url: "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=twitterapi&count=2",
-      type: 'GET',
+      url: cgi_bin_path + 'get_NAR_articles.php',
+      type: 'POST',
       // Form data
       data: thedata,
       //Options to tell jQuery not to worry about content-type.
@@ -2842,7 +2842,21 @@ var getRSS = function (rssurl, renderelem) {
       beforeSend: function (jqXHR, settings) {
       }
    }).done(function (data, textStatus, jqXHR) {
-      renderRSSData(data, renderelem);
+	   var htmlcode = data.html_code;
+	   //get the div where NAR stores their current articles
+	   var match =  htmlcode.match(/<strong>([\s\S]+?)<\/a>/gi);
+	   var jsonData = {};
+	   $.each(match, function(idx, my_match)
+	   {
+		var mytempmatch = my_match.match(/<strong>(.+?)<\/strong>/i);
+		var mytitle = mytempmatch[1];
+		//clear the title from formats
+		mytitle = mytitle.replace(/<.*?>/g, "");
+		var mytempmatch2 = my_match.match(/<a href="(.+?)">/i);
+		var myurl = mytempmatch2[1];
+		jsonData[mytitle] = myurl;
+	   });
+	   renderRSSData(jsonData, renderelem)
    }).fail(function (jqXHR, textStatus, errorThrown) {
    });
 }
