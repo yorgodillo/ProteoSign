@@ -223,7 +223,7 @@ calcRowStats<-function(x,conds_cols_idxs,ratio_combs){
   return(c(m[,1],std[,1],N[,1],avg.I[,1],as.vector(t(ratios))))
 }
 
-# Produces S-plot, Volcano plot, MA plot and Scatterplot (matrix). Called by do_limma_analysis subroutine.
+# Produces Reproducibility, Volcano plot, MA plot and Scatterplot (matrix). Called by do_limma_analysis subroutine.
 do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf",outputFigsPrefix=""){
   levellog("",change=1)
   
@@ -254,10 +254,10 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     na_indexes<-which(is.na(results[,col_desc_]))
     if(length(na_indexes)>0){
       results[na_indexes,col_desc_]<-1
-      signTruth<-(signTruth | results[,col_desc_]<0.05)
+      signTruth<-(signTruth | results[,col_desc_]<pThreshold)
       results[na_indexes,col_desc_]<-NA
     }else{
-      signTruth<-(signTruth | results[,col_desc_]<0.05)
+      signTruth<-(signTruth | results[,col_desc_]<pThreshold)
     }
   }
   
@@ -299,6 +299,8 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   theme_set(theme_bw())
   # customized colorblind-friendly palette from http://wiki.stdout.org/rcookbook/Graphs/Colors%20(ggplot2)/
   cbPalette <- c("#999999", "#D55E00", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#CC79A7")
+  #Save the results and othere parameters to a RData file:
+  save(results, pThreshold, quantitated_items_lbl, nConditions, calcRowStats, time.point, outputFigsPrefix, conditions.labels, IsobaricLabel, PDdata, log.intensities, norm.intensities, fit2.coefficients, file = "Plot_Generator.RData")
   
   #Plot generation:
   for(i in 1:nrow(ratio_combs)){
@@ -306,187 +308,203 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep="")
     
     # 1 - volcano - -log10 P-value vs log ratio
-    levellog("Making volcano plot ...")
-    figsuffix<-paste("_",ratio_i_str,"-volcano","_",sep="")
-    if(exportFormat == "pdf"){
-      pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-    }
-    
-    ratio_i_<-paste("log2.",ratio_i_str,sep="")
-    ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
-    tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
-    
-    tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
-    ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
-    #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
-    if(ratiolim == 0)
-    {
-      ratiolim <- 5
-    }
-    panel.hist.breaks<<-(-ratiolim:ratiolim)
-    
-    ratio_i_p.value.adj<-paste("p.value.adj.",paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
-    ratio_i_avg_col<-paste("log2.avg.",ratio_i_str,sep="")
-    mlog10_ratio_i_p.value.adj<-paste("mlog10_",ratio_i_p.value.adj,sep="")
-    diffexp_ratio_i<-paste("diffexp_",ratio_i_str,sep="")
-    
-    results[,mlog10_ratio_i_p.value.adj]<-(-log10(results[,ratio_i_p.value.adj]))
-    
-    na_indexes<-which(is.na(results[,ratio_i_p.value.adj]))
-    if(length(na_indexes)>0){
-      results[na_indexes,ratio_i_p.value.adj]<-1
-      results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<0.05
-      results[na_indexes,ratio_i_p.value.adj]<-NA
-    }else{
-      results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<0.05
-    }
-    if(!IsobaricLabel)
-    {
-      myxlab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
-    }else{
-      if(!PDdata)
-      {
-        myxlab <- paste("average log2 ", ratio_i_str, sep="")
-        myxlab <- gsub("Reporter\\.intensity\\.", "Reporter ", myxlab)
-      }else{
-        myxlab <- paste("average log2 ",ratio_i_str ,sep="")
-        myxlab <- gsub("X([[:digit:]])", "\\1", myxlab)
+    result <- tryCatch({
+      levellog("Making volcano plot ...")
+      figsuffix<-paste("_",ratio_i_str,"-volcano","_",sep="")
+      if(exportFormat == "pdf"){
+        pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
       }
-    }
-    myxlab <- gsub("\\.", "/", myxlab)
-    p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
-      geom_point(alpha=0.7, size=1.75) +
-      theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
-      xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
-      xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
-      geom_hline(aes(yintercept=-log10(0.05)), colour="#990000", linetype="dashed") +
-      geom_text(size=2.5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000")
-    
-    
-    print(p)
-    if(exportFormat == "emf"){
-      savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
-    }
-    dev.off()
-    png(paste("../",outputFigsPrefix,figsuffix,time.point,".png",sep=""), width = 1500, height = 1050)
-    
-    p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
-      geom_point(alpha=0.7, size=4.25) +
-      theme(legend.position = "none", axis.title.y=element_text(size = 22.5, vjust=0.2), axis.title.x=element_text(size = 22.5, vjust=0), plot.title = element_text(size = 30, vjust=1.5, lineheight=.8, face="bold"), axis.text.x = element_text(size = 22.5), axis.text.y = element_text(size = 22.5)) +
-      xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
-      xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
-      geom_hline(aes(yintercept=-log10(0.05)), colour="#990000", linetype="dashed") +
-      geom_text(size=5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(0.05)), label="P-value=0.05",colour="#990000") 
-    print(p)
-    dev.off()
+      
+      ratio_i_<-paste("log2.",ratio_i_str,sep="")
+      ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
+      tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
+      
+      tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
+      ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
+      #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
+      if(ratiolim == 0)
+      {
+        ratiolim <- 5
+      }
+      panel.hist.breaks<<-(-ratiolim:ratiolim)
+      
+      ratio_i_p.value.adj<-paste("p.value.adj.",paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
+      ratio_i_avg_col<-paste("log2.avg.",ratio_i_str,sep="")
+      mlog10_ratio_i_p.value.adj<-paste("mlog10_",ratio_i_p.value.adj,sep="")
+      diffexp_ratio_i<-paste("diffexp_",ratio_i_str,sep="")
+      
+      results[,mlog10_ratio_i_p.value.adj]<-(-log10(results[,ratio_i_p.value.adj]))
+      
+      na_indexes<-which(is.na(results[,ratio_i_p.value.adj]))
+      if(length(na_indexes)>0){
+        results[na_indexes,ratio_i_p.value.adj]<-1
+        results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<pThreshold
+        results[na_indexes,ratio_i_p.value.adj]<-NA
+      }else{
+        results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<pThreshold
+      }
+      if(!IsobaricLabel)
+      {
+        myxlab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
+      }else{
+        if(!PDdata)
+        {
+          myxlab <- paste("average log2 ", ratio_i_str, sep="")
+          myxlab <- gsub("Reporter\\.intensity\\.", "Reporter ", myxlab)
+        }else{
+          myxlab <- paste("average log2 ",ratio_i_str ,sep="")
+          myxlab <- gsub("X([[:digit:]])", "\\1", myxlab)
+        }
+      }
+      myxlab <- gsub("\\.", "/", myxlab)
+      p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
+        geom_point(alpha=0.7, size=1.75) +
+        theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
+        xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
+        xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
+        geom_hline(aes(yintercept=-log10(pThreshold)), colour="#990000", linetype="dashed") +
+        geom_text(size=2.5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(pThreshold)), label=paste0("P-value=", pThreshold),colour="#990000")
+      
+      
+      print(p)
+      if(exportFormat == "emf"){
+        savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
+      }
+      dev.off()
+      png(paste("../",outputFigsPrefix,figsuffix,time.point,".png",sep=""), width = 1500, height = 1050)
+      
+      p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
+        geom_point(alpha=0.7, size=4.25) +
+        theme(legend.position = "none", axis.title.y=element_text(size = 22.5, vjust=0.2), axis.title.x=element_text(size = 22.5, vjust=0), plot.title = element_text(size = 30, vjust=1.5, lineheight=.8, face="bold"), axis.text.x = element_text(size = 22.5), axis.text.y = element_text(size = 22.5)) +
+        xlim(c(-ratiolim, ratiolim)) + ylim(c(0, 6)) + scale_colour_manual(values=cbPalette) +
+        xlab(myxlab) + ylab("-log10 P-value") + ggtitle("P-value vs Fold change") +
+        geom_hline(aes(yintercept=-log10(pThreshold)), colour="#990000", linetype="dashed") +
+        geom_text(size=5, hjust=1, vjust=-0.5,aes(x=-4.2, y=-log10(pThreshold)), label=paste0("P-value=", pThreshold),colour="#990000") 
+      print(p)
+      dev.off()#script for volcano plot END
+    }, error = function(err){
+      levellog(paste0("Warn User: ", ratio_i_str, " volcano plot failed"))
+    })
     
     # 2 - value-ordered - log ratio
-    levellog("Making value-ordered plot ...")
-    figsuffix<-paste("_",ratio_i_str,"-value-ordered-log-ratio","_",sep="")
-    
-    if(exportFormat == "pdf"){
-      pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-    }
-    
-    results<-results[with(results, order(results[,c(ratio_i_avg_col)])),]
-    results$nID<-1:nrow(results)
-    ratio_i_avg_col_ymax<-paste(ratio_i_avg_col,".ymax",sep="")
-    ratio_i_avg_col_ymin<-paste(ratio_i_avg_col,".ymin",sep="")
-    results[,ratio_i_avg_col_ymax]<-results[,ratio_i_avg_col]+results[,ratio_i_sd_col]
-    results[,ratio_i_avg_col_ymin]<-results[,ratio_i_avg_col]-results[,ratio_i_sd_col]
-    
-    if(!IsobaricLabel)
-    {
-      myylab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
-    }else{
-      if(!PDdata)
-      {
-        myylab <- paste("average log2 ", ratio_i_str, sep="")
-        myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
-      }else{
-        myylab <- paste("average log2 ", ratio_i_str, sep="")
-        myylab <- gsub("X([[:digit:]])", "\\1", myylab)
+    result <- tryCatch({
+      levellog("Making value-ordered plot ...")
+      figsuffix<-paste("_",ratio_i_str,"-value-ordered-log-ratio","_",sep="")
+      
+      if(exportFormat == "pdf"){
+        pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
       }
-    }
-    myylab <- gsub("\\.", "/", myylab)
-    p<-ggplot(data=results, aes_string(x="nID", y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
-      geom_point(alpha=0.7, size=1.5) +
-      geom_errorbar(aes_string(ymin=ratio_i_avg_col_ymin, ymax=ratio_i_avg_col_ymax), width=1.5) +
-      theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
-      ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
-      xlab(paste(quantitated_items_lbl,"ID")) + ylab(myylab) + ggtitle("Value-ordered fold change")
-    print(p)
-    ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
-    if(exportFormat == "emf"){
-      savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
-    }
-    dev.off()    
+      
+      results<-results[with(results, order(results[,c(ratio_i_avg_col)])),]
+      results$nID<-1:nrow(results)
+      ratio_i_avg_col_ymax<-paste(ratio_i_avg_col,".ymax",sep="")
+      ratio_i_avg_col_ymin<-paste(ratio_i_avg_col,".ymin",sep="")
+      results[,ratio_i_avg_col_ymax]<-results[,ratio_i_avg_col]+results[,ratio_i_sd_col]
+      results[,ratio_i_avg_col_ymin]<-results[,ratio_i_avg_col]-results[,ratio_i_sd_col]
+      
+      if(!IsobaricLabel)
+      {
+        myylab <- paste("average log2 ",sub("\\.","/",ratio_i_str),sep="")
+      }else{
+        if(!PDdata)
+        {
+          myylab <- paste("average log2 ", ratio_i_str, sep="")
+          myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
+        }else{
+          myylab <- paste("average log2 ", ratio_i_str, sep="")
+          myylab <- gsub("X([[:digit:]])", "\\1", myylab)
+        }
+      }
+      myylab <- gsub("\\.", "/", myylab)
+      p<-ggplot(data=results, aes_string(x="nID", y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
+        geom_point(alpha=0.7, size=1.5) +
+        geom_errorbar(aes_string(ymin=ratio_i_avg_col_ymin, ymax=ratio_i_avg_col_ymax), width=1.5) +
+        theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
+        ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
+        xlab(paste(quantitated_items_lbl,"ID")) + ylab(myylab) + ggtitle("Value-ordered fold change")
+      print(p)
+      ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
+      if(exportFormat == "emf"){
+        savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
+      }
+      dev.off()    
+      }, error = function(err){
+        levellog(paste0("Warn User: ", ratio_i_str, " value-ordered plot failed"))
+      })
     
     # 3 - MA plot
-    levellog("Making MA plot ...")
-    figsuffix<-paste("_",ratio_i_str,"-MA","_",sep="")
-    ratio_i_avgI_col<-paste("log2.avg.I.",ratio_i_str,sep="")
-    
-    if(exportFormat == "pdf"){
-      pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-    }
-    
-    if(!IsobaricLabel)
-    {
-      myylab <- paste("A (average log2 ",sub("\\.","/",ratio_i_str),")",sep="")
-    }else{
-      if(!PDdata)
-      {
-        myylab <- paste("A (average log2 ", ratio_i_str, ")", sep="")
-        myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
-      }else{
-        myylab <- paste("A (average log2 ",ratio_i_str,")",sep="")
-        myylab <- gsub("X([[:digit:]])", "\\1", myylab)
+    result <- tryCatch({
+      levellog("Making MA plot ...")
+      figsuffix<-paste("_",ratio_i_str,"-MA","_",sep="")
+      ratio_i_avgI_col<-paste("log2.avg.I.",ratio_i_str,sep="")
+      
+      if(exportFormat == "pdf"){
+        pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
       }
-    }
-    myylab <- gsub("\\.", "/", myylab)
-    p<-ggplot(data=results, aes_string(x=ratio_i_avgI_col, y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
-      geom_point(alpha=0.7, size=1.75) +
-      theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
-      ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
-      xlab("M (average log2 Intensity)") + ylab(myylab) + ggtitle("MA plot")
-    print(p)
-    ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
-    
-    if(exportFormat == "emf"){
-      savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
-    }
-    dev.off()
+      
+      if(!IsobaricLabel)
+      {
+        myylab <- paste("A (average log2 ",sub("\\.","/",ratio_i_str),")",sep="")
+      }else{
+        if(!PDdata)
+        {
+          myylab <- paste("A (average log2 ", ratio_i_str, ")", sep="")
+          myylab <- gsub("Reporter\\.intensity\\.", "Reporter ", myylab)
+        }else{
+          myylab <- paste("A (average log2 ",ratio_i_str,")",sep="")
+          myylab <- gsub("X([[:digit:]])", "\\1", myylab)
+        }
+      }
+      myylab <- gsub("\\.", "/", myylab)
+      p<-ggplot(data=results, aes_string(x=ratio_i_avgI_col, y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
+        geom_point(alpha=0.7, size=1.75) +
+        theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
+        ylim(c(-ratiolim, ratiolim)) + scale_colour_manual(values=cbPalette) +
+        xlab("M (average log2 Intensity)") + ylab(myylab) + ggtitle("MA plot")
+      print(p)
+      ggsave(paste(outputFigsPrefix,figsuffix,time.point,".png",sep=""), plot = p, device = "png", path = "..")
+      
+      if(exportFormat == "emf"){
+        savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
+      }
+      dev.off()
+    }, error = function(err){
+      levellog(paste0("Warn User: ", ratio_i_str, " MA plot failed"))
+    })
     
     # 4 - Reproducibility plots & histograms
-    levellog("Making reproducibility plot ...")
-    figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
-    
-    allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
-    if(!IsobaricLabel)
-    {
-      colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))
-    }else{
-      if(!PDdata){
-        colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
-        colnames(allratios) <- gsub("Reporter\\.intensity\\.", "Reporter ", colnames(allratios))
+    result <- tryCatch({
+      levellog("Making reproducibility plot ...")
+      figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
+      
+      allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
+      if(!IsobaricLabel)
+      {
+        colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))
       }else{
-        colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
-        colnames(allratios) <- gsub("X([[:digit:]])", "\\1", colnames(allratios))
+        if(!PDdata){
+          colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
+          colnames(allratios) <- gsub("Reporter\\.intensity\\.", "Reporter ", colnames(allratios))
+        }else{
+          colnames(allratios)<-sub(ratio_i_,paste("log2(",ratio_i_str,") ",sep=""),colnames(allratios))
+          colnames(allratios) <- gsub("X([[:digit:]])", "\\1", colnames(allratios))
+        }
       }
-    }
-    colnames(allratios) <- gsub("\\.", "/", colnames(allratios))
-    if(exportFormat == "pdf"){
-      pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-    }
-    pairs.panels(allratios,scale=T,lm=T)
-    dev.off()
-    png(paste("../",outputFigsPrefix,figsuffix,time.point,".png",sep=""), width = 1500, height = 1050)
-    pairs.panels(allratios,scale=T,lm=T)
-    if(exportFormat == "emf"){
-      savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
-    }
-    dev.off()
+      colnames(allratios) <- gsub("\\.", "/", colnames(allratios))
+      if(exportFormat == "pdf"){
+        pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
+      }
+      pairs.panels(allratios,scale=T,lm=T)
+      dev.off()
+      png(paste("../",outputFigsPrefix,figsuffix,time.point,".png",sep=""), width = 1500, height = 1050)
+      pairs.panels(allratios,scale=T,lm=T)
+      if(exportFormat == "emf"){
+        savePlot(filename=paste(outputFigsPrefix,figsuffix,time.point,".emf",sep=""),type="emf")
+      }
+      dev.off()
+    }, error = function(err){
+      levellog(paste0("Warn User: ", ratio_i_str, " reproducibility plot failed"))
+    })
     levellog("",change=-1)
   }
   
@@ -521,7 +539,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
   
   for(i in 1:nrow(ratio_combs)){
     col_desc_<-paste("P-value adjusted ",paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
-    ndiffexp_tmp<-length(which(results[,col_desc_]<0.05))
+    ndiffexp_tmp<-length(which(results[,col_desc_]<pThreshold))
     levellog(paste("do_results_plots: Differentially expressed for ",conditions.labels[ratio_combs[i,2]]," vs ",conditions.labels[ratio_combs[i,1]]," : ",ndiffexp_tmp,sep=""))
   }
   
@@ -545,10 +563,10 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
     na_indexes<-which(is.na(diffexp[,cond_i_col]))
     if(length(na_indexes)>0){
       diffexp[na_indexes,cond_i_col]<-1
-      signTruth<-(signTruth | diffexp[,cond_i_col]<0.05)
+      signTruth<-(signTruth | diffexp[,cond_i_col]<pThreshold)
       diffexp[na_indexes,cond_i_col]<-NA
     }else{
-      signTruth<-(signTruth | diffexp[,cond_i_col]<0.05)
+      signTruth<-(signTruth | diffexp[,cond_i_col]<pThreshold)
     }    
   }
   
@@ -654,7 +672,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   # Box plot before normalisation
   boxplot(log.intensities)
   title(main="Intensities Before Normalisation")
-
+  log.intensities <<- log.intensities
   
   # Perform quantile normalisation
   levellog("Performing quantile normalisation ...")
@@ -664,6 +682,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
   # Box plot after normalisation
   boxplot(norm.intensities)
   title(main="Intensities After Normalisation")
+  norm.intensities <<- norm.intensities
   
   norm.median.intensities<-as.data.frame(t(as.matrix(norm.intensities)))
   
@@ -748,7 +767,7 @@ do_limma_analysis<-function(working_pgroups,time.point,exp_design_fname,exportFo
     ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],"/",conditions.labels[ratio_combs[i,1]],sep="")
     hist(fit2$coefficients[,i],main=paste("Log2 Fold Change ",ratio_i_str,sep=""), xlab="Log2 Fold Change", breaks=50 )
   }   
-  
+  fit2.coefficients <<- fit2$coefficients
   if(exportFormat == "emf"){
     savePlot(filename=paste(outputFigsPrefix,"_limma-graphs_",time.point,"_hist.emf",sep=""),type="emf")
   }
@@ -1194,8 +1213,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # E.g. 3: with 3 biological replicates, a protein that was quantified by two peptides in at one of replicates will be discarded if 'nRequiredLeastBioreps' > 1 (retained otherwise).
   # E.g. 4: with 3 biological replicates, a protein that was quantified by two peptides (in total) in 2 out of the 3 replicates will be discarded if 'nRequiredLeastBioreps' > 2 (retained otherwise).
   
-  Protein.IDs.quant <- evidence.dt[, .(c1 = sum(N.x-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastBioreps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
-  levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastBioreps," peptide(s)"));
+  Protein.IDs.quant <- evidence.dt[, .(c1 = sum(N.x-nas)) , by=.(Protein.IDs, biorep)][, .(nQuantPeps = sum(c1), geqXnRequiredLeastBioreps = .N >= .GlobalEnv[["nRequiredLeastBioreps"]]), by=.(Protein.IDs)][nQuantPeps >= .GlobalEnv[["nRequiredLeastPeps"]] & geqXnRequiredLeastBioreps == T]$Protein.IDs
+  levellog(paste0("read.pgroups_v3: Filtered out ", (length(unique(evidence.dt$Protein.IDs)) - length(Protein.IDs.quant))," proteins which were not identified in at least ",nRequiredLeastBioreps," biological replicate(s) with at least a total of ",nRequiredLeastPeps," peptide(s)"));
   evidence.dt[,nQuantPeps := N.x-nas]
   evidence.dt<-evidence.dt[Protein.IDs %in% Protein.IDs.quant]
   

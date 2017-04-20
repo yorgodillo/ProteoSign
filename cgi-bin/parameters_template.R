@@ -1,6 +1,8 @@
 ratios.hist.colour<-"cyan"
 reps.scatter.lmline.colour<-"red"
-nRequiredLeastBioreps<-2
+nRequiredLeastBioreps<-REPLACE14
+nRequiredLeastPeps<-REPLACE15
+pThreshold<-REPLACE16
 GUI<-F
 paramssetfromGUI<-F
 keepEvidenceIDs<-F
