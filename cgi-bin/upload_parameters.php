@@ -26,6 +26,9 @@
 	$the_parameters["REPLACE11"] = $_POST["All_MQ_Labels"];
 	$the_parameters["REPLACE12"] = $_POST["AllowMergeLabels"];
 	$the_parameters["REPLACE13"] = $_POST["AllowLS"];
+	$the_parameters["REPLACE14"] = $_POST["LeastBreps"];
+	$the_parameters["REPLACE15"] = $_POST["LeastPeps"];
+	$the_parameters["REPLACE16"] = $_POST["PThreshold"];
 	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "addLabel(\"" . $_POST["explbl0"] . "\",c(\"\"))";
 	}

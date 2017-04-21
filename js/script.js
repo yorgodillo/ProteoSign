@@ -32,6 +32,12 @@ var LS_array_counter = 0;
 var LS_counters_per_Add = [];//each of LS_counters_per_Add's elements is an array that contains as a first element the decription of the Label swap as shown in LSLabelSwaps list and second another array with the indices of the swaps in LabelSwapArray that correspond to the specific list element a third array contains two values which are the labels that correspond to this ls swap assignment
 var LabelSwapArray = [];//Format: first column ([0]): a rawfile where the swap occurs, second ([1]): the first label that is swapped, third ([2]): the second label of the swap and fourth ([3]): a unique index
 var LSselected_raws = [];
+//Advanced Parameters:
+var LeastBRep = 2;// least breps where a protein must be found in order not to be disqualified
+var LeastPep = 2; //least peptides where a protein must be found in order not to be disqualified
+var Pthreshold = 0.05; //max p where a protein is considered as differentially expressed
+var my_step = 0;
+
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
    var o = {}, i, l = this.length, r = [];
@@ -99,6 +105,8 @@ var onChooseFromTestDatasets = function(){
 		$('#mask').fadeIn(300);
 	}
 }
+// from http://stackoverflow.com/questions/1303646/check-whether-variable-is-number-or-string-in-javascript
+function StringisNumber(n) { return /^-?[\d.]+(?:e-?\d+)?$/.test(n); } 
 
 var onAssignCondition = function(){
 	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#s2LFQConditions").width()/2)});
@@ -367,6 +375,71 @@ var InitializeLS = function()
 	LSselected_raws = [];
 }
 
+var InitializeAdvParam = function()
+{
+	$("#AdvParamLPep").empty();
+	for(var i = 1; i < 11; i++)
+	{
+		if(i == LeastPep)
+		{
+			$("#AdvParamLPep").append("<option value='" + i + "' selected='true'>" + i + "</option>");
+		}
+		else{
+			$("#AdvParamLPep").append("<option value='" + i + "'>" + i + "</option>");
+		}
+	}
+	$("#AdvParamLBRep").empty();
+	var my_bioreps = [];
+	$.each(rawfiles_structure, function (idx, my_raw_file)
+	 {
+		 if (my_raw_file.used == false) return;
+		 my_bioreps.push(my_raw_file.biorep);
+	 });
+	 var unique_breps = ArrNoDupe(my_bioreps);
+	for(var i = 1; i < unique_breps.length + 1; i++)
+	{
+		if(i == LeastBRep)
+		{
+			$("#AdvParamLBRep").append("<option value='" + i + "' selected='true'>" + i + "</option>");
+		}
+		else{
+			$("#AdvParamLBRep").append("<option value='" + i + "'>" + i + "</option>");
+		}	
+	}
+	$("#PThreshold").val(Pthreshold);
+}
+
+var onADVoptionsOK_click = function()
+{
+	$("#PThreshold").val($("#PThreshold").val().replace(",", "."));
+	if (StringisNumber($("#PThreshold").val()))
+	{
+		if ($("#PThreshold").val() > 0 && $("#PThreshold").val() < 1)
+		{
+			Pthreshold = $("#PThreshold").val();
+		}
+		else
+		{
+			setItemAttrColor("#PThreshold", "border", "#E60000");
+			return;	
+		}
+	}
+	else{
+		setItemAttrColor("#PThreshold", "border", "#E60000");
+		return;
+	}
+	LeastPep = $("#AdvParamLPep").val();
+	LeastBRep = $("#AdvParamLBRep").val();
+	setItemAttrColor("#PThreshold", "border", "#DDDDDD");
+	dlgFadeout();
+}
+
+var onADVoptionsCancel_click = function()
+{
+	setItemAttrColor("#PThreshold", "border", "#DDDDDD");
+	dlgFadeout();
+}
+
 var onLSbackclick = function()
 {
 	//Reset the border colors back to their initial value
@@ -508,6 +581,13 @@ var onLSRemoveclick = function()
 			}
 		});
 	});
+	for(var i = LS_counters_per_Add.length - 1; i >= 0;i--)
+	{
+		if($.inArray(LS_counters_per_Add[i][0], options_to_erase) != -1)
+		{
+			LS_counters_per_Add.splice(i, 1);
+		}
+	}
 	for(var i = LabelSwapArray.length - 1; i >= 0;i--)
 	{
 		if($.inArray(LabelSwapArray[i][3], my_counters) != -1)
@@ -580,10 +660,11 @@ var inputPasteCheck = function(e, repatt, maxCharacters)
 	if (!re.test(pastedData))
 	{
 		pastedData = pastedData.replace(/[^a-zA-Z0-9]+/g, "_");
+		
 	}
-	if(pastedData.slice(0,1) == "_")
+	if(srcelem.selectionStart == 0)
 	{
-		pastedData = pastedData.slice(1);
+		pastedData = pastedData.replace(/^[0-9_]*/g, "");
 	}
 	var srcValue = srcelem.value;
 	if (srcelem.selectionEnd - srcelem.selectionStart >= 1)
@@ -617,6 +698,515 @@ var msgbox = function(displaytext)
 	$('#maskInfo').fadeIn(300);
 	$("#InfoDiv").empty();
 	$("#InfoDiv").append("<span>" + displaytext + "</span>");
+}
+
+//Here we implement the downloading and uploading of the parameters
+//The parameters are stored in a txt file with the following rules: each line starting with # is a comment line, Each line that contains a valid variable name is followed by a line with the variables value
+//In case a variable is an array the lines of the array are separated by double tabs and the rows by tabs
+//The save file also supports commands starting with ! for more functionality
+var SaveParams = function(output_file)
+{
+	//Save the parameters
+	//First create as a string the contents of the text file
+	var mytext = CreateParamsFile();
+
+	if (mytext !== "")
+	{
+		var thedata = new FormData();
+		thedata.append('expname', $('input[name="expid"]').val());
+		thedata.append('texttodownload', mytext);
+		thedata.append('session_id', sessionid);
+		thedata.append('output', output_file);
+		$.ajax({
+		  url: cgi_bin_path + 'download_param_file.php', //Server script to fire up data analysis
+		  type: 'POST',
+		  // Form data
+		  data: thedata,
+		  //Options to tell jQuery not to worry about content-type.
+		  processData: false,
+		  cache: false,
+		  contentType: false,
+	   }).done(function (data, textStatus, jqXHR) {
+		   if (output_file == 0)
+		   {
+			msgbox('Download your parameters using this link: <a href="' + data.results_url + '" download target="_blank">' + $('input[name="expid"]').val() + ' parameters.txt</a>.')
+		   }
+	   });
+	}
+}
+
+var CreateParamsFile = function()
+{
+	var mytext = "";
+	mytext += "#ProteoSign parameters files for " + $('input[name="expid"]').val() + " (session ID: " + sessionid + ")\n#\n#File Information:\n";
+	mytext += "isLabelFree\n";
+	mytext += isLabelFree + "\n";
+	mytext += "isIsobaricLabel\n";
+	mytext += isIsobaricLabel + "\n";
+	mytext += "procprogram\n";
+	var quantlabel = $("#quantitation_prog_lbl").text();
+	var pattern = new RegExp("MaxQuant");
+	var res = pattern.test(quantlabel);
+	var provenprocprogram = "";
+	if (res == true)
+	{
+		provenprocprogram = "MQ";
+	}
+	else
+	{
+		provenprocprogram = "PD";
+	}
+	mytext += provenprocprogram + "\n";
+	mytext += "#User Parameters and commands:\n";
+	mytext += "rawfiles_structure\n";
+	var myval = "";
+	var mytemp = "";
+	$.each(rawfiles_structure, function(idx, my_rawfile)
+	{
+		if (my_rawfile.used == true)
+		{
+			mytemp = "1";
+		}
+		else
+		{
+			mytemp = "0";
+		}
+		myval += my_rawfile.rawfile + "\t" + my_rawfile.biorep + "\t" + my_rawfile.techrep + "\t" + my_rawfile.fraction + "\t" + mytemp + "\t\t";
+	});
+	mytext += myval + "\n";
+	mytext += "expid\n";
+	mytext += $('input[name="expid"]').val() + "\n";
+	mytext += "!Rename\n";
+	myval = "";
+	$.each(RenameArray, function(idx, my_line)
+	{
+		myval += my_line[0] + "|" + my_line[1] + "||";
+	});
+	mytext += myval + "\n";
+	mytext += "exptpoint\n";
+	mytext += $('input[name="exptpoint"]').val() + "\n";
+	mytext += "conditions_to_compare\n";//these are the authentic items in the conditions list
+	myval = "";
+	$.each(AuthenticItemsinRename, function(idx, my_cond)
+	{
+		myval += my_cond + "\t";
+	});
+	mytext += myval + "\n";
+	mytext += "quantitation_filtering\n";
+	if($("#expquantfilt").prop("checked") == true)
+	{
+		myval = "T";
+	}
+	else
+	{
+		myval = "F";
+	}
+	mytext += myval + "\n";
+	mytext += "filtering_label\n";
+	mytext += $("#expquantfiltlbl option:selected").val() + "\n";
+	mytext += "peptide_level_filtering\n";
+	if($("#expquantfiltprot").prop("checked") == true)
+	{
+		myval = "T";
+	}
+	else
+	{
+		myval = "F";
+	}
+	mytext += myval + "\n";
+	mytext += "LeastBRep\n";
+	mytext += LeastBRep + "\n";
+	mytext += "LeastPep\n";
+	mytext += LeastPep + "\n";
+	mytext += "Pthreshold\n";
+	mytext += Pthreshold + "\n";
+	mytext += "LFQconditions\n";
+	myval = "";
+	$.each(RawFileConditions, function(idx, my_cond)
+	{
+		myval += my_cond.name + "\t" + my_cond.condition + "\t\t";
+	});
+	mytext += myval + "\n";
+	mytext += "!LS_Array\n";
+	myval = "";
+	$.each(LabelSwapArray, function(idx, my_line)
+	{
+		myval += my_line[0] + "|" + my_line[1] + "|" + my_line[2] + "|" + my_line[3] + "||";
+	});
+	mytext += myval + "\n";
+	mytext += "!LS_c_p_Add\n";
+	myval = "";
+	$.each(LS_counters_per_Add, function(idx, my_line)
+	{
+		myval += my_line[0] + "||"; //add the description of the ls assignment
+		$.each(my_line[1], function(idx, my_index)//the array of indices in this assignment
+		{
+			myval += my_index + "|";
+		});
+		myval += "|";
+		myval += my_line[2][0] + "||";
+		myval += my_line[2][1] + "|||";
+	});
+	mytext += myval + "\n";
+	mytext += "!Select_Labels\n";
+	myval = "";
+	$("#conditions_list option").each(function(idx, my_opt)
+	{
+		if ($(my_opt).prop("selected") == true)
+		{
+			myval += $(my_opt).val() + "|";
+		}
+	});
+	mytext += myval + "\n";
+	return mytext;
+}
+
+var getparamfile = function()
+{
+	$("#__upldparams").click();
+}
+
+var LoadParams = function(myparametersstring)
+{
+	//load the file
+	var checkres = CheckParamsValidity(myparametersstring);
+	if (checkres == "")
+	{
+		var additional_info = "";
+		//load
+		var paramslines = myparametersstring.split("\n");
+		var setvar = "";
+		var mypatt = new RegExp("#ProteoSign parameters files");
+		var myres = mypatt.test(paramslines[0]);
+		if (!myres)
+		{
+			msgbox("The uploaded file is not valid")
+			return;
+		}
+		$.each(paramslines, function(idx, myparamline){
+			if(myparamline[myparamline.length - 1] = "\r")
+			{
+				myparamline = myparamline.substring(0, myparamline.length - 1);
+			}
+			if (myparamline.charAt(0) == "#")
+			{
+				return;
+			}
+			if (setvar == "")
+			{//in this case we expect to read a var name
+				if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add" || myparamline == "!Select_Labels")
+				{
+					setvar = myparamline;
+				}
+			}
+			else
+			{
+				if (setvar == "rawfiles_structure")
+				{
+					if (add_raw_file_structure(myparamline, false) == false)
+					{
+						//in this case some rawfiles in the dataset are not included in the parameter's	file
+						additional_info = "<br>Some raw files where not matched to a biological coordinate"
+						if (my_step == 3)
+						{// if we are on steo 3 send the user back to step 2 to take care of the unset rawfiles
+							toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
+							rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+						}
+					}
+				}
+				else if(setvar == "expid")
+				{
+					$('input[name="expid"]').val(myparamline);
+				}
+				else if (setvar == "exptpoint")
+				{
+					$('input[name="exptpoint"]').val(myparamline);
+				}
+				else if (setvar == "conditions_to_compare")
+				{
+					var myvalues = myparamline.split("\t");
+					AuthenticItemsinRename = [];
+					$.each(myvalues, function(idx, myval){
+						if (myval == "") return;
+						AuthenticItemsinRename.push(myval);
+					});
+				}
+				else if (setvar == "quantitation_filtering")
+				{
+					if (myparamline == "F")
+					{
+						$("#expquantfilt").prop("checked", false);
+						//hide the rest
+						$("#s3advparams select[name='expquantfiltlbl']").closest("tr").addClass("hidden");
+						$("#s3advparams input[name='expquantfiltprot']").closest("tr").addClass("hidden");
+					}
+					else if (myparamline == "T")
+					{
+						$("#expquantfilt").prop("checked", true);
+						//show them again
+						 $("#s3advparams select[name='expquantfiltlbl']").closest("tr").removeClass("hidden");
+						 $("#s3advparams input[name='expquantfiltprot']").closest("tr").removeClass("hidden");
+						 var parentdiv = $(this).closest("div");
+						 parentdiv.scrollTop(parentdiv.prop("scrollHeight"));
+					}
+				}
+				else if (setvar == "filtering_label")
+				{
+					$('#expquantfiltlbl option:contains("' + myparamline + '")').prop('selected', true);
+				}
+				else if (setvar == "peptide_level_filtering")
+				{
+					if (myparamline == "F")
+					{
+						$("#expquantfiltprot").prop("checked", false);
+					}
+					else if (myparamline == "T")
+					{
+						$("#expquantfiltprot").prop("checked", true);
+					}
+				}
+				else if (setvar == "LeastBRep")
+				{
+					LeastBRep = myparamline;
+				}
+				else if (setvar == "LeastPep")
+				{
+					LeastPep = myparamline;
+				}
+				else if (setvar == "Pthreshold")
+				{
+					Pthreshold = myparamline;
+				}
+				else if (setvar == "LFQconditions")
+				{
+					if (myparamline == "")
+					{
+						RawFileConditions = [];
+						//Show everything back to the user
+						var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+						// console.log(all_items);
+						for (var i = 0; i < all_items.length; i++) {
+						 var items_tds = $(all_items[i]).find('td');
+						 var items_cond = items_tds[4];
+						 $.each(RawFileConditions, function (idx, my_raw_file)
+						 {
+							 if (my_raw_file.name == $(items_tds[0]).text())
+							 {
+								 $(items_cond).text(my_raw_file.condition);
+								 return false;
+							 }
+						 });
+						}
+						setvar = "";
+						return;
+					}
+					add_LFQ_conditions(myparamline);
+				}
+				else if (setvar == "!Rename")
+				{
+					if (myparamline == "")
+					{
+						RenameArray = [];
+						AuthenticItemsinRename = [];
+						setvar = "";
+						return
+					}
+					if(!AllowMergeLabels)
+					{
+						RenameArray = [];
+						AuthenticItemsinRename = [];
+						setvar = "";
+						return
+					}
+					RenameArray = [];
+					AuthenticItemsinRename = [];
+					var my_val = myparamline;
+					var lines = my_val.split("||");
+					$.each(lines, function(idx, my_line){
+						if (my_line == "") return;
+						var my_values = my_line.split("|");
+						RenameArray.push(my_values);
+						AuthenticItemsinRename.push(my_values[0]);
+					});
+					var temprenamefromtestdata = RenameFromTestData;
+					RenameFromTestData = true;
+					Refresh_conds_list();
+					RenameFromTestData = temprenamefromtestdata;
+				}
+				else if (setvar == "!LS_Array")
+				{
+					if (myparamline == "")
+					{
+						LabelSwapArray = [];
+						setvar = "";
+						return
+					}
+					if(!AllowLS) return;
+					LabelSwapArray = [];
+					var my_val = myparamline;
+					var lines = my_val.split("||");
+					$.each(lines, function(idx, my_line){
+						if (my_line == "") return;
+						var my_values = my_line.split("|");
+						var to_add = [];
+						to_add.push(my_values[0]);
+						to_add.push(my_values[1]);
+						to_add.push(my_values[2]);
+						to_add.push(parseInt(my_values[3]));
+						LabelSwapArray.push(to_add);
+					});
+					LS_array_counter = lines.length;
+				}
+				else if (setvar == "!LS_c_p_Add")
+				{
+					if (myparamline == "")
+					{
+						LS_counters_per_Add = [];
+						$("#LSLabelSwaps").empty();
+						setvar = "";
+						return
+					}
+					if(!AllowLS) return;
+					LS_counters_per_Add = [];
+					var my_val = myparamline;
+					var lines = my_val.split("|||");
+					$("#LSLabelSwaps").empty();
+					$.each(lines, function(idx, my_line){
+						if (my_line == "") return;
+						var my_values = my_line.split("||");
+						var to_add = [];
+						to_add[0] = my_values[0];
+						to_add[1] = [];
+						var seclines = my_values[1].split("|");
+						$.each(seclines, function(idx, my_secline){
+							to_add[1].push(parseInt(my_secline));
+						});
+						to_add[2] = [];
+						to_add[2].push(my_values[2]);
+						to_add[2].push(my_values[3]);
+						LS_counters_per_Add.push(to_add);
+						//Add the respective lines in LSLabelSwaps
+						$("#LSLabelSwaps").append("<option value='" + my_values[0] + "'>" + my_values[0] + "</option>");
+					});
+				}
+				else if (setvar == "!Select_Labels")
+				{
+					if (myparamline == "")
+					{
+						setvar = "";
+						return
+					}
+					my_lbls_toselect = myparamline.split("|");
+					select_labels_according_to_test_dataset();
+				}
+				setvar = "";
+			}
+		});
+		msgbox("Loading completed." + additional_info);
+	}
+	else
+	{
+		msgbox("<p style='border-bottom: solid; text-align: center'><strong>The following errors occured when loading parameters:</strong></p><ol>" + checkres + "</ol>");
+	}
+}
+var CheckParamsValidity = function(myparamsstring)
+{
+	var error_message = "";
+	var paramslines = myparamsstring.split("\n");
+	var setvar = "";
+	$.each(paramslines, function(idx, myparamline){
+		if(myparamline[myparamline.length - 1] = "\r")
+		{
+			myparamline = myparamline.substring(0, myparamline.length - 1);
+		}
+		if (myparamline.charAt(0) == "#")
+		{
+			return;
+		}
+		if (setvar == "")
+		{//in this case we expect to read a var name
+			if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add")
+			{
+				setvar = myparamline;
+			}
+		}
+		else
+		{//here we have the var name in set var and we read the var value
+			if (setvar == "isLabelFree")
+			{
+				if (myparamline == "true")
+				{
+					if (isLabelFree == false)
+					{
+						error_message += "<li>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
+					}
+				}
+				else if (myparamline == "false")
+				{
+					if (isLabelFree == true)
+					{
+						error_message += "<li>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
+					}
+				}
+			}
+			else if (setvar == "isIsobaricLabel")
+			{
+				if (myparamline == "true")
+				{
+					if (isIsobaricLabel == false)
+					{
+						error_message += "<li>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
+					}
+				}
+				else if (myparamline == "false")
+				{
+					if (isIsobaricLabel == true)
+					{
+						error_message += "<li>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
+					}
+				}
+			}
+			else if (setvar == "procprogram")
+			{
+				var quantlabel = $("#quantitation_prog_lbl").text();
+				var pattern = new RegExp("MaxQuant");
+				var res = pattern.test(quantlabel);
+				var provenprocprogram = "";
+				if (res == true)
+				{
+					provenprocprogram = "MQ";
+				}
+				else
+				{
+					provenprocprogram = "PD";
+				}
+				if (myparamline == "MQ")
+				{
+					if (provenprocprogram == "PD")
+					{
+						error_message += "<li>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
+					}
+				}
+				else if (myparamline == "PD")
+				{
+					if (provenprocprogram == "MQ")
+					{
+						error_message += "<li>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
+					}
+				}
+			}
+			else if (setvar == "rawfiles_structure")
+			{
+				if (add_raw_file_structure(myparamline, true) == false)
+				{
+					error_message += "<li>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
+				}
+			}
+			setvar = "";
+		}
+
+	});
+	return error_message;
 }
 // from http://codereview.stackexchange.com/questions/7001/better-way-to-generate-all-combinations
 var combinations = function (str) {
@@ -771,6 +1361,8 @@ var resetResultsInfoItms = function () {
 }
 
 var postFireUpAnalysisAndWait = function () {
+	//before initiating the analysis create a save parameters file to the output folder
+	SaveParams(1);
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
    thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
@@ -792,7 +1384,7 @@ var postFireUpAnalysisAndWait = function () {
       beforeSend: function (jqXHR, settings) {
          //fire-up spinner
          //$("#server_feedback").html("<div class='loadingclockcontainer'><div class='box'><div class='clock'></div></div></div>");
-         getRSS("http://www.nature.com/nmeth/current_issue/rss", "#server_feedback");
+         getRSS("https://academic.oup.com/nar/pages/Top_Articles_Data_Resources", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
 	  if (analysis_finished | data.ret_session != sessionid)
@@ -847,6 +1439,7 @@ var postFireUpAnalysisAndWait = function () {
                $("#server_feedback").append("<div class='resimg'><a href='" + path_to_img_i + "' target='_blank'><img src='" + path_to_img_i + "' width='120'></img></a></div>");
             }
          });
+		 $("#server_feedback").css("box-shadow", "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)")
       } else {
          $("#results_p").html("");
          $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>The analysis could not be completed: " + data.msg + "<em><strong></span>");
@@ -882,7 +1475,7 @@ var postClientServerClientInfo = function () {
       }}).done(function (data, textStatus, jqXHR) {
       clientname = data.hostname;
       softversion = data.version;
-      $("#scrollingtext").html("Welcome <em>" + clientname + "</em> to ProteoSign");
+      $("#scrollingtext").html("Welcome to ProteoSign");
       $("#proteosignversion").html("ProteoSign version " + softversion);
    }).fail(function (jqXHR, textStatus, errorThrown) {
    });
@@ -994,6 +1587,9 @@ var postParameters = function (params) {
    thedata.append("AllowLS", AllowLS ? "T" : "F");
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
+   thedata.append("LeastBreps", LeastBRep);
+   thedata.append("LeastPeps", LeastPep);
+   thedata.append("PThreshold", Pthreshold);
    if(AllowMergeLabels) thedata.append("Rename_Array", gen_RenameFile(RenameArray));
    if(AllowLS) thedata.append("LabelSwapArray", gen_LSArray(LabelSwapArray));
    thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
@@ -1141,7 +1737,23 @@ var validateParameters = function (params) {
 	{
 		found_cond = true;
 	}
-
+	if(!isIsobaricLabel)
+	{
+		var error_to_display = "";
+		var re = new RegExp('^(?![0-9_])[a-zA-Z0-9_]+$');
+		$("#conditions_list option").each(function(idx, my_opt)
+		{
+			if (!re.test($(this).val()))
+			{
+				error_to_display = error_to_display + "Condition name " + $(this).val() + " contains invalid characters or starts with a number or an underscore, please rename the condition to continue<br>"
+			}
+		});
+		if (error_to_display !== "")
+		{
+			msgbox(error_to_display);
+			nInvalid++;
+		}
+	}
    return (nInvalid == 0 && tmp_i > 1 && found_cond);
 }
 
@@ -1428,7 +2040,7 @@ var bind_s2LFQConditions_focus = function () {
       });
 }
 
-var ons22btnfclick = function()
+var ons22btnfclick = function(e)
 {
 	if (isLabelFree)
 	{
@@ -1517,7 +2129,7 @@ var addFormLabel = function()
 			select_labels_according_to_test_dataset();
 		  create_my_all_mq_labels();
 		  //Inform ProteoSign if this file is a reporter-ion derived file
-		  isIsobaricLabel = data.isIsobaricLabel;
+		  if(data.isIsobaricLabel) isIsobaricLabel = true;
 		  $("#s3QuantitationFiltering").show();
 	   } else {
 	//label-free case
@@ -1921,8 +2533,7 @@ var rawfiles_structure;
 var rep_counts;
 var lastclicked_rawfiles_tbl_tr = null;
 
-//The following sub is for DEBUGGING purposes only, comment-out in deployment
-var add_raw_file_structure = function(tab_sep_string)
+function add_raw_file_structure(tab_sep_string, check_validity)
 {
 	//This function prints all file names if tab_rep_string == "" or sets the rawfile_structure otherwise
 	if(typeof(tab_sep_string) == "undefined" || tab_sep_string == "")
@@ -1930,23 +2541,95 @@ var add_raw_file_structure = function(tab_sep_string)
 		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
 		for (var i = 0; i < all_items.length; i++) {
 			var items_tds = $(all_items[i]).find('td');
-			console.log($(items_tds[0]).text() + "\n");
+			//console.log($(items_tds[0]).text() + "\n");
 		}
 		return;
 	}
-	rawfiles_structure = [];
+	var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+	var local_rawfiles = [];
+	for (var i = 0; i < all_items.length; i++) {
+		var items_tds = $(all_items[i]).find('td');
+		local_rawfiles.push($(items_tds[0]).text());
+	}
+	//local_rawfiles contains the rawfiles of the uploaded dataset
+	if (!check_validity) rawfiles_structure = [];
+	// if check_validity == true then we are just making sure that there is no rawfile in the param save file that does not correspond to any files in the dataset
+	//also we accept that some rawfiles in te dataset do not have a match in the param save file but not all of them
 	var lines = tab_sep_string.split("\t\t");
+	var validityresponse = true;
 	$.each(lines, function(idx, my_line){
+		if (my_line == "") return;
 		var my_vals = my_line.split("\t");
 		if(my_vals[0] == "rawfile")
 		{
 			return;
 		}
-		rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
+		if (check_validity == true)
+		{
+			//in this case the only reason to run the function is to check if all the rawfiles in the file uploaded exist in the current dataset
+			if($.inArray(my_vals[0], local_rawfiles) == -1)
+			{
+				//if one rawfile in the params file is not in the dataset abort
+				validityresponse = false;
+			}
+		}
+		else
+		{
+			// if check validity == false then we should renew the rawfiles structure object
+			rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
+		}
 	});
-	
+	//uptohere validityresponse is true if all rawfiles in the param save file have a match in the dataset
+	if (check_validity)
+	{
+		return validityresponse;
+	}
+	//From now on check validity == false:
+	//Here the validation has ended and we know that there is at least one rawfile in the
+	//param file that matches one in the dataset. Update these and return false if there are some rawfiles in the dataset left unset
+	var rawfilesset = []; //dataset's raw files that will be set
+	var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+	for (var i = 0; i < all_items.length; i++) {
+		 var items_tds = $(all_items[i]).find('td');
+		$.each(rawfiles_structure, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.rawfile == $(items_tds[0]).text())
+			 {
+				 rawfilesset.push(my_raw_file.rawfile);
+				 return false;
+			 }
+		 });
+	}
+	var rawfilesunset = []; //dataset's raw files that will not be set
+	for (var i = 0; i < all_items.length; i++)
+	{
+		var items_tds = $(all_items[i]).find('td');
+		if ($.inArray($(items_tds[0]).text(), rawfilesset) == -1)
+		{
+			if ($(items_tds[0]).text() != "") rawfilesunset.push($(items_tds[0]).text());
+		}
+	}
+	var found_unset = 0;
+	for (var i = 0; i < all_items.length; i++) {
+		 var items_tds = $(all_items[i]).find('td');
+		 var items_brep = items_tds[1];
+		 var items_trep = items_tds[2];
+		 var items_frac = items_tds[3];
+		 if ($(items_tds[0]).text() == "") continue;
+		 if ($.inArray($(items_tds[0]).text(), rawfilesunset) != -1)
+		 {//if found unset raw in table create an instance of it, it means that this raw was not set at the time of creating the param file. So set the raw back to its original value (-,-,-,used)
+			 $(items_brep).text("-");
+			 $(items_trep).text("-");
+			 $(items_frac).text("-");
+			 $(items_tds[0]).css("text-decoration", "none");
+			 $(items_tds[1]).css("text-decoration", "none");
+			 $(items_tds[2]).css("text-decoration", "none");
+			 $(items_tds[3]).css("text-decoration", "none");
+			 found_unset++;
+		 }
+	}
 	//Show everything back to the user
-		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		all_items = $('#rawfiles_tbl_allfiles').find('tr');
 		// console.log(all_items);
 		for (var i = 0; i < all_items.length; i++) {
          var items_tds = $(all_items[i]).find('td');
@@ -1963,6 +2646,15 @@ var add_raw_file_structure = function(tab_sep_string)
 				 if(my_raw_file.used == false)
 				 {
 					 $(items_tds[0]).css("text-decoration", "line-through");
+					 $(items_tds[1]).css("text-decoration", "line-through");
+					 $(items_tds[2]).css("text-decoration", "line-through");
+					 $(items_tds[3]).css("text-decoration", "line-through");
+				 }
+				 else{
+					 $(items_tds[0]).css("text-decoration", "none");
+					 $(items_tds[1]).css("text-decoration", "none");
+					 $(items_tds[2]).css("text-decoration", "none");
+					 $(items_tds[3]).css("text-decoration", "none");
 				 }
 				 return false;
 			 }
@@ -1970,8 +2662,42 @@ var add_raw_file_structure = function(tab_sep_string)
 		}
 		refresh_fractions();
 		set_s22btnf();
+		return !(found_unset > 0);
 }
 
+var add_LFQ_conditions = function(tab_sep_string)
+{
+	RawFileConditions = [];
+	var lines = tab_sep_string.split("\t\t");
+	$.each(lines, function(idx, my_line){
+		if (my_line == "") return;
+		var my_vals = my_line.split("\t");
+		if(my_vals[0] == "rawfile")
+		{
+			return;
+		}
+		RawFileConditions.push({name: my_vals[0], condition: my_vals[1]});
+	});
+	
+		//Show everything back to the user
+		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		// console.log(all_items);
+		for (var i = 0; i < all_items.length; i++) {
+         var items_tds = $(all_items[i]).find('td');
+         var items_cond = items_tds[4];
+		 $.each(RawFileConditions, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.name == $(items_tds[0]).text())
+			 {
+				 $(items_cond).text(my_raw_file.condition);
+				 return false;
+			 }
+		 });
+		}
+		refresh_fractions();
+		set_s22btnf();
+		refresh_LFQ_conditions_from_test_data();
+}
 var reset_reps = function () {
    bioreps = 0;
    techreps = 0;
@@ -2088,6 +2814,7 @@ function set_s22btnf()
 		{
 			//In case of label free data The next button should be enabled only if al used raw fileshave been assigned to a condition
 			var all_files_have_label_assigned = true;
+			var all_LFQ_labels_found = [];
 			$.each(rawfiles_structure, function (idx, my_raw_file)
 			{
 
@@ -2100,6 +2827,7 @@ function set_s22btnf()
 					{
 						if (my_raw_file.rawfile == my_cond.name)
 						{
+							all_LFQ_labels_found.push(my_cond.condition);
 							found_corresponding_file = true;
 							return;
 						}
@@ -2111,8 +2839,9 @@ function set_s22btnf()
 					}
 				}
 			});
+			all_LFQ_labels_found = ArrNoDupe(all_LFQ_labels_found);
 			//Here if all used files have a corresponding label (condition) assigned all_files_have_label_assigned is set to true otherwise to false
-			$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && all_files_have_label_assigned == true && found_used_rec && bioreps_used.length > 1));
+			$("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length && all_files_have_label_assigned == true && found_used_rec && bioreps_used.length > 1 && all_LFQ_labels_found.length > 1));
 		}
 
 		
@@ -2186,7 +2915,7 @@ var renderRSSData = function (data, renderelem) {
          return;
       }
       $(renderelem).hide();
-      prev_html = '<p>Inside the current issue of Nature Methods:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
+      prev_html = '<p>NAR Top Articles - Data Resources and Analyses:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
       //$("#rsscontent").html('<p><a href="'+data[item]+'" target="_blank">'+item+'</a></p><br><iframe src="'+data[item]+'" style="display: block; width:100%; height:100%;"/>').fadeIn(300);
       $(renderelem).html(prev_html).fadeIn(300);
       var intertime = (Math.log((item.split(/\s/).length) + 1) / Math.log(1.6)) * 1000 + 1000;
@@ -2270,7 +2999,7 @@ var getRSS = function (rssurl, renderelem) {
    thedata.append('session_id', sessionid);
    thedata.append('rssurl', rssurl);
    $.ajax({
-      url: cgi_bin_path + 'get_rss.php',
+      url: cgi_bin_path + 'get_NAR_articles.php',
       type: 'POST',
       // Form data
       data: thedata,
@@ -2281,7 +3010,21 @@ var getRSS = function (rssurl, renderelem) {
       beforeSend: function (jqXHR, settings) {
       }
    }).done(function (data, textStatus, jqXHR) {
-      renderRSSData(data, renderelem);
+	   var htmlcode = data.html_code;
+	   //get the div where NAR stores their current articles
+	   var match =  htmlcode.match(/<strong>([\s\S]+?)<\/a>/gi);
+	   var jsonData = {};
+	   $.each(match, function(idx, my_match)
+	   {
+		var mytempmatch = my_match.match(/<strong>(.+?)<\/strong>/i);
+		var mytitle = mytempmatch[1];
+		//clear the title from formats
+		mytitle = mytitle.replace(/<.*?>/g, "");
+		var mytempmatch2 = my_match.match(/<a href="(.+?)">/i);
+		var myurl = mytempmatch2[1];
+		jsonData[mytitle] = myurl;
+	   });
+	   renderRSSData(jsonData, renderelem)
    }).fail(function (jqXHR, textStatus, errorThrown) {
    });
 }
@@ -2334,6 +3077,9 @@ $(document).ready(function () {
    $("#s2btnupld").on("click", function () {
       $("#__s2btnupld").click();
    });
+  
+   
+   
    // Bind event when file(s) is/are chosen
    $("#__s2btnupld").change(function () {
 		if ($("#__s2btnupld").val() == "") {
@@ -2420,6 +3166,50 @@ $(document).ready(function () {
       }
 		$("#__s2btnupld").val("");
    });
+   
+   $("#__upldparams").change(function () {
+		if ($("#__upldparams").val() == "") {
+			return;
+		}
+		var fnames = "";
+		if (this.files.length > 1) return;
+		if (this.files.length > 0) {
+			uploadingFile = this.files[0];
+			if (window.File && window.FileReader && window.FileList && window.Blob) {
+				oversized_files_idxs = [];
+		      $.each(uploadingFiles, function (idx, file_i)
+		      {
+		      	if(file_i.size > 2147483648)
+				// if(false)
+		      	{
+		      		oversized_files_idxs.push(idx);
+		      	}
+		      });				
+			}
+			if(oversized_files_idxs.length == 0)
+			{
+				 var thedata = new FormData();
+				   thedata.append('thefile', uploadingFile);
+				   thedata.append('session_id', sessionid);
+				   $.ajax({
+					  url: cgi_bin_path + 'upload_param_file.php', //Server script to receive file
+					  type: 'POST',
+					        // Form data
+						  data: thedata,
+						  //Options to tell jQuery not to process data or worry about content-type.
+						  cache: false,
+						  contentType: false,
+						  processData: false,
+				   }).done(function (data, textStatus, jqXHR) {
+					   LoadParams(data.restext);
+					   $("#__upldparams").val("");
+				   });
+			}
+		}
+   });
+   
+   
+   
    //Toggle visibility of table with advanced params
    $("#s3showhideadvparams").on("click", function () {
       var txt = $(this).text();
@@ -2444,6 +3234,36 @@ $(document).ready(function () {
 			 //ADD BACK RESULT HERE
 		});
 		InitializeLS();
+   }); 
+    $("#s3showdivAdvancedOptions").on("click", function () {
+	    if(!AllowLS) return;
+	   	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#divAdvancedOptions").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#divAdvancedOptions").fadeIn(300);
+		$('#mask').fadeIn(300);
+		$("#ADVoptionsOK").on("click", function () {
+			 
+			 //ADD OK RESULT HERE
+		});
+		InitializeAdvParam();
+   }); 
+    $("#s2linkSaveParams").on("click", function () {
+		SaveParams(0);
+   });
+
+   $("#s3linkSaveParams").on("click", function () {
+		SaveParams(0);
+   }); 
+   $("#s4linkSaveParams").on("click", function () {
+		SaveParams(0);
+   }); 
+    $("#s2linkLoadParams").on("click", function () {
+		getparamfile();
+		my_step = 2;
+   }); 
+   $("#s3linkLoadParams").on("click", function () {
+		getparamfile();
+		my_step = 3;
    }); 
    //Add functionality of add/remove labels buttons
    $("#btnAddLabel").on("click", addFormLabel);

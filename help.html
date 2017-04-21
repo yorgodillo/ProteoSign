@@ -108,10 +108,14 @@
               <br><br>
               By clicking <i>Submit</i> the user initiates the statistical analysis.
             </dt>
-		<dd><img src="images/scrshot6_help.PNG"/></dd>
-            <dt><h3>Advanced Options</h3>
-              In case more than one labels was used for the same condition (common in TMT experiments) the user can mark these labels and select <i>Same Condition</i> as illustrated on the picture by right-click. Afterwards, the user is asked to name the respective condition (e.g. Lung_ADC). The conditions that were labelled by more than one labels are always displayed in <strong>bold</strong>. In order to revert such a condition back to its original labels select <i>Restore Conditions</i>.
-            </dt>
+			<dd><img src="images/scrshot6_help.PNG"/></dd>
+			<dt><h3>Save parameters option</h3>
+				By clicking <i>Save parameters</i> the user downloads a text file containing all the parameters defined in <i>Step 2</i> and <i>Step 3</i>. Via the  <i>Load parameters</i> option, the user can load all the parameters saved in that file. This can be useful in the case the user wants to re-analyse the data some time in the future with the same or slightly different parameter set.<br><br><p style="font-size: 85%">Please note that If you are running Safari, it is advisable that you right-click the above link and choose 'Download link as...'</p>
+			</dt>
+			<dd><img src="images/scrshotan8_help.PNG"/></dd>
+			<dt><h3>Advanced Options: Multi-label conditions</h3>
+				In case more than one labels was used for the same condition (common in TMT experiments), the user should notify ProteoSign. This is achieved by first selecting the labels and then via right-click choose <i>Same Condition</i> on the popup menu as illustrated on the figure. The user is then asked to name the respective condition (e.g. Lung_ADC). Conditions <i>created</i> this way are always displayed in <strong>bold</strong>. To revert the labels back to their original state, the user repeats the same procedure by choosing <i>Restore Conditions</i> on the popup menu.
+			</dt>
             <dd>
               <figure style="width: 800px">
                 <img src="images/scrshotan3_help.PNG" style="width: 100%;"/>
@@ -122,9 +126,9 @@
                 <figcaption style="text-align: center;"></figcaption>
               </figure>
             </dd>
-            <dt><h3>Advanced Options (continued): Label swap</h3>
-              In the case of experiments where <i>label swap</i> is utilized,  the user should declare the swap by pressing <i>Label swap options...</i> as shown on the figure. Then, from within the popup window titled <i>Label Swap Assignment</i>, the user should specify the biological and technical replicates involved as well as the labels swapped and press the <i>Add</i> button. The list on the top-right shows the relevant raw files and the list at the bottom the declared label swaps.
-            </dt>
+            <dt><h3>Advanced Options: Label swap</h3>
+				In the case of experiments where <i>label swap</i> is utilized,  the user should declare the swap by pressing <i>Label swap options...</i> as shown in the figure. Then, from within the popup window titled <i>Label Swap Assignment</i>, the user should specify the biological and technical replicates involved, as well as the labels swapped and then press the <i>Add</i> button. The list on the top-right shows the relevant raw files and the list at the bottom the defined label swaps.
+			</dt>
             <dd>
               <figure style="width: 800px">
                 <img src="images/scrshotan5_help.PNG" style="width: 100%;"/>
@@ -134,9 +138,13 @@
                 <img src="images/scrshotan7_help.PNG" style="width: 100%;"/>
                 <figcaption style="text-align: center;"></figcaption>
               </figure>
-            </dd>	      
+            </dd>	   
+			<dt><h3>Advanced Options: Miscellaneous</h3>
+				Here the user can modify default data analysis and algorithmic parameters. These are a) the adjusted p-value used to differentiate between regulated and non-regulated proteins and b) the pair of parameters used to disqualify proteins that were not reproducibly quantified from the statistical analysis. The latter are the number of unique peptides a protein was identified from and the number of biological replicates these unique peptides were found.
+			</dt>
+            <dd><img src="images/scrshotan9_help.PNG"/></dd>
             <dt><h3>Statistical analysis wait page</h3>
-              Here the user waits for the software to finish the statistical analysis, while presented with current <i>Nature Methods</i> articles hyperlinks. When the analysis is finished, the user is navigated automatically to the next page (see below).
+              Here the user waits for the software to finish the statistical analysis, while presented with current <i>Nucleic Acids Research</i> articles hyperlinks. When the analysis is finished, the user is navigated automatically to the next page (see below).
             </dt>
             <dd><img src="images/scrshot7_help.PNG"/></dd>
             <dt><h3>Statistical analysis results preview page</h3>
@@ -147,7 +155,7 @@
               Here the user can click on the <i>proteosign.zip</i> hyperlink to download the entire software output, comprising the aforementioned data plots, other diagnostic plots and various data tables in the form of text files (see below).
             </dt>
             <dd><img src="images/scrshot9_help.PNG"/></dd>
-            <dt><h3>Sofware output files</h3>
+            <dt><h3>Software output files</h3>
               The figure on the right shows the output files generated for the demo data set used throughout this Help page. The <i>PDF</i> files contain the aforementioned plots. For each of the text files, a brief description is provided below.
             </dt>
             <dd><img src="images/scrshot10_help.PNG"/></dd>
@@ -202,6 +210,18 @@
               A trimmed version of the aforementioned results file comprising only the statistically significant results (differentially expressed proteins).
             </dt>
             <dd><img src="images/scrshot19_help.PNG"/></dd>
+			<dt><h3>README file</h3>
+				This text file describes the content of all ProteoSign output files.
+			</dt>
+            <dd><img src="images/scrshotan10_help.PNG"/></dd>
+			<dt><h3>Plot Generator R Script and object file</h3>
+              The file Plot_Generator.R can be edited and run by an experienced user in R in order to produce the results plots manually and change their appeareance as desired. An R objects file with the same name is contained in the ZIP archive and stores all the data needed by the script.
+            </dt>
+            <dd><img src="images/scrshotan11_help.PNG"/></dd>
+			<dt><h3>Parameters file</h3>
+              This text file contains the experimental structure and the parameters as defined by the user. This file can be loaded in another session (as described above) to reenter the same parameters.
+            </dt>
+            <dd><img src="images/scrshotan12_help.PNG"/></dd>
             <dt><h3>Pre-normalization intensities PDF file</h3>
               Box plots of log2 protein intensities before quantile normalization for each replicate and condition.
             </dt>

@@ -52,7 +52,7 @@
 		background-color: #E4E4E4;
 		box-shadow: 0 0.1em 0.1em #B1B1B1;
 		border-radius: 0.15em;
-		height: 850px;
+		height: 900px;
 		width: 900px;
 	}
 	
@@ -63,7 +63,7 @@
 		background-color: white;
 		border-radius: 0.25em;
 		transition-delay: 2s;
-		height: 62%;
+		height: 62.5%;
 		width: 93%;
 		position: relative;
 		background: url("../images/secbg.png") no-repeat;
@@ -113,7 +113,7 @@
 		margin: 1% auto 1% auto;
 		padding: 1.5% 1.5% 1.5% 1.5%;
 		width: 95%;
-		height: 10.5%;
+		height: 10%;
 		border-radius: 0.25em;
 		background: url("../images/unis.png") no-repeat;
 		background-size: 25%;
@@ -795,7 +795,6 @@
 		font-size: 80%; /*andreasa: LSLabelSwaps List Font Size*/
 		font-family: 'Arial';
 	}
-	
 .helplink{
 		position: relative;
 		left: 65%;
