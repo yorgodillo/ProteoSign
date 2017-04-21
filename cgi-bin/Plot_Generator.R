@@ -1,3 +1,8 @@
+# Dear ProteoSign user, 
+# Please find the code that ProteoSign uses to generate the data plots.
+# The two main functions are do_results_plots, which produces the Reproducibility plot, the Volcano plot, the MA plot and the Scatterplot (matrix),
+# and do_limma_plots, which produces the replicates intensities boxplots before and after normalization, as well as the average intensity histogram.
+
 options(warn=1)
 
 source("http://www.bioconductor.org/biocLite.R")
@@ -20,7 +25,6 @@ library(gtools)
 do_results_plots<-function(){
   #ratio_combs contains the combinations of the conditions
   ratio_combs<-combinations(nConditions,2,1:nConditions)
-  print("Preparing data ...")
   
   #Set the theme in ggplot2:
   theme_set(theme_bw())
@@ -32,7 +36,6 @@ do_results_plots<-function(){
   #Plot generation:
   for(i in 1:nrow(ratio_combs)){
     #Prepare the combination:
-    
     print(paste("Generating plots for combination #",i," ..."),change=1,after=T)
     ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep="")
     ratio_i_<-paste("log2.",ratio_i_str,sep="")
@@ -46,18 +49,20 @@ do_results_plots<-function(){
       ratiolim <- 5
     }
     panel.hist.breaks<<-(-ratiolim:ratiolim)
+	
+	
     # 1 - volcano - -log10 P-value vs log ratio
     result <- tryCatch({
       print("Making volcano plot ...")
+	  #Customize the filename and the plot size by editing the following two lines:
       figsuffix<-paste("_",ratio_i_str,"-volcano","_",sep="")
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-            ratio_i_p.value.adj<-paste("p.value.adj.",paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
+	  #Data preparation:
+      ratio_i_p.value.adj<-paste("p.value.adj.",paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep=""),sep="")
       ratio_i_avg_col<-paste("log2.avg.",ratio_i_str,sep="")
       mlog10_ratio_i_p.value.adj<-paste("mlog10_",ratio_i_p.value.adj,sep="")
       diffexp_ratio_i<-paste("diffexp_",ratio_i_str,sep="")
-      
       results[,mlog10_ratio_i_p.value.adj]<-(-log10(results[,ratio_i_p.value.adj]))
-      
       na_indexes<-which(is.na(results[,ratio_i_p.value.adj]))
       if(length(na_indexes)>0){
         results[na_indexes,ratio_i_p.value.adj]<-1
@@ -66,7 +71,6 @@ do_results_plots<-function(){
       }else{
         results[,diffexp_ratio_i]<-results[,ratio_i_p.value.adj]<pThreshold
       }
-      
       #The following lines optimize the plot's x-label in specific dataset types
       if(!IsobaricLabel)
       {
@@ -83,7 +87,8 @@ do_results_plots<-function(){
       }
       myxlab <- gsub("\\.", "/", myxlab)
       
-      # p is a plot created by the ggplot library, change the following lines to fit your preferences
+      # p is a plot created by the ggplot library
+	  # Change the next command to suit your needs:
       p<-ggplot(data=results, aes_string(x=ratio_i_avg_col, y=mlog10_ratio_i_p.value.adj, colour=diffexp_ratio_i)) +
         geom_point(alpha=0.7, size=1.75) +
         theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
@@ -100,16 +105,16 @@ do_results_plots<-function(){
     # 2 - value-ordered - log ratio
     result <- tryCatch({
       print("Making value-ordered plot ...")
+	  #Customize the filename and the plot size by editing the following two lines:
       figsuffix<-paste("_",ratio_i_str,"-value-ordered-log-ratio","_",sep="")
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-      
+      #Data preparation:
       results<-results[with(results, order(results[,c(ratio_i_avg_col)])),]
       results$nID<-1:nrow(results)
       ratio_i_avg_col_ymax<-paste(ratio_i_avg_col,".ymax",sep="")
       ratio_i_avg_col_ymin<-paste(ratio_i_avg_col,".ymin",sep="")
       results[,ratio_i_avg_col_ymax]<-results[,ratio_i_avg_col]+results[,ratio_i_sd_col]
       results[,ratio_i_avg_col_ymin]<-results[,ratio_i_avg_col]-results[,ratio_i_sd_col]
-      
       #The following lines optimize the plot's y-label in specific dataset types
       if(!IsobaricLabel)
       {
@@ -126,7 +131,8 @@ do_results_plots<-function(){
       }
       myylab <- gsub("\\.", "/", myylab)
       
-      # p is a plot created by the ggplot library, change the following lines to fit your preferences
+      # p is a plot created by the ggplot library
+	  # Change the next command to suit your needs:
       p<-ggplot(data=results, aes_string(x="nID", y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
         geom_point(alpha=0.7, size=1.5) +
         geom_errorbar(aes_string(ymin=ratio_i_avg_col_ymin, ymax=ratio_i_avg_col_ymax), width=1.5) +
@@ -142,11 +148,10 @@ do_results_plots<-function(){
     # 3 - MA plot
     result <- tryCatch({
       print("Making MA plot ...")
+	  #Customize the filename and the plot size by editing the following two lines:
       figsuffix<-paste("_",ratio_i_str,"-MA","_",sep="")
       ratio_i_avgI_col<-paste("log2.avg.I.",ratio_i_str,sep="")
-      
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
-      
       #The following lines optimize the plot's y-label in specific dataset types
       if(!IsobaricLabel)
       {
@@ -163,7 +168,8 @@ do_results_plots<-function(){
       }
       myylab <- gsub("\\.", "/", myylab)
       
-      # p is a plot created by the ggplot library, change the following lines to fit your preferences
+      # p is a plot created by the ggplot library
+	  # Change the next command to suit your needs:
       p<-ggplot(data=results, aes_string(x=ratio_i_avgI_col, y=ratio_i_avg_col, colour=diffexp_ratio_i)) +
         geom_point(alpha=0.7, size=1.75) +
         theme(legend.position = "none", axis.title.y=element_text(vjust=0.2), axis.title.x=element_text(vjust=0), plot.title = element_text(vjust=1.5, lineheight=.8, face="bold")) +
@@ -178,9 +184,9 @@ do_results_plots<-function(){
     # 4 - Reproducibility plots & histograms
     result <- tryCatch({
       print("Making reproducibility plot ...")
+	  #Customize the filename suffix by editing the following line:
       figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
       allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
-      
       #The following lines optimize the plot's y-label in specific dataset types
       if(!IsobaricLabel)
       {
@@ -195,6 +201,7 @@ do_results_plots<-function(){
         }
       }
       colnames(allratios) <- gsub("\\.", "/", colnames(allratios))
+	  #Customize the filename and the size of the plot by editing the following line:
       pdf(file=paste(outputFigsPrefix,figsuffix,time.point,".pdf",sep=""),width=10, height=7, family = "Helvetica", pointsize=8)
       pairs.panels(allratios,scale=T,lm=T)
       dev.off()

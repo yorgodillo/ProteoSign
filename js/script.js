@@ -36,7 +36,7 @@ var LSselected_raws = [];
 var LeastBRep = 2;// least breps where a protein must be found in order not to be disqualified
 var LeastPep = 2; //least peptides where a protein must be found in order not to be disqualified
 var Pthreshold = 0.05; //max p where a protein is considered as differentially expressed
-
+var my_step = 0;
 
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
@@ -378,7 +378,7 @@ var InitializeLS = function()
 var InitializeAdvParam = function()
 {
 	$("#AdvParamLPep").empty();
-	for(var i = 1; i < 5; i++)
+	for(var i = 1; i < 11; i++)
 	{
 		if(i == LeastPep)
 		{
@@ -389,7 +389,14 @@ var InitializeAdvParam = function()
 		}
 	}
 	$("#AdvParamLBRep").empty();
-	for(var i = 1; i < 5; i++)
+	var my_bioreps = [];
+	$.each(rawfiles_structure, function (idx, my_raw_file)
+	 {
+		 if (my_raw_file.used == false) return;
+		 my_bioreps.push(my_raw_file.biorep);
+	 });
+	 var unique_breps = ArrNoDupe(my_bioreps);
+	for(var i = 1; i < unique_breps.length + 1; i++)
 	{
 		if(i == LeastBRep)
 		{
@@ -404,7 +411,7 @@ var InitializeAdvParam = function()
 
 var onADVoptionsOK_click = function()
 {
-
+	$("#PThreshold").val($("#PThreshold").val().replace(",", "."));
 	if (StringisNumber($("#PThreshold").val()))
 	{
 		if ($("#PThreshold").val() > 0 && $("#PThreshold").val() < 1)
@@ -574,6 +581,13 @@ var onLSRemoveclick = function()
 			}
 		});
 	});
+	for(var i = LS_counters_per_Add.length - 1; i >= 0;i--)
+	{
+		if($.inArray(LS_counters_per_Add[i][0], options_to_erase) != -1)
+		{
+			LS_counters_per_Add.splice(i, 1);
+		}
+	}
 	for(var i = LabelSwapArray.length - 1; i >= 0;i--)
 	{
 		if($.inArray(LabelSwapArray[i][3], my_counters) != -1)
@@ -690,7 +704,7 @@ var msgbox = function(displaytext)
 //The parameters are stored in a txt file with the following rules: each line starting with # is a comment line, Each line that contains a valid variable name is followed by a line with the variables value
 //In case a variable is an array the lines of the array are separated by double tabs and the rows by tabs
 //The save file also supports commands starting with ! for more functionality
-var SaveParams = function()
+var SaveParams = function(output_file)
 {
 	//Save the parameters
 	//First create as a string the contents of the text file
@@ -698,22 +712,26 @@ var SaveParams = function()
 
 	if (mytext !== "")
 	{
-			var thedata = new FormData();
-	thedata.append('expname', $('input[name="expid"]').val());
-	thedata.append('texttodownload', mytext);
-	thedata.append('session_id', sessionid);
-$.ajax({
-      url: cgi_bin_path + 'download_param_file.php', //Server script to fire up data analysis
-      type: 'POST',
-      // Form data
-      data: thedata,
-      //Options to tell jQuery not to worry about content-type.
-      processData: false,
-      cache: false,
-      contentType: false,
-   }).done(function (data, textStatus, jqXHR) {
-	   msgbox('Download your parameters using this link: <a href="' + data.results_url + '" download target="_blank">' + $('input[name="expid"]').val() + ' parameters.txt</a>.')
-   });
+		var thedata = new FormData();
+		thedata.append('expname', $('input[name="expid"]').val());
+		thedata.append('texttodownload', mytext);
+		thedata.append('session_id', sessionid);
+		thedata.append('output', output_file);
+		$.ajax({
+		  url: cgi_bin_path + 'download_param_file.php', //Server script to fire up data analysis
+		  type: 'POST',
+		  // Form data
+		  data: thedata,
+		  //Options to tell jQuery not to worry about content-type.
+		  processData: false,
+		  cache: false,
+		  contentType: false,
+	   }).done(function (data, textStatus, jqXHR) {
+		   if (output_file == 0)
+		   {
+			msgbox('Download your parameters using this link: <a href="' + data.results_url + '" download target="_blank">' + $('input[name="expid"]').val() + ' parameters.txt</a>.')
+		   }
+	   });
 	}
 }
 
@@ -739,7 +757,7 @@ var CreateParamsFile = function()
 		provenprocprogram = "PD";
 	}
 	mytext += provenprocprogram + "\n";
-	mytext += "#User Parameters:\n";
+	mytext += "#User Parameters and commands:\n";
 	mytext += "rawfiles_structure\n";
 	var myval = "";
 	var mytemp = "";
@@ -758,6 +776,13 @@ var CreateParamsFile = function()
 	mytext += myval + "\n";
 	mytext += "expid\n";
 	mytext += $('input[name="expid"]').val() + "\n";
+	mytext += "!Rename\n";
+	myval = "";
+	$.each(RenameArray, function(idx, my_line)
+	{
+		myval += my_line[0] + "|" + my_line[1] + "||";
+	});
+	mytext += myval + "\n";
 	mytext += "exptpoint\n";
 	mytext += $('input[name="exptpoint"]').val() + "\n";
 	mytext += "conditions_to_compare\n";//these are the authentic items in the conditions list
@@ -802,14 +827,6 @@ var CreateParamsFile = function()
 		myval += my_cond.name + "\t" + my_cond.condition + "\t\t";
 	});
 	mytext += myval + "\n";
-	mytext += "#Commands:\n";
-	mytext += "!Rename\n";
-	myval = "";
-	$.each(RenameArray, function(idx, my_line)
-	{
-		myval += my_line[0] + "|" + my_line[1] + "||";
-	});
-	mytext += myval + "\n";
 	mytext += "!LS_Array\n";
 	myval = "";
 	$.each(LabelSwapArray, function(idx, my_line)
@@ -831,6 +848,16 @@ var CreateParamsFile = function()
 		myval += my_line[2][1] + "|||";
 	});
 	mytext += myval + "\n";
+	mytext += "!Select_Labels\n";
+	myval = "";
+	$("#conditions_list option").each(function(idx, my_opt)
+	{
+		if ($(my_opt).prop("selected") == true)
+		{
+			myval += $(my_opt).val() + "|";
+		}
+	});
+	mytext += myval + "\n";
 	return mytext;
 }
 
@@ -845,9 +872,17 @@ var LoadParams = function(myparametersstring)
 	var checkres = CheckParamsValidity(myparametersstring);
 	if (checkres == "")
 	{
+		var additional_info = "";
 		//load
 		var paramslines = myparametersstring.split("\n");
 		var setvar = "";
+		var mypatt = new RegExp("#ProteoSign parameters files");
+		var myres = mypatt.test(paramslines[0]);
+		if (!myres)
+		{
+			msgbox("The uploaded file is not valid")
+			return;
+		}
 		$.each(paramslines, function(idx, myparamline){
 			if(myparamline[myparamline.length - 1] = "\r")
 			{
@@ -859,7 +894,7 @@ var LoadParams = function(myparametersstring)
 			}
 			if (setvar == "")
 			{//in this case we expect to read a var name
-				if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add")
+				if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add" || myparamline == "!Select_Labels")
 				{
 					setvar = myparamline;
 				}
@@ -868,7 +903,16 @@ var LoadParams = function(myparametersstring)
 			{
 				if (setvar == "rawfiles_structure")
 				{
-					add_raw_file_structure(myparamline, false);
+					if (add_raw_file_structure(myparamline, false) == false)
+					{
+						//in this case some rawfiles in the dataset are not included in the parameter's	file
+						additional_info = "<br>Some raw files where not matched to a biological coordinate"
+						if (my_step == 3)
+						{// if we are on steo 3 send the user back to step 2 to take care of the unset rawfiles
+							toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
+							rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+						}
+					}
 				}
 				else if(setvar == "expid")
 				{
@@ -935,13 +979,45 @@ var LoadParams = function(myparametersstring)
 				}
 				else if (setvar == "LFQconditions")
 				{
-					if (myparamline == "") return;
+					if (myparamline == "")
+					{
+						RawFileConditions = [];
+						//Show everything back to the user
+						var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+						// console.log(all_items);
+						for (var i = 0; i < all_items.length; i++) {
+						 var items_tds = $(all_items[i]).find('td');
+						 var items_cond = items_tds[4];
+						 $.each(RawFileConditions, function (idx, my_raw_file)
+						 {
+							 if (my_raw_file.name == $(items_tds[0]).text())
+							 {
+								 $(items_cond).text(my_raw_file.condition);
+								 return false;
+							 }
+						 });
+						}
+						setvar = "";
+						return;
+					}
 					add_LFQ_conditions(myparamline);
 				}
 				else if (setvar == "!Rename")
 				{
-					if (myparamline == "") return;
-					if(!AllowMergeLabels) return;
+					if (myparamline == "")
+					{
+						RenameArray = [];
+						AuthenticItemsinRename = [];
+						setvar = "";
+						return
+					}
+					if(!AllowMergeLabels)
+					{
+						RenameArray = [];
+						AuthenticItemsinRename = [];
+						setvar = "";
+						return
+					}
 					RenameArray = [];
 					AuthenticItemsinRename = [];
 					var my_val = myparamline;
@@ -952,12 +1028,19 @@ var LoadParams = function(myparametersstring)
 						RenameArray.push(my_values);
 						AuthenticItemsinRename.push(my_values[0]);
 					});
+					var temprenamefromtestdata = RenameFromTestData;
 					RenameFromTestData = true;
 					Refresh_conds_list();
+					RenameFromTestData = temprenamefromtestdata;
 				}
 				else if (setvar == "!LS_Array")
 				{
-					if (myparamline == "") return;
+					if (myparamline == "")
+					{
+						LabelSwapArray = [];
+						setvar = "";
+						return
+					}
 					if(!AllowLS) return;
 					LabelSwapArray = [];
 					var my_val = myparamline;
@@ -976,11 +1059,18 @@ var LoadParams = function(myparametersstring)
 				}
 				else if (setvar == "!LS_c_p_Add")
 				{
-					if (myparamline == "") return;
+					if (myparamline == "")
+					{
+						LS_counters_per_Add = [];
+						$("#LSLabelSwaps").empty();
+						setvar = "";
+						return
+					}
 					if(!AllowLS) return;
 					LS_counters_per_Add = [];
 					var my_val = myparamline;
 					var lines = my_val.split("|||");
+					$("#LSLabelSwaps").empty();
 					$.each(lines, function(idx, my_line){
 						if (my_line == "") return;
 						var my_values = my_line.split("||");
@@ -996,18 +1086,27 @@ var LoadParams = function(myparametersstring)
 						to_add[2].push(my_values[3]);
 						LS_counters_per_Add.push(to_add);
 						//Add the respective lines in LSLabelSwaps
-						$("#LSLabelSwaps").empty();
 						$("#LSLabelSwaps").append("<option value='" + my_values[0] + "'>" + my_values[0] + "</option>");
 					});
+				}
+				else if (setvar == "!Select_Labels")
+				{
+					if (myparamline == "")
+					{
+						setvar = "";
+						return
+					}
+					my_lbls_toselect = myparamline.split("|");
+					select_labels_according_to_test_dataset();
 				}
 				setvar = "";
 			}
 		});
-		msgbox("Parameters loading completed." + checkres);
+		msgbox("Loading completed." + additional_info);
 	}
 	else
 	{
-		msgbox("The following errors occured when loading parameters:<br>" + checkres);
+		msgbox("<p style='border-bottom: solid; text-align: center'><strong>The following errors occured when loading parameters:</strong></p><ol>" + checkres + "</ol>");
 	}
 }
 var CheckParamsValidity = function(myparamsstring)
@@ -1016,6 +1115,10 @@ var CheckParamsValidity = function(myparamsstring)
 	var paramslines = myparamsstring.split("\n");
 	var setvar = "";
 	$.each(paramslines, function(idx, myparamline){
+		if(myparamline[myparamline.length - 1] = "\r")
+		{
+			myparamline = myparamline.substring(0, myparamline.length - 1);
+		}
 		if (myparamline.charAt(0) == "#")
 		{
 			return;
@@ -1035,14 +1138,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isLabelFree == false)
 					{
-						error_message += "The parameters correspond to a Labelled dataset but the uploaded dataset is Label Free<br>";
+						error_message += "<li>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isLabelFree == true)
 					{
-						error_message += "The parameters correspond to a Label Free dataset but the uploaded dataset is Labelled<br>";
+						error_message += "<li>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
 					}
 				}
 			}
@@ -1052,14 +1155,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isIsobaricLabel == false)
 					{
-						error_message += "The parameters correspond to an Isobaric Label dataset but the uploaded dataset is not<br>";
+						error_message += "<li>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isIsobaricLabel == true)
 					{
-						error_message += "The parameters correspond to a dataset which does not use Isobaric Labeling but the uploaded dataset does<br>";
+						error_message += "<li>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
 					}
 				}
 			}
@@ -1081,14 +1184,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (provenprocprogram == "PD")
 					{
-						error_message += "The parameters correspond to a dataset Processed by MaxQuant but the uploaded dataset is Processed by Proteome Discoverer<br>";
+						error_message += "<li>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
 					}
 				}
 				else if (myparamline == "PD")
 				{
 					if (provenprocprogram == "MQ")
 					{
-						error_message += "The parameters correspond to a dataset Processed by Proteome Discoverer but the uploaded dataset is Processed by MaxQuant<br>";
+						error_message += "<li>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
 					}
 				}
 			}
@@ -1096,7 +1199,7 @@ var CheckParamsValidity = function(myparamsstring)
 			{
 				if (add_raw_file_structure(myparamline, true) == false)
 				{
-					error_message += "The Raw files in the parameters loaded do not correspond to the ones in the dataset uploaded<br>";
+					error_message += "<li>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
 				}
 			}
 			setvar = "";
@@ -1258,6 +1361,8 @@ var resetResultsInfoItms = function () {
 }
 
 var postFireUpAnalysisAndWait = function () {
+	//before initiating the analysis create a save parameters file to the output folder
+	SaveParams(1);
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
    thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
@@ -2446,7 +2551,10 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 		var items_tds = $(all_items[i]).find('td');
 		local_rawfiles.push($(items_tds[0]).text());
 	}
+	//local_rawfiles contains the rawfiles of the uploaded dataset
 	if (!check_validity) rawfiles_structure = [];
+	// if check_validity == true then we are just making sure that there is no rawfile in the param save file that does not correspond to any files in the dataset
+	//also we accept that some rawfiles in te dataset do not have a match in the param save file but not all of them
 	var lines = tab_sep_string.split("\t\t");
 	var validityresponse = true;
 	$.each(lines, function(idx, my_line){
@@ -2461,17 +2569,67 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 			//in this case the only reason to run the function is to check if all the rawfiles in the file uploaded exist in the current dataset
 			if($.inArray(my_vals[0], local_rawfiles) == -1)
 			{
+				//if one rawfile in the params file is not in the dataset abort
 				validityresponse = false;
 			}
 		}
 		else
 		{
+			// if check validity == false then we should renew the rawfiles structure object
 			rawfiles_structure.push({rawfile: my_vals[0], biorep: my_vals[1], techrep: my_vals[2], fraction: my_vals[3], used: my_vals[4]});
 		}
 	});
-	if (check_validity) return validityresponse;
+	//uptohere validityresponse is true if all rawfiles in the param save file have a match in the dataset
+	if (check_validity)
+	{
+		return validityresponse;
+	}
+	//From now on check validity == false:
+	//Here the validation has ended and we know that there is at least one rawfile in the
+	//param file that matches one in the dataset. Update these and return false if there are some rawfiles in the dataset left unset
+	var rawfilesset = []; //dataset's raw files that will be set
+	var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+	for (var i = 0; i < all_items.length; i++) {
+		 var items_tds = $(all_items[i]).find('td');
+		$.each(rawfiles_structure, function (idx, my_raw_file)
+		 {
+			 if (my_raw_file.rawfile == $(items_tds[0]).text())
+			 {
+				 rawfilesset.push(my_raw_file.rawfile);
+				 return false;
+			 }
+		 });
+	}
+	var rawfilesunset = []; //dataset's raw files that will not be set
+	for (var i = 0; i < all_items.length; i++)
+	{
+		var items_tds = $(all_items[i]).find('td');
+		if ($.inArray($(items_tds[0]).text(), rawfilesset) == -1)
+		{
+			if ($(items_tds[0]).text() != "") rawfilesunset.push($(items_tds[0]).text());
+		}
+	}
+	var found_unset = 0;
+	for (var i = 0; i < all_items.length; i++) {
+		 var items_tds = $(all_items[i]).find('td');
+		 var items_brep = items_tds[1];
+		 var items_trep = items_tds[2];
+		 var items_frac = items_tds[3];
+		 if ($(items_tds[0]).text() == "") continue;
+		 if ($.inArray($(items_tds[0]).text(), rawfilesunset) != -1)
+		 {//if found unset raw in table create an instance of it, it means that this raw was not set at the time of creating the param file. So set the raw back to its original value (-,-,-,used)
+			 $(items_brep).text("-");
+			 $(items_trep).text("-");
+			 $(items_frac).text("-");
+			 $(items_tds[0]).css("text-decoration", "none");
+			 $(items_tds[1]).css("text-decoration", "none");
+			 $(items_tds[2]).css("text-decoration", "none");
+			 $(items_tds[3]).css("text-decoration", "none");
+			 found_unset++;
+		 }
+	}
 	//Show everything back to the user
-		var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+		all_items = $('#rawfiles_tbl_allfiles').find('tr');
 		// console.log(all_items);
 		for (var i = 0; i < all_items.length; i++) {
          var items_tds = $(all_items[i]).find('td');
@@ -2488,6 +2646,15 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 				 if(my_raw_file.used == false)
 				 {
 					 $(items_tds[0]).css("text-decoration", "line-through");
+					 $(items_tds[1]).css("text-decoration", "line-through");
+					 $(items_tds[2]).css("text-decoration", "line-through");
+					 $(items_tds[3]).css("text-decoration", "line-through");
+				 }
+				 else{
+					 $(items_tds[0]).css("text-decoration", "none");
+					 $(items_tds[1]).css("text-decoration", "none");
+					 $(items_tds[2]).css("text-decoration", "none");
+					 $(items_tds[3]).css("text-decoration", "none");
 				 }
 				 return false;
 			 }
@@ -2495,12 +2662,13 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 		}
 		refresh_fractions();
 		set_s22btnf();
+		return !(found_unset > 0);
 }
 
 var add_LFQ_conditions = function(tab_sep_string)
 {
 	RawFileConditions = [];
-		var lines = tab_sep_string.split("\t\t");
+	var lines = tab_sep_string.split("\t\t");
 	$.each(lines, function(idx, my_line){
 		if (my_line == "") return;
 		var my_vals = my_line.split("\t");
@@ -2528,7 +2696,7 @@ var add_LFQ_conditions = function(tab_sep_string)
 		}
 		refresh_fractions();
 		set_s22btnf();
-		//todo: make LFQconditions containing the unique values of rawfileconds
+		refresh_LFQ_conditions_from_test_data();
 }
 var reset_reps = function () {
    bioreps = 0;
@@ -2747,7 +2915,7 @@ var renderRSSData = function (data, renderelem) {
          return;
       }
       $(renderelem).hide();
-      prev_html = '<p>Inside the current issue of Nucleic Acids Research:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
+      prev_html = '<p>NAR Top Articles - Data Resources and Analyses:<br><br><a href="' + data[item] + '" target="_blank"><strong>' + item + '</strong></a></p>';
       //$("#rsscontent").html('<p><a href="'+data[item]+'" target="_blank">'+item+'</a></p><br><iframe src="'+data[item]+'" style="display: block; width:100%; height:100%;"/>').fadeIn(300);
       $(renderelem).html(prev_html).fadeIn(300);
       var intertime = (Math.log((item.split(/\s/).length) + 1) / Math.log(1.6)) * 1000 + 1000;
@@ -3080,16 +3248,22 @@ $(document).ready(function () {
 		InitializeAdvParam();
    }); 
     $("#s2linkSaveParams").on("click", function () {
-		SaveParams();
-   }); 
+		SaveParams(0);
+   });
+
    $("#s3linkSaveParams").on("click", function () {
-		SaveParams();
+		SaveParams(0);
    }); 
-       $("#s2linkLoadParams").on("click", function () {
+   $("#s4linkSaveParams").on("click", function () {
+		SaveParams(0);
+   }); 
+    $("#s2linkLoadParams").on("click", function () {
 		getparamfile();
+		my_step = 2;
    }); 
    $("#s3linkLoadParams").on("click", function () {
 		getparamfile();
+		my_step = 3;
    }); 
    //Add functionality of add/remove labels buttons
    $("#btnAddLabel").on("click", addFormLabel);

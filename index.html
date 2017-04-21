@@ -204,6 +204,9 @@
 					<button type="button" class="main" id="s4btnb">Back</button>
 					<button type="button" class="main" id="s4btnf" disabled>Next</button>
 				</div>
+				<div id="s4SaveLoadParams" style="position:absolute; bottom: 1%; right:1%;">
+					<p style="font-size: 80%"><u class = "astyle" id="s4linkSaveParams">Save</u> parameters...</p>
+				</div>
 			</div>						
 			<div class="main_div main_section hidden" id="s5div">
 				<h2>End</h2>
@@ -222,7 +225,7 @@
 			<div class="main_div main_footer">
 				<p>
 					<em>Reference:</em><br>
-					<a href="#" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O. and Iliopoulos I.<br>ProteoSign: An end-user online differential proteomics statistical analysis platform.</strong><br></a>
+					<a href="#" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O., Iliopoulos I.<br>ProteoSign: An end-user online differential proteomics statistical analysis platform.</strong><br></a>
 				<p>
 				<span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
 				<span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
@@ -325,7 +328,7 @@
 		</div>	
 		
 		<div class="expparamsDlgInfo" id="VariousInfoDialog" style="width: 550px">
-			<div style="text-align: center;">
+			<div style="text-align: left;">
 				<div id="InfoDiv" style="font-size: 85%;"></div>
 			</div>
 			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
@@ -347,7 +350,7 @@
 				</div>
 				<div name="divPValue" style="position: relative; border-bottom-style: solid; padding-bottom: 2px; padding-top: 2px;">
 					<span class="inline" style="font-size: 85%;">Adjusted p-value threshold for differentially expressed proteins: </span>
-					<input type="text" id="PThreshold" style="width:50px; min-width:50px" onkeypress="inputChCheck(event,'^[0-9.]+$',10);" onpaste="inputPasteCheck(event,'^[0-9.]+$',10);"></input>
+					<input type="text" id="PThreshold" style="width:50px; min-width:50px" onkeypress="inputChCheck(event,'^[0-9.,]+$',10);" onpaste="inputPasteCheck(event,'^[0-9.,]+$',10);"></input>
 				</div>
 			</div>
 			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">

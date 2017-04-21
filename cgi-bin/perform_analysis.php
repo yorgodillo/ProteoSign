@@ -69,6 +69,10 @@ if (!file_exists("msdiffexp_out"))
 rename('msdiffexp_log.txt', 'msdiffexp_out/log.txt');
 rename('README.txt', 'msdiffexp_out/README.txt');
 rename('Plot_Generator.R', 'msdiffexp_out/Plot_Generator.R');
+chdir('..');
+foreach (glob("*_parameters_from_session_*.txt") as $filename) {
+	rename($filename, 'msdiffexp_wd/msdiffexp_out/' . $filename);
+}
 chdir($upload_dir);
 if ($server_response['R_success']) {
    exec("cp msdiffexp_wd/msdiffexp_out/*.pdf .; mogrify -format png -density 150 -quality 100 -fill white -opaque none *.pdf; rm *.pdf");
