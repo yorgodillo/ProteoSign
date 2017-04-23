@@ -884,7 +884,7 @@ var LoadParams = function(myparametersstring)
 			return;
 		}
 		$.each(paramslines, function(idx, myparamline){
-			if(myparamline[myparamline.length - 1] = "\r")
+			if(myparamline[myparamline.length - 1] == "\r")
 			{
 				myparamline = myparamline.substring(0, myparamline.length - 1);
 			}
@@ -1138,14 +1138,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isLabelFree == false)
 					{
-						error_message += "<li>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isLabelFree == true)
 					{
-						error_message += "<li>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
 					}
 				}
 			}
@@ -1155,24 +1155,22 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isIsobaricLabel == false)
 					{
-						error_message += "<li>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isIsobaricLabel == true)
 					{
-						error_message += "<li>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
 					}
 				}
 			}
 			else if (setvar == "procprogram")
 			{
-				var quantlabel = $("#quantitation_prog_lbl").text();
-				var pattern = new RegExp("MaxQuant");
-				var res = pattern.test(quantlabel);
+				var myexppddata;
 				var provenprocprogram = "";
-				if (res == true)
+				if ($("#s3expparams input[name='exppddata']").prop("checked") == false)
 				{
 					provenprocprogram = "MQ";
 				}
@@ -1184,14 +1182,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (provenprocprogram == "PD")
 					{
-						error_message += "<li>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
 					}
 				}
 				else if (myparamline == "PD")
 				{
 					if (provenprocprogram == "MQ")
 					{
-						error_message += "<li>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
 					}
 				}
 			}
@@ -1199,7 +1197,7 @@ var CheckParamsValidity = function(myparamsstring)
 			{
 				if (add_raw_file_structure(myparamline, true) == false)
 				{
-					error_message += "<li>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
+					error_message += "<li style='text-align: left;'>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
 				}
 			}
 			setvar = "";
@@ -1938,6 +1936,7 @@ types_of_files_uploaded.push(data.file_type);
                // Only Proteome Discoverer data currently provide label definition information.
                // When this information is made available it means that our data originate from PD software.
                $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
+			   
                //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
                $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
                $("#quantitation_prog_lbl").text(peptideLabelsFromFile.length > 0 ? "\u2014 Raw data were quantified with Proteome Discoverer\u2122" : "\u2014 Raw data were quantified with MaxQuant");
@@ -2011,6 +2010,27 @@ types_of_files_uploaded.push(data.file_type);
    });
 }
 
+var on_exppddatachange = function()
+{
+	//called when the program understands that the dataset is from PD or MQ
+	// this function serves the only reason to inform
+	//the user for the procprogram (MQ or PD) by altering the quantitation_prog_lbl
+	// this function will run only in label-free data since in labelled ones,
+	//quantitation_prog_lbl is set in another way
+	if (isLabelFree)
+	{
+		if ($("#s3expparams input[name='exppddata']").prop("checked") == false)
+		{
+			//MaxQuant:
+			$("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with MaxQuant");
+		}
+		else
+		{
+			//Proteome Discoverer:
+			$("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with Proteome Discoverer\u2122");
+		}
+	}
+}
 var bind_explbldefinition_focus = function (explbldefinition) {
    $(explbldefinition).on("focus", function () {
       $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s3expparamsDlgLabels").width() / 2)});
@@ -2071,6 +2091,7 @@ var ons22btnfclick = function(e)
 		select_labels_according_to_test_dataset();
 		if(AllowMergeLabels) InitializeRename();
 		create_my_all_mq_labels();
+		on_exppddatachange();
 	}
 }
 var onShowDialog = function (selector){
@@ -2625,6 +2646,10 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 			 $(items_tds[1]).css("text-decoration", "none");
 			 $(items_tds[2]).css("text-decoration", "none");
 			 $(items_tds[3]).css("text-decoration", "none");
+			 if (isLabelFree == true)
+			 {
+				 $(items_tds[4]).css("text-decoration", "none");
+			 }
 			 found_unset++;
 		 }
 	}
@@ -2649,12 +2674,20 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 					 $(items_tds[1]).css("text-decoration", "line-through");
 					 $(items_tds[2]).css("text-decoration", "line-through");
 					 $(items_tds[3]).css("text-decoration", "line-through");
+					 if (isLabelFree == true)
+					 {
+						 $(items_tds[4]).css("text-decoration", "line-through");
+					 }
 				 }
 				 else{
 					 $(items_tds[0]).css("text-decoration", "none");
 					 $(items_tds[1]).css("text-decoration", "none");
 					 $(items_tds[2]).css("text-decoration", "none");
 					 $(items_tds[3]).css("text-decoration", "none");
+					 if (isLabelFree == true)
+					 {
+						 $(items_tds[4]).css("text-decoration", "none");
+					 }
 				 }
 				 return false;
 			 }

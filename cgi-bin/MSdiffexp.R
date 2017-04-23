@@ -1000,6 +1000,21 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
           #in any other case rename the labels that are merged to the same label so that they become indistinguishable
           #and refresh the conditions labels by erasing the old label and adding the new if necessary
           mi<-which(evidence$label_ == Rename_Array$old_label[i])
+          if (LabelFree == FALSE & IsobaricLabel == FALSE)
+          {
+            #in case of precursor ion data add you need to create a new column with the new cond name containing
+            #the intensities of the old labels to the line where the label is found:
+            prefix<-NA
+            if (PDdata)
+            {
+              prefix<-""
+            }
+            else
+            {
+              prefix<-"Intensity."
+            }
+            evidence[mi, paste0(prefix, Rename_Array$new_label[i])] <- evidence[mi,  paste0(prefix, Rename_Array$old_label[i])]
+          }
           evidence$label_[mi] <- Rename_Array$new_label[i]
           mi<-which(conditions.labels == Rename_Array$old_label[i])
           if (length(mi) > 0)
@@ -1036,6 +1051,31 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       mi2<-which(evidence[, rawfile_col] == Ls_array$selected_raw_file[i] & evidence$label_ == Ls_array$second_label[i])
       evidence$label_[mi1] <- as.character(Ls_array$second_label[i])
       evidence$label_[mi2] <- as.character(Ls_array$first_label[i])
+      if (LabelFree == FALSE & IsobaricLabel == FALSE)
+      {
+        prefix<-NA
+        if (PDdata)
+        {
+          prefix<-""
+        }
+        else
+        {
+          prefix<-"Intensity."
+        }
+        #in case of precursor ion we should also swap the values between the columns "Intensity" of the first and second label
+        if (length(mi1) > 0)
+        {
+          evidence[mi1, "temp_LS_Intensities"] <- evidence[mi1, paste0(prefix, Ls_array$second_label[i])]
+          evidence[mi1, paste0(prefix, Ls_array$second_label[i])] <- evidence[mi1, paste0(prefix, Ls_array$first_label[i])]
+          evidence[mi1, paste0(prefix, Ls_array$first_label[i])] <- evidence[mi1, "temp_LS_Intensities"]
+        }
+        if (length(mi2) > 0)
+        {
+          evidence[mi2, "temp_LS_Intensities"] <- evidence[mi2, paste0(prefix, Ls_array$second_label[i])]
+          evidence[mi2, paste0(prefix, Ls_array$second_label[i])] <- evidence[mi2, paste0(prefix, Ls_array$first_label[i])]
+          evidence[mi2, paste0(prefix, Ls_array$first_label[i])] <- evidence[mi2, "temp_LS_Intensities"]
+        }
+      }
     }
   }
   levellog("",change=-1)
