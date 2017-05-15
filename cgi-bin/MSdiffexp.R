@@ -317,9 +317,9 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
       
       ratio_i_<-paste("log2.",ratio_i_str,sep="")
       ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
-      tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
+      tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_, " ")),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_sd_col, "$")),colnames(results))]]
       
-      tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
+      tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_, " ")),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_sd_col, "$")),colnames(results))]]
       ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
       #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
       if(ratiolim == 0)
@@ -477,7 +477,7 @@ do_results_plots<-function(norm.median.intensities,time.point,exportFormat="pdf"
       levellog("Making reproducibility plot ...")
       figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
       
-      allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
+      allratios<-results[,colnames(results)[grep(paste0(ratio_i_, " "),colnames(results))]]
       if(!IsobaricLabel)
       {
         colnames(allratios)<-sub(ratio_i_,paste("log2(",sub("\\.","/",ratio_i_str),") ",sep=""),colnames(allratios))

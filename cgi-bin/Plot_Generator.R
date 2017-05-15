@@ -1,7 +1,7 @@
-# Dear ProteoSign user, 
-# Please find the code that ProteoSign uses to generate the data plots.
-# The two main functions are do_results_plots, which produces the Reproducibility plot, the Volcano plot, the MA plot and the Scatterplot (matrix),
-# and do_limma_plots, which produces the replicates intensities boxplots before and after normalization, as well as the average intensity histogram.
+# Dear ProteoSign user,
+# Please find below the code that ProteoSign uses to generate the data plots.
+# The two main functions are: do_results_plots, which produces the Reproducibility plot, the Volcano plot, the MA plot and the Scatterplot (matrix),
+# and do_limma_plots, which produces the replicates' intensities boxplots before and after normalization, as well as the average intensity histogram.
 
 options(warn=1)
 
@@ -16,9 +16,6 @@ if(!require("gtools"))
   install.packages("gtools", repos="http://cran.fhcrc.org")
   library(gtools)
 }
-
-library(ggplot2)
-library(gtools)
 
 # do_results_plots produces the Reproducibility plot, the Volcano plot, the MA plot and the Scatterplot (matrix)
 
@@ -37,19 +34,22 @@ do_results_plots<-function(){
   for(i in 1:nrow(ratio_combs)){
     #Prepare the combination:
     print(paste("Generating plots for combination #",i," ..."),change=1,after=T)
-    ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep="")
-    ratio_i_<-paste("log2.",ratio_i_str,sep="")
-    ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
-    tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
-    tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",ratio_i_sd_col),colnames(results))]]
-    ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
-    #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
-    if(ratiolim == 0)
-    {
-      ratiolim <- 5
-    }
-    panel.hist.breaks<<-(-ratiolim:ratiolim)
-	
+    result <- tryCatch({
+      ratio_i_str<-paste(conditions.labels[ratio_combs[i,2]],".",conditions.labels[ratio_combs[i,1]],sep="")
+      ratio_i_<-paste("log2.",ratio_i_str,sep="")
+      ratio_i_sd_col<-paste("log2.sd.",ratio_i_str,sep="")
+      tmp2<-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_, " ")),colnames(results))]]+results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_sd_col, "$")),colnames(results))]]
+      tmp1<-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_, " ")),colnames(results))]]-results[,colnames(results)[grep(gsub("\\.","\\\\.",paste0(ratio_i_sd_col, "$")),colnames(results))]]
+      ratiolim<-ceiling(max(max(range(tmp1,na.rm=T),range(tmp2,na.rm=T)),abs(min(range(tmp1,na.rm=T),range(tmp2,na.rm=T)))))
+      #If two conditions contain exactly the same data ratiolim will be equal to 0. In this case add all the intensities to the same block
+      if(ratiolim == 0)
+      {
+        ratiolim <- 5
+      }
+      panel.hist.breaks<<-(-ratiolim:ratiolim)
+    }, error = function(err){
+      print(paste0("Warning! ", ratio_i_str, " combination preparation failed!"))
+    })
 	
     # 1 - volcano - -log10 P-value vs log ratio
     result <- tryCatch({
@@ -186,7 +186,7 @@ do_results_plots<-function(){
       print("Making reproducibility plot ...")
 	  #Customize the filename suffix by editing the following line:
       figsuffix<-paste("_",ratio_i_str,"-reproducibility","_",sep="")
-      allratios<-results[,colnames(results)[grep(ratio_i_,colnames(results))]]
+      allratios<-results[,colnames(results)[grep(paste0(ratio_i_, " "),colnames(results))]]
       #The following lines optimize the plot's y-label in specific dataset types
       if(!IsobaricLabel)
       {

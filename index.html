@@ -195,14 +195,13 @@
 			<div class="main_div main_section hidden" id="s4div">
 				<h2>Step 4</h2>
 				<p id="results_p" style="color: #000000"></p>
-				<br>
 				<hr class="style-one">
 				<br>
 				<div id="server_feedback" class="image_array_div">
 				</div>
 				<div class="buttonbar">
-					<button type="button" class="main" id="s4btnb">Back</button>
-					<button type="button" class="main" id="s4btnf" disabled>Next</button>
+					<button type="button" class="main" id="s4btnb" onclick="ons4btnbclick();">Back</button>
+					<button type="button" class="main" id="s4btnf" onclick = "ons4btnfclick();" disabled>Next</button>
 				</div>
 				<div id="s4SaveLoadParams" style="position:absolute; bottom: 1%; right:1%;">
 					<p style="font-size: 80%"><u class = "astyle" id="s4linkSaveParams">Save</u> parameters...</p>
@@ -221,11 +220,14 @@
 					<button type="button" class="main" id="s5btnb">Back</button>
 					<button type="button" class="main" id="s5btnf">Reset</button>
 				</div>
+				<div class="feedback_area" id="feedback_div">
+					<u class="verticaltext astyle" onclick="onFeedbackclick();">Feedback</u>
+				</div>
 			</div>						
 			<div class="main_div main_footer">
 				<p>
 					<em>Reference:</em><br>
-					<a href="#" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O., Iliopoulos I.<br>ProteoSign: An end-user online differential proteomics statistical analysis platform.</strong><br></a>
+					<a href="#" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O., Iliopoulos I.<br>ProteoSign: an end-user online differential proteomics statistical analysis platform.</strong><br></a>
 				<p>
 				<span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
 				<span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
@@ -325,17 +327,7 @@
 			<div name="LSbuttondiv" class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
 				<button type="button" class="main inline" style="font-size: 80%; width: 50px" id="LSBack" onclick="onLSbackclick();">Back</button>
 			</div>	
-		</div>	
-		
-		<div class="expparamsDlgInfo" id="VariousInfoDialog" style="width: 550px">
-			<div style="text-align: center;">
-				<div id="InfoDiv" style="font-size: 85%;"></div>
-			</div>
-			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
-			<button type="button" class="main inline" style="font-size: 80%;" id="VIDDiscard" onclick="onVIDDiscard_click();">Discard</button>
-			</div>	
-		</div>
-			
+		</div>			
 		<div class="expparamsDlg" id="divAdvancedOptions" style="width: 500px">
 			<div name="LStitlediv" style="text-align: center; display: block; align-items: center; position: relative; border-bottom-style: solid; padding-bottom: 10px;">
 			<span >Change the <i>default</i> data analysis parameters used by ProteoSign and click <strong>OK</strong></span>
@@ -357,6 +349,37 @@
 				<button type="button" class="main inline" style="font-size: 80%;" id="ADVoptionsOK" onclick="onADVoptionsOK_click();">OK</button>
 				<button type="button" class="main inline" style="font-size: 80%;" id="ADVoptionsCancel" onclick="onADVoptionsCancel_click();">Cancel</button>
 			</div>
+		</div>
+		<div class="expparamsDlg" id="s4FeedbackPanel">
+			<div style="text-align: center">
+				<span style="font-size: 104%" style='font-family: "Segoe UI"' class="inline">Thank you for using ProteoSign!<br>Please leave us your feedback below:<br></span>
+				<textarea id="userFeedback" rows="7" cols="50" style="resize: none;" class="inline"maxlength="600"></textarea>
+			</div>
+			<div>
+			<span style="font-size: 75%" id="FBcharleft">600 characters left</span>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="FeedbackPanelSend" onclick="onFeedbackPanelSendclick();">Send</button>
+				<button type="button" class="main inline" style="font-size: 80%;" margin-left: 1em" id="FeedbackPanelCancel">Cancel</button>
+			</div>			
+		</div>
+		<div class="expparamsDlg" id="WarnCarefulBack">
+			<div style="text-align: center">
+				<div style="font-size: 104%" style='font-family: "Segoe UI"' class="inline" id="CarefulBackTitle"></div>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+				<button type="button" class="main inline" style="font-size: 80%;" id="CarefulBackYes" onclick="onCarefulBackYesclick();">Yes</button>
+				<button type="button" class="main inline" style="font-size: 80%;" margin-left: 1em" id="CarefulBackNo" onclick="onCarefulBackNoclick();">No</button>
+			</div>			
+		</div>
+		
+		<div class="expparamsDlgInfo" id="VariousInfoDialog" style="width: 550px">
+			<div style="text-align: center;">
+				<div id="InfoDiv" style="font-size: 85%;"></div>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="VIDDiscard" onclick="onVIDDiscard_click();">Discard</button>
+			</div>	
 		</div>
 		
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
