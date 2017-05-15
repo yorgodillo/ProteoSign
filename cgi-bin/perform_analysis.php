@@ -102,7 +102,6 @@ error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($s
 if (!$server_response['success']) {
    error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
 } else {
-	   exec('rm -Rf msdiffexp_wd');
    // exec('del -Rf msdiffexp_wd');
 }
 //Send info back to the client

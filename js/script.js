@@ -37,6 +37,10 @@ var LeastBRep = 2;// least breps where a protein must be found in order not to b
 var LeastPep = 2; //least peptides where a protein must be found in order not to be disqualified
 var Pthreshold = 0.05; //max p where a protein is considered as differentially expressed
 var my_step = 0;
+//The following var is used to ensure that the feedback button will be animated just once
+var feedbackAnimated = false;
+var carefulBackStep = 2;//in two cases (step 2 and 4) the back button should not immediatelly move the procedure one step back but shold ask the user first, this variable takes care of this situation
+var RreturnedErrorsInCurSession = false;
 
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
@@ -624,6 +628,85 @@ var onexpquantfiltlblclick = function()
 {
 	setItemAttrColor("#expquantfiltlbl", "border", "#DDDDDD");
 }
+var ons4btnfclick = function()
+{
+	if (feedbackAnimated == false)
+	{
+		$("#feedback_div").animate({
+			width: "30px",
+			opacity: 1
+		}, 1000, function(){});
+		feedbackAnimated = true;
+	}
+}
+var onFeedbackclick = function()
+{
+	$(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4FeedbackPanel").width() / 2)});
+	$('body').append('<div id="mask"></div>');
+	$("#s4FeedbackPanel").fadeIn(300);
+	$('#mask').fadeIn(300);
+	$("#FeedbackPanelSend").unbind();
+	$("#FeedbackPanelSend").on("click", function () {
+		
+		//ADD SEND RESULT HERE
+
+	});
+	$("#FeedbackPanelCancel").unbind();
+	$("#FeedbackPanelCancel").on("click", function () {
+		dlgFadeout();
+		$("#userFeedback").val("");
+		var mytext = 600 + " characters left";
+		$("#FBcharleft").text(mytext);
+		//ADD CANCEL RESULT HERE
+	});
+}
+
+var onFeedbackPanelSendclick = function()
+{
+	if (parseInt($("#userFeedback").val().length) == 0)
+	{
+		msgbox("<p>Please fill the text box with your feedback.</p>");
+		return;
+	}
+	var thedata = new FormData();
+	thedata.append('texttoappend', $("#userFeedback").val());
+	thedata.append('session_id', sessionid);
+	$.ajax({
+	  url: cgi_bin_path + 'send_feedback.php', //Server script to send the feedback
+	  type: 'POST',
+	  // Form data
+	  data: thedata,
+	  //Options to tell jQuery not to worry about content-type.
+	  processData: false,
+	  cache: false,
+	  contentType: false,
+   }).done(function (data, textStatus, jqXHR) {
+	   if (data.success == true)
+	   {
+			msgbox("<p>Thank you! Your feedback has been submitted successfully!</p>");
+			dlgFadeout();
+			$("#userFeedback").val("");
+			var mytext = 600 + " characters left";
+			$("#FBcharleft").text(mytext);
+	   }
+	   else{
+		   msgbox("<p>An error occured! Please try again.</p>");
+	   }
+   }).fail(function (jqXHR, textStatus, errorThrown){
+	   msgbox("<p>An error occured! Please try again.</p>");
+   });
+}
+var ons4btnbclick = function()
+{
+	$("#server_feedback").css("box-shadow", "")
+	
+}
+var onuserFeedbackchange = function()
+{
+	var mynum = 600 - parseInt($("#userFeedback").val().length);
+	var mytext = mynum + " characters left";
+	$("#FBcharleft").text(mytext);
+}
 var inputChCheck = function (e, repatt, maxCharacters) {
    var theEvent = e || window.event;
    var key = theEvent.keyCode || theEvent.which;
@@ -884,7 +967,7 @@ var LoadParams = function(myparametersstring)
 			return;
 		}
 		$.each(paramslines, function(idx, myparamline){
-			if(myparamline[myparamline.length - 1] = "\r")
+			if(myparamline[myparamline.length - 1] == "\r")
 			{
 				myparamline = myparamline.substring(0, myparamline.length - 1);
 			}
@@ -1098,6 +1181,7 @@ var LoadParams = function(myparametersstring)
 					}
 					my_lbls_toselect = myparamline.split("|");
 					select_labels_according_to_test_dataset();
+					my_lbls_toselect = [];
 				}
 				setvar = "";
 			}
@@ -1138,14 +1222,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isLabelFree == false)
 					{
-						error_message += "<li>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a labelled experiment set but the uploaded data set to a label-free<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isLabelFree == true)
 					{
-						error_message += "<li>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a label-free experiment set but the uploaded data set to labelled<br></li>";
 					}
 				}
 			}
@@ -1155,24 +1239,22 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (isIsobaricLabel == false)
 					{
-						error_message += "<li>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to an isobaric labelled experiment set but the uploaded data set does not<br></li>";
 					}
 				}
 				else if (myparamline == "false")
 				{
 					if (isIsobaricLabel == true)
 					{
-						error_message += "<li>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to an experiment which did not employ isobaric labeling but the uploaded data set corresponds to such an experiment<br></li>";
 					}
 				}
 			}
 			else if (setvar == "procprogram")
 			{
-				var quantlabel = $("#quantitation_prog_lbl").text();
-				var pattern = new RegExp("MaxQuant");
-				var res = pattern.test(quantlabel);
+				var myexppddata;
 				var provenprocprogram = "";
-				if (res == true)
+				if ($("#s3expparams input[name='exppddata']").prop("checked") == false)
 				{
 					provenprocprogram = "MQ";
 				}
@@ -1184,14 +1266,14 @@ var CheckParamsValidity = function(myparamsstring)
 				{
 					if (provenprocprogram == "PD")
 					{
-						error_message += "<li>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a data set processed by MaxQuant but the uploaded data set was processed by Proteome Discoverer<br></li>";
 					}
 				}
 				else if (myparamline == "PD")
 				{
 					if (provenprocprogram == "MQ")
 					{
-						error_message += "<li>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
+						error_message += "<li style='text-align: left;'>The parameters correspond to a data set processed by Proteome Discoverer but the uploaded data set was processed by MaxQuant<br></li>";
 					}
 				}
 			}
@@ -1199,7 +1281,7 @@ var CheckParamsValidity = function(myparamsstring)
 			{
 				if (add_raw_file_structure(myparamline, true) == false)
 				{
-					error_message += "<li>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
+					error_message += "<li style='text-align: left;'>The parameters correspond to a data set with different raw files than the uploaded data set<br></li>";
 				}
 			}
 			setvar = "";
@@ -1357,12 +1439,15 @@ var toggleCurrentSectionSpinner = function() {
 var resetResultsInfoItms = function () {
    $("#server_feedback").empty();
    $("#dndres").empty();
-   $("#results_p").html("Now analysing your data. Please wait for the results.");
+   $("#results_p").html("Now analysing your data. Please wait for the results.<p style='font-size: 14px; margin-top: 8px; margin-bottom: 0;'>Or press <i>Back</i> to stop the analysis and change your parameters.</p>");
 }
 
 var postFireUpAnalysisAndWait = function () {
 	//before initiating the analysis create a save parameters file to the output folder
 	SaveParams(1);
+	//also make sure that the analysis_finished var is false since we are initiating a new analysis
+	analysis_finished = false;
+	RreturnedErrorsInCurSession = false;
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
    thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
@@ -1387,18 +1472,19 @@ var postFireUpAnalysisAndWait = function () {
          getRSS("https://academic.oup.com/nar/pages/Top_Articles_Data_Resources", "#server_feedback");
       },
    }).done(function (data, textStatus, jqXHR) {
-	  if (analysis_finished | data.ret_session != sessionid)
+	  if (data.ret_session != sessionid)// the statement is checked to be true so that in the unlikely event of two procedures running from the same session only one should give results, the one with the correct session id
 	  {
 		  return;
 	  }
 	  var R_returned_error = false;
-	  $("#s4btnb").prop('disabled', true);
+	  //$("#s4btnb").prop('disabled', true);
 	  if(sectionSpinnerOn)
 	  {
 		toggleCurrentSectionSpinner();
 	  }
       $("#server_feedback").empty();
       $("#s4btnf").prop('disabled', !data.success);
+	  //Now display the errors and warnings of R to the user (if any)
 	  var my_UserInfo = data.UserInfo;
 	  var UserInfoDisplay = "";
 	  if(typeof(my_UserInfo) != "undefined" && my_UserInfo != "")
@@ -1426,8 +1512,9 @@ var postFireUpAnalysisAndWait = function () {
 			 //ADD OK RESULT HERE
 		  });
 	  }
+	  //if everything went fine show the results:
       if (data.success) {
-         $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.");
+         $("#results_p").html("Now you can inspect your results. When ready, click <em>Next</em>.<br><br>");
 		 //WIN TODO: \\ in next line
          $("#dndres").html("<span><a href=" + data.results_url + "><strong>" + data.results_url.substr(data.results_url.lastIndexOf("/") + 1) + "</strong></a></span>");
          patt = new RegExp("limma\-graphs");
@@ -1439,16 +1526,16 @@ var postFireUpAnalysisAndWait = function () {
                $("#server_feedback").append("<div class='resimg'><a href='" + path_to_img_i + "' target='_blank'><img src='" + path_to_img_i + "' width='120'></img></a></div>");
             }
          });
+		 //make the server feedback aesthetically nice:
 		 $("#server_feedback").css("box-shadow", "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)")
       } else {
          $("#results_p").html("");
          $("#server_feedback").html("<span class='uploadErrorMsg'><strong><em>The analysis could not be completed: " + data.msg + "<em><strong></span>");
          if (data.R_dump.length > 0) {
-            $("#server_feedback").append("<br><br><span style='font-family: Georgia; font-size: 95%; text-align: left; display: inline-block; width: 90%'><p>Please ensure that input parameters (such as number of replicates, number of biological conditions/labels etc) are correctly defined and input data format is valid. The statistical analysis routine relies heavily on the validity of the input parameters.</p><p>If the above does not apply, then the statistical analysis may have failed due to numerical problems (e.g. there were too many missing values/data points).</p><p> If you feel that none of the above is the case, please click <a href='mailto:msdiffexp@gmail.com?Subject=Session%20" + sessionid + "' target='_blank'><u>here</u></a> to notify via e-mail (do not delete the session id in the subject) the ProteoSign team for investigation of your analysis issue.</p></span>")
-            //$("#server_feedback").append("<br><br><span style='font-family: \"Courier New\"'>Logged information:</span><br>");
-            //$("#server_feedback").append("<div style='height: inherit'><textarea style='font-family: \"Courier New\"; font-size: 90%; width: 90%; height: 100%' readonly>"+ data.dump +"</textarea></div>");
+            $("#server_feedback").append("<br><br><span style='font-family: Georgia; font-size: 95%; text-align: left; display: inline-block; width: 90%'><p>Please ensure that input parameters (such as number of replicates, number of biological conditions/labels etc) are correctly defined and input data format is valid. You can press <i>Back</i> to change your parameters.</p><p>If the above does not apply, then the statistical analysis may have failed due to numerical problems (e.g. too many missing values).</p><p> If you feel that none of the above is the case, please click <a href='mailto:msdiffexp@gmail.com?Subject=Session%20" + sessionid + "' target='_blank'><u>here</u></a> to notify via e-mail the ProteoSign team or <a onclick='onFeedbackclick();'><u>here</u></a> to leave us a feedback.</p></span>");
          }
 		 R_returned_error = true;
+		 RreturnedErrorsInCurSession = true;
 		 $("#s4btnb").prop("disabled", false);
       }
 	  if (!R_returned_error) analysis_finished = true;
@@ -1938,6 +2025,7 @@ types_of_files_uploaded.push(data.file_type);
                // Only Proteome Discoverer data currently provide label definition information.
                // When this information is made available it means that our data originate from PD software.
                $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
+			   
                //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
                $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
                $("#quantitation_prog_lbl").text(peptideLabelsFromFile.length > 0 ? "\u2014 Raw data were quantified with Proteome Discoverer\u2122" : "\u2014 Raw data were quantified with MaxQuant");
@@ -2011,6 +2099,27 @@ types_of_files_uploaded.push(data.file_type);
    });
 }
 
+var on_exppddatachange = function()
+{
+	//called when the program understands that the dataset is from PD or MQ
+	// this function serves the only reason to inform
+	//the user for the procprogram (MQ or PD) by altering the quantitation_prog_lbl
+	// this function will run only in label-free data since in labelled ones,
+	//quantitation_prog_lbl is set in another way
+	if (isLabelFree)
+	{
+		if ($("#s3expparams input[name='exppddata']").prop("checked") == false)
+		{
+			//MaxQuant:
+			$("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with MaxQuant");
+		}
+		else
+		{
+			//Proteome Discoverer:
+			$("#quantitation_prog_lbl").text("\u2014 Raw data were quantified with Proteome Discoverer\u2122");
+		}
+	}
+}
 var bind_explbldefinition_focus = function (explbldefinition) {
    $(explbldefinition).on("focus", function () {
       $(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s3expparamsDlgLabels").width() / 2)});
@@ -2071,6 +2180,51 @@ var ons22btnfclick = function(e)
 		select_labels_according_to_test_dataset();
 		if(AllowMergeLabels) InitializeRename();
 		create_my_all_mq_labels();
+		on_exppddatachange();
+		//since we updated the conditions remove invalid label swaps:
+		//Make sure that after altering the valid labels, there are no label swaps assigned that contain invalid labels. In such a case delete the swaps and prompt the user
+		//First get all current valid labels:
+		if (!AllowLS) return;
+		var my_valid_options = [];
+		$("#conditions_list option").each(function(idx, my_valid_opt)
+		{
+			my_valid_options.push($(my_valid_opt).val());
+		});
+		var my_invalid_LSwaps = [];
+		if (!RenameFromTestData)
+		{
+			//the last element of LS_counters_per_Add is an array of the labels that are swapped in a single swap assignment
+			$.each(LS_counters_per_Add, function(idx, my_swap_assignment)
+			{
+				//in case at least one of the labels in an assignment is not valid remove it from the LSwaps and inform the user
+				if($.inArray(my_swap_assignment[2][0], my_valid_options) == -1 || $.inArray(my_swap_assignment[2][1], my_valid_options) == -1)
+				{
+					my_invalid_LSwaps.push(my_swap_assignment[0]);
+				}
+			});
+		}
+		//Now my_invalid_LSwaps contains the descriptions of all the LSwaps assignments to be removed, select them in LSLabelSwaps and call onLSRemoveclick to remove them safely
+		if(my_invalid_LSwaps.length >0 )
+		{
+			//Note that if a LS assignment has been removed manually or not in the past, it is candidate to be considered invalid again since no function erases any elements of LS_counters_per_Add. So before trying to remove an LSassignment always check if it exists in LSLabelSwaps list
+			var real_invalid_LSs = 0;
+			$("#LSLabelSwaps option").each(function(idx, my_opt)
+			{
+				if ($.inArray($(my_opt).val(), my_invalid_LSwaps) != -1)
+				{
+					$(my_opt).prop("selected", true);
+					real_invalid_LSs++;
+				}
+				else
+				{
+					$(my_opt).prop("selected", false);
+				}
+			});
+			if (real_invalid_LSs > 0)
+			{
+				onLSRemoveclick();
+			}
+		}
 	}
 }
 var onShowDialog = function (selector){
@@ -2625,6 +2779,10 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 			 $(items_tds[1]).css("text-decoration", "none");
 			 $(items_tds[2]).css("text-decoration", "none");
 			 $(items_tds[3]).css("text-decoration", "none");
+			 if (isLabelFree == true)
+			 {
+				 $(items_tds[4]).css("text-decoration", "none");
+			 }
 			 found_unset++;
 		 }
 	}
@@ -2649,12 +2807,20 @@ function add_raw_file_structure(tab_sep_string, check_validity)
 					 $(items_tds[1]).css("text-decoration", "line-through");
 					 $(items_tds[2]).css("text-decoration", "line-through");
 					 $(items_tds[3]).css("text-decoration", "line-through");
+					 if (isLabelFree == true)
+					 {
+						 $(items_tds[4]).css("text-decoration", "line-through");
+					 }
 				 }
 				 else{
 					 $(items_tds[0]).css("text-decoration", "none");
 					 $(items_tds[1]).css("text-decoration", "none");
 					 $(items_tds[2]).css("text-decoration", "none");
 					 $(items_tds[3]).css("text-decoration", "none");
+					 if (isLabelFree == true)
+					 {
+						 $(items_tds[4]).css("text-decoration", "none");
+					 }
 				 }
 				 return false;
 			 }
@@ -3010,6 +3176,7 @@ var getRSS = function (rssurl, renderelem) {
       beforeSend: function (jqXHR, settings) {
       }
    }).done(function (data, textStatus, jqXHR) {
+	   if (analysis_finished || RreturnedErrorsInCurSession) return; //in case the rss delays make sure that the r script has not already returned any errors and that the results are not yet displayed
 	   var htmlcode = data.html_code;
 	   //get the div where NAR stores their current articles
 	   var match =  htmlcode.match(/<strong>([\s\S]+?)<\/a>/gi);
@@ -3048,6 +3215,51 @@ var dlgFadeoutInfo = function () {
    });
 }
 
+var CarefulBack = function()
+{
+	//in case of step 2 and step 4 (and if the analysis has been finished) the user must be warned that if they step back they might lose their progress (they should upload new files or rerun the analysis)
+	if (carefulBackStep == 2)
+	{
+		$("#CarefulBackTitle").empty();
+		$("#CarefulBackTitle").append("<p style='font-size: 85%'>Going back to Step 1 requires that you upload files again.<br>Are you sure you want to proceed?</p>");
+		$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#WarnCarefulBack").width()/2)});
+		$('body').append('<div id="mask"></div>');
+		$("#WarnCarefulBack").fadeIn(300);
+		$('#mask').fadeIn(300);
+	}
+	else if (carefulBackStep == 4)
+	{
+		if (analysis_finished)
+		{
+			$("#CarefulBackTitle").empty();
+			$("#CarefulBackTitle").append("<p style='font-size: 85%'>Going back to Step 3 will start a new session.<br>Please make sure you downloaded your results.<br>Are you sure you want to proceed?</p>");
+			$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#WarnCarefulBack").width()/2)});
+			$('body').append('<div id="mask"></div>');
+			$("#WarnCarefulBack").fadeIn(300);
+			$('#mask').fadeIn(300);
+		}
+		else
+		{
+			toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
+			rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+		}
+	}
+}
+
+var onCarefulBackYesclick = function()
+{
+	//if the user decided to go back one step do it:
+	toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
+	rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+	//and also close the popup window
+	dlgFadeout();
+}
+
+var onCarefulBackNoclick = function()
+{
+	dlgFadeout();
+}
+
 var label_context_menu;
 
 $(document).ready(function () {
@@ -3068,10 +3280,27 @@ $(document).ready(function () {
    });
    // Binds the click event to "toggleNextClass" for each "backward button" (button with class button.main and id /s[0-9]+btnb/) 
    backward_buttons.forEach(function (btn) {
-      $(btn).on("click", function () {
-         toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
-		 rawfiles_tbl_allfiles_DT.columns.adjust().draw();
-      });
+	   if ($(btn).attr("id") == "s22btnb")
+	   {
+		   $(btn).on("click", function () {
+			   carefulBackStep = 2;
+			   CarefulBack();
+		   });
+	   }
+	   else if($(btn).attr("id") == "s4btnb")
+	   {
+		   $(btn).on("click", function () {
+			   carefulBackStep = 4;
+			   CarefulBack();
+		   });
+	   }
+	   else
+	   {
+		  $(btn).on("click", function () {
+			 toggleNextClass(idsToStrings(".main_div .main_section").reverse(), "hidden", true, rollbackStage);
+			 rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+		  });
+	   }
    });
    // Bind event for file upload button
    $("#s2btnupld").on("click", function () {
@@ -3813,9 +4042,13 @@ $(document).ready(function () {
 
 		setTimeout(function(){select.scrollTop = scroll;}, 0);
 
-		$(select ).focus();
+		$(select).focus();
 	}).mousemove(function(e){e.preventDefault()});
 	
+	$("#userFeedback").on('change keyup paste', function() {
+		onuserFeedbackchange();
+	});
+
    // TEST DATA INIT
    postTestDatasetsInfo();
    //
