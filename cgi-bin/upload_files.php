@@ -43,6 +43,7 @@ $server_response['peptide_labels_names'] = [];
 $server_response['skipped_labels'] = [];
 $server_response['raw_filesnames'] = [];
 $server_response['file_type'] = '';
+$server_response['ret_session'] = $_POST["session_id"];
 $document_root = dirname(__DIR__);
 
 if (isset($name)) {
@@ -129,7 +130,7 @@ if (isset($name)) {
             $server_response['peptide_labels'] = $tmp[1];
             $server_response['raw_filesnames'] = get_rawfiles_names($location . '/' . $name, '/file/i');
             if (count($server_response['raw_filesnames']) == 0) {
-               error_log("Could not retrieve replicate information (raw files names) from data file " . $name);
+               error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] Could not retrieve replicate information (raw files names) from data file " . $name);
             }
             rename($location . '/' . $name, $location . '/msdiffexp_peptide.txt');
          } elseif ($dtype == 'MQP') {
@@ -155,7 +156,7 @@ if (isset($name)) {
 }
 
 end:
-error_log("upload_files.php [" . $_POST["session_id"] . " " . $name . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] upload_files.php [" . $_POST["session_id"] . " " . $name . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 //Send info back to the client
 header('Content-type: application/json');
 echo json_encode($server_response);

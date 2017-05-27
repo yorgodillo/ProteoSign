@@ -39,6 +39,47 @@ rename('exp_struct.txt', 'msdiffexp_wd/exp_struct.txt');
 rename('LFQ_conditions.txt', 'msdiffexp_wd/LFQ_conditions.txt');
 if ($_POST["AllowMergeLabels"] == "T") rename('Rename_array.txt', 'msdiffexp_wd/Rename_array.txt');
 if ($_POST["AllowLS"] == "T") rename('LS_array.txt', 'msdiffexp_wd/LS_array.txt');
+//in case the user changes session the files of the old session are copied to the new one, check if the procedure was done correctly before proceeding, if not, wait for the procedure to complete
+$procprogram = $_POST["proc_program"];
+if ($procprogram == "MQ")
+{
+	for ($i = 0; $i < 16; $i++)
+	{
+		if(!file_exists('msdiffexp_protein.txt') || !file_exists('msdiffexp_peptide.txt'))
+		{
+			sleep(2);
+		}
+		else
+		{
+			break;
+		}
+	}
+	if(!file_exists('msdiffexp_protein.txt') || !file_exists('msdiffexp_peptide.txt'))
+	{
+		$server_response['msg'] .= "Uploaded files not found! Please try again ";
+		goto end;
+	}
+}
+else
+{
+	for ($i = 0; $i < 16; $i++)
+	{
+		if(!file_exists('msdiffexp_peptide.txt'))
+		{
+			sleep(2);
+		}
+		else
+		{
+			break;
+		}
+	}
+	if(!file_exists('msdiffexp_peptide.txt'))
+	{
+		$server_response['msg'] .= "Uploaded files not found! Please try again ";
+		goto end;
+	}
+}
+sleep(2);
 rename('msdiffexp_peptide.txt', 'msdiffexp_wd/msdiffexp_peptide.txt');
 if(file_exists('msdiffexp_protein.txt'))
 {
@@ -98,9 +139,9 @@ if ($server_response['success']) {
    //
 }
 end:
-error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] perform_analysis.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 if (!$server_response['success']) {
-   error_log("perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
+   error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] perform_analysis.php [" . $_POST["session_id"] . "]> Relevant dump: " . $server_response['dump']);
 } else {
    // exec('del -Rf msdiffexp_wd');
 }

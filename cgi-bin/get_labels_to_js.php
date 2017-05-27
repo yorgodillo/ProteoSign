@@ -50,7 +50,7 @@
 	}
 	end:
 	// $server_response['msg'] = $temp;
-	error_log("get_labels_to_js.php [" . $_POST["session_id"] . " " . $name . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+	error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] get_labels_to_js.php [" . $_POST["session_id"] . " " . $name . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	//Send info back to the client
 	header('Content-type: application/json');
 	echo json_encode($server_response);

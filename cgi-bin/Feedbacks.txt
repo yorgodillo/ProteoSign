@@ -1,1 +1,1 @@
-Date	Session_ID	Feedback_Text	Read	Comments-Issues
+Date	Session_ID	Stars	Feedback_Text	Read	Comments-Issues

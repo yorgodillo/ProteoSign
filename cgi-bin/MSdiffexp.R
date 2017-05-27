@@ -837,12 +837,24 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   if(!PDdata){
     ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
     pgroups<-read.table(fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
-    # If there isn't a Protein.Names column (depends on MQ version), create one from the Fasta Headers column
+    # If there isn't a Protein.Names or Protein.names column (depends on MQ version), create one from the Fasta Headers column
     col_Protein.names <- length(grep('Protein.Names',colnames(pgroups))) > 0
-    if(! col_Protein.names){
+    col_Protein.namesLC <- length(grep('Protein.names',colnames(pgroups))) > 0
+    if(! col_Protein.names & ! col_Protein.namesLC)
+    {
       pgroups$Protein.Names <- str_match(pgroups$Fasta.headers, '>[:alnum:]+[^[:alnum:]]+([^;>]+)')[,2]
     }
+    if (col_Protein.namesLC)
+    {
+      colnames(pgroups)[grepl('Protein.names',colnames(pgroups))] <- 'Protein.Names'
+    }
     # Construct a table, mapping the correct protein groups IDs (and the corresponding proteins names) to the evidence IDs
+    #First check if there are any blank lines and remove them:
+    mi<-which(pgroups$Evidence.IDs == "")
+    if (length(mi)>0)
+    {
+      pgroups <- pgroups[-mi,]
+    }
     tmp.table.1<-data.table(do.call(rbind, apply(pgroups[,c('Protein.IDs','Protein.Names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.Names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
     setnames(tmp.table.1, colnames(tmp.table.1), c('Protein.IDs', 'Protein.Names', 'id'))
     class(tmp.table.1$id)<-'integer'
@@ -1095,11 +1107,11 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   {
     if (!(cond_i %in% evidence$label_))
     {
-      levellog(paste0("Warn User: ", cond_i, " label is found only in raw files excluded from the analysis and will not be used in comparisons"))
+      levellog(paste0("Warn User: ", cond_i, " label was not found in the selected raw files and was not used in comparisons!"))
       if(filterL_lbl == cond_i)
       {
         filterL<-F
-        levellog("Warning!: the filter label was not found in active raw files so filtering will not take place!")
+        levellog("Warning!: the filter label was not found in the selected raw files. Filtering will not take place!")
       }
     }
     else
@@ -1611,6 +1623,7 @@ perform_analysis<-function(){
   write.table(temp_pgroups[, -which(names(temp_pgroups) %in% c("N.x","N.y"))],file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   setwd("..")
   colnames(protein_groups) <- oldcolumns
+  #Create the expdesign table:
   expdesign<-c()
   #Rename conditions labels from condN back to N
   for(i in 1:length(conditions.labels)){
@@ -1640,14 +1653,17 @@ perform_analysis<-function(){
   }
   
   colnames(expdesign)<-c("Sample","Category")
+  #temp vector has only the information of the replication (e.g. b1t1 or b1t1f1 if we have fractionation)
   temp_vector <- sub("(.*)\\.","", expdesign[,1])
   temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
+  #Make sure that expdesign (column Sample) contains data in te right format by merging expdesign and tmp_vector:
   tmp_counter <- 0
   for (expdesign_i in expdesign[,1]){
     expdesign[tmp_counter + 1,1] <- sub("(.*)\\..*",paste0("\\1.", temp_vector[tmp_counter + 1]), expdesign_i)
     tmp_counter <- tmp_counter + 1
   }
-  expdesign[,1] <- sub("(.*)f.*", "\\1", expdesign[,1], perl = TRUE)
+  #Remove the fractionation information: (if any)
+  expdesign[,1] <- sub("(.*\\..*)f.*", "\\1", expdesign[,1], perl = TRUE)
   write.table(expdesign,file="curr_exp_design.txt",row.names=F,quote=F,sep = "\t")
   exp_design_fname<<-"curr_exp_design.txt"
   
