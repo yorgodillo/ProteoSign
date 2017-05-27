@@ -56,7 +56,7 @@
 				</div>
 				<div class="buttonbar">
 					<button type="button" class="main" id="s2btnb">Back</button>
-					<button type="button" class="main" id="s2btnf" disabled>Next</button>
+					<button type="button" class="main" id="s2btnf" onclick="ons2btnfclick();" disabled>Next</button>
 				</div>
 			</div>
 			
@@ -227,11 +227,11 @@
 			<div class="main_div main_footer">
 				<p>
 					<em>Reference:</em><br>
-					<a href="#" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O., Iliopoulos I.<br>ProteoSign: an end-user online differential proteomics statistical analysis platform.</strong><br></a>
+					<a href="https://www.ncbi.nlm.nih.gov/pubmed/28520987" target="_blank"><strong>Efstathiou G., Antonakis A. N., Pavlopoulos G. A., Theodosiou T., Divanach P., Trudgian D. C., Thomas B., Papanikolaou N., Aivaliotis M., Acuto O., Iliopoulos I.<br>ProteoSign: an end-user online differential proteomics statistical analysis platform.</strong><br></a>
 				<p>
 				<span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
 				<span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
-				<span style='font-family: "Courier New"; display: block; float: right'><a id='contact' onclick='$("#contact").attr("href","mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid); return true;' target='_blank'><u>Contact</u></a></span>
+				<span style='font-family: "Courier New"; display: block; float: right'><a onclick='onFeedbackclick();'><u>Feedback</u></a>  <a id='contact' onclick='$("#contact").attr("href","mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid); return true;' target='_blank'><u>Contact</u></a></span>
 			</div>
 		<div>
 
@@ -350,9 +350,16 @@
 				<button type="button" class="main inline" style="font-size: 80%;" id="ADVoptionsCancel" onclick="onADVoptionsCancel_click();">Cancel</button>
 			</div>
 		</div>
-		<div class="expparamsDlg" id="s4FeedbackPanel">
+		<div class="expparamsDlgFeedback" id="s4FeedbackPanel">
 			<div style="text-align: center">
 				<span style="font-size: 104%" style='font-family: "Segoe UI"' class="inline">Thank you for using ProteoSign!<br>Please leave us your feedback below:<br></span>
+				<div id="Feedbackstars" style="margin: 10px;">
+					<img id="star1" id="star1" src="images/star_selected.PNG" style="width: 25px; height: 25px;"></img>
+					<img id="star2"  src="images/star_selected.PNG" style="width: 25px; height: 25px; opacity: 0.6;"></img>
+					<img id="star3"  src="images/star_selected.PNG" style="width: 25px; height: 25px; opacity: 0.6;"></img>
+					<img id="star4" src="images/star_selected.PNG" style="width: 25px; height: 25px; opacity: 0.6;"></img>
+					<img id="star5" src="images/star_selected.PNG" style="width: 25px; height: 25px; opacity: 0.6;"></img>
+				</div>
 				<textarea id="userFeedback" rows="7" cols="50" style="resize: none;" class="inline"maxlength="600"></textarea>
 			</div>
 			<div>

@@ -41,6 +41,12 @@ var my_step = 0;
 var feedbackAnimated = false;
 var carefulBackStep = 2;//in two cases (step 2 and 4) the back button should not immediatelly move the procedure one step back but shold ask the user first, this variable takes care of this situation
 var RreturnedErrorsInCurSession = false;
+//the following vars are for star-based feedback, star_hovered is the last star that tne mouse of the user went over and star_chosen is how many stars the user really chosen
+var star_hovered = 1;
+var star_chosen = 1;
+var stars_enabled = true;
+//the following line is for logging purposes
+var log_test_dataset = false;
 
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
@@ -641,10 +647,10 @@ var ons4btnfclick = function()
 }
 var onFeedbackclick = function()
 {
-	$(".expparamsDlg").css({"left": ($("body").width() / 2) - ($("#s4FeedbackPanel").width() / 2)});
-	$('body').append('<div id="mask"></div>');
+	$(".expparamsDlgFeedback").css({"left": ($("body").width() / 2) - ($("#s4FeedbackPanel").width() / 2)});
+	$('body').append('<div id="maskFeedback"></div>');
 	$("#s4FeedbackPanel").fadeIn(300);
-	$('#mask').fadeIn(300);
+	$('#maskFeedback').fadeIn(300);
 	$("#FeedbackPanelSend").unbind();
 	$("#FeedbackPanelSend").on("click", function () {
 		
@@ -653,7 +659,7 @@ var onFeedbackclick = function()
 	});
 	$("#FeedbackPanelCancel").unbind();
 	$("#FeedbackPanelCancel").on("click", function () {
-		dlgFadeout();
+		dlgFadeoutFeedback();
 		$("#userFeedback").val("");
 		var mytext = 600 + " characters left";
 		$("#FBcharleft").text(mytext);
@@ -663,7 +669,7 @@ var onFeedbackclick = function()
 
 var onFeedbackPanelSendclick = function()
 {
-	if (parseInt($("#userFeedback").val().length) == 0)
+	if (parseInt($("#userFeedback").val().length) == 0 && !stars_enabled)
 	{
 		msgbox("<p>Please fill the text box with your feedback.</p>");
 		return;
@@ -671,6 +677,14 @@ var onFeedbackPanelSendclick = function()
 	var thedata = new FormData();
 	thedata.append('texttoappend', $("#userFeedback").val());
 	thedata.append('session_id', sessionid);
+	if (!stars_enabled)
+	{
+		thedata.append('stars_score', "NA");
+	}
+	else
+	{
+		thedata.append('stars_score', star_chosen);
+	}
 	$.ajax({
 	  url: cgi_bin_path + 'send_feedback.php', //Server script to send the feedback
 	  type: 'POST',
@@ -684,7 +698,7 @@ var onFeedbackPanelSendclick = function()
 	   if (data.success == true)
 	   {
 			msgbox("<p>Thank you! Your feedback has been submitted successfully!</p>");
-			dlgFadeout();
+			dlgFadeoutFeedback();
 			$("#userFeedback").val("");
 			var mytext = 600 + " characters left";
 			$("#FBcharleft").text(mytext);
@@ -1336,13 +1350,16 @@ var helper_setItemAttr = function (selector, json) {
 // Assumes ONLY ONE item in the list "itms" SHOULD/SHOULD NOT ("_removeClass" false/true) have the class "className".
 // toggleFun executes code with the current (0-based) index as a parameter.
 var toggleNextClass = function (itms, className, _removeClass, toggleFun) {
+   //toggleNextClass searches in all the step divs for the first div that does not have a hidden class (that is shown). it hides this step div and shows the next one.
+   //the order of the step divs matters, if we want to step fwd, the divs are in ascending order (from s1div to s5div) otherwise they are ordered vice versa
    var nToggle = 0;
    var toggleClassFunction = (_removeClass ? ["removeClass", "addClass"] : ["addClass", "removeClass"]);
    var reachedLastItem = false;
+   //typically: className = hidden (_removeClass is always true)
    itms.some(function (itm, index) {
-      var cond = (_removeClass ? $(itm).hasClass(className) : !$(itm).hasClass(className));
+      var cond = (_removeClass ? $(itm).hasClass(className) : !$(itm).hasClass(className));//cond is true when the div is hidden
       if (cond) {
-         if (nToggle > 0) {
+         if (nToggle > 0) {//if nToggle > 0 then you have already hidden a step div so it is time to show the next one
             $(itm)[toggleClassFunction[0]](className);
             nToggle++;
          }
@@ -1358,7 +1375,7 @@ var toggleNextClass = function (itms, className, _removeClass, toggleFun) {
             nToggle++;
          }
       }
-      return (nToggle === 2);
+      return (nToggle === 2);//if two items were toggled (one shown one hidden) exit the some function
    });
    // Toggle 1st item again if toggled all in succession (valid when we have more than one items in the list)
    if (nToggle == 1 && itms.length > 1) {
@@ -1452,6 +1469,20 @@ var postFireUpAnalysisAndWait = function () {
    thedata.append('session_id', sessionid);
    thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
    thedata.append("AllowLS", AllowLS ? "T" : "F");
+   	//get the proc program (MQ or PD)
+	var quantlabel = $("#quantitation_prog_lbl").text();
+	var pattern = new RegExp("MaxQuant");
+	var res = pattern.test(quantlabel);
+	var provenprocprogram = "";
+	if (res == true)
+	{
+		provenprocprogram = "MQ";
+	}
+	else
+	{
+		provenprocprogram = "PD";
+	}
+	thedata.append('proc_program', provenprocprogram);
    if(!sectionSpinnerOn)
    {
 	   toggleCurrentSectionSpinner();
@@ -1737,11 +1768,16 @@ var executeStage = function (stageIndex) {
 var rollbackStage = function (stageIndex) {
    var ret = true;
    stageIndex = getItems("button.main", /s[0-9]+btnb/).length - stageIndex - 1;
+   //Warning! the following lines work only if ther are 6 steps (1, 2, 22, 3, 4, 5) in ProteoSign! if we add another step, change the indices:
    switch (stageIndex) {
     case 1:
+		//if we go back to step 1 reset the state so that the uploading of files goes to a new folder
          resetState();
+		 break;
 	case 3:
+		//if we go back to step 3 reset the session (copy the uploaded files and start a new session)
 		 resetSession();
+		 break;
       default:
    }   
    return ret;
@@ -1754,7 +1790,7 @@ var resetSession = function ()
 	sessionid = new Date().getTime();
 	thedata.append('session_id', sessionid);
 	$.ajax({
-		url: cgi_bin_path + 'change_session.php', //Server script to fire up data analysis
+		url: cgi_bin_path + 'change_session.php', //Server script to change the session
 		type: 'POST',
 		// Form data
 		data: thedata,
@@ -1762,7 +1798,8 @@ var resetSession = function ()
 		processData: false,
 		cache: false,
 		contentType: false
-	}).done(function (data, textStatus, jqXHR) {});
+	}).done(function (data, textStatus, jqXHR) {
+	});
 }
 
 var unsuccessfullyUploadedFiles = {};
@@ -1973,14 +2010,19 @@ var postFile = function (idx, file, serverSide, postSuccess) {
             helper_setItemAttr("#uploadfile" + idx, {value: 0, max: 100});
          }
       }}).done(function (data, textStatus, jqXHR) {
+		  //In case the sessionid changed in session1 do not use the file in ProteoSign
+		  if (data.ret_session != sessionid)
+		  {
+			return;
+		  }
       	if(sectionSpinnerOn)
-	      	toggleCurrentSectionSpinner();
-//debug_ajax_data = data;
-//If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
-      uploadFinished(data.success, idx, file);
-      //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
-      if (data.success) {
-types_of_files_uploaded.push(data.file_type);
+	      toggleCurrentSectionSpinner();
+		  //debug_ajax_data = data;
+		  //If server-side everything went fine (internal things that the server had to do with the client's file, such as storage etc)
+		  uploadFinished(data.success, idx, file);
+		  //if everything went fine enable button for next stage and print OK. Just print the error message otherwise.
+		  if (data.success) {
+		  types_of_files_uploaded.push(data.file_type);
 		  if (data.msg == "")
 		  {
 			$(progresstditm).html("<span class='uploadSuccessMsg'><strong><em>OK<em><strong></span>");
@@ -2149,6 +2191,57 @@ var bind_s2LFQConditions_focus = function () {
       });
 }
 
+var ons2btnfclick = function()
+{
+	//if the user successfuly entered second step log the following information to a php log file
+	var provenprocprogram = "";
+	var typeofdataset = "";
+	if (document.getElementsByName("exppddata")[0].checked)
+	{
+		provenprocprogram = "PD";
+	}
+	else
+	{
+		provenprocprogram = "MQ";
+	}
+	if (isLabelFree)
+	{
+		typeofdataset = "LabelFree";
+	}
+	else
+	{
+		if (isIsobaricLabel)
+		{
+			typeofdataset = "IsobaricLabel";
+		}
+		else
+		{
+			typeofdataset = "PrecursorIon";
+		}
+	}
+	var toappend = "ProcProgram: " + provenprocprogram + "\n" + "ExperimentType: " + typeofdataset + "\n" + "ReachedStep2: T\n" + "IP: " + clientname + "\n" + "Test_dataset: " + (log_test_dataset ? "T" : "F") + "\n";
+	log_test_dataset = false;
+	log_php(toappend);
+	$("#s2btnupld").prop('disabled', false);//when leaving step 1 make sure the upload button comes back enabled (it may have been disabled if the user chose a test dataset)
+}
+
+var log_php = function(texttoappend)
+{
+	//This function appends the specified text to pho lig file of the current session
+	var thedata = new FormData();
+	thedata.append('texttoappend', texttoappend);
+	thedata.append('session_id', sessionid);
+	$.ajax({
+	  url: cgi_bin_path + 'log_php.php', //Server script to send the feedback
+	  type: 'POST',
+	  // Form data
+	  data: thedata,
+	  //Options to tell jQuery not to worry about content-type.
+	  processData: false,
+	  cache: false,
+	  contentType: false,
+   });
+}
 var ons22btnfclick = function(e)
 {
 	if (isLabelFree)
@@ -2232,6 +2325,23 @@ var onShowDialog = function (selector){
    $('body').append('<div id="mask"></div>');
    $(selector).fadeIn(300);
    //$('#mask').fadeIn(300);   
+}
+
+var display_star_score = function()
+{
+	if (!stars_enabled) return;
+	for (var i = 1; i <= 5; i++)
+	{
+		var my_id = "#star" + i;
+		if (i <= star_hovered)
+		{
+			$(my_id).css("opacity", "1");
+		}
+		else
+		{
+			$(my_id).css("opacity", "0.6");
+		}
+	}
 }
 
 var addFormLabel = function()
@@ -3214,6 +3324,11 @@ var dlgFadeoutInfo = function () {
       $('#maskInfo').remove();
    });
 }
+var dlgFadeoutFeedback = function () {
+   $(".expparamsDlgFeedback").fadeOut(300, function () {
+      $('#maskFeedback').remove();
+   });
+}
 
 var CarefulBack = function()
 {
@@ -3660,9 +3775,53 @@ $(document).ready(function () {
       $(".tooltip2 span").css({"margin-left": 11});
       $(".callout2").css({"left": 0});
    });
+   for (var i = 1; i <= 5; i++)
+   {
+	   var myid = "#star" + i;
+	   $(myid).mouseleave(function(){
+		   if (!stars_enabled) return;
+		   star_hovered = star_chosen;
+		   display_star_score();
+	   });
+	   $(myid).click(function(){
+		   if (!stars_enabled) return;
+		   star_chosen = star_hovered;
+		   display_star_score();
+	   });
+   }
+   $("#star1").mouseenter(function(){
+	   star_hovered = 1;
+	   display_star_score();
+   });  
+   $("#star2").mouseenter(function(){
+	   star_hovered = 2;
+	   display_star_score();
+   });
+   $("#star3").mouseenter(function(){
+	   star_hovered = 3;
+	   display_star_score();
+   });
+   $("#star4").mouseenter(function(){
+	   star_hovered = 4;
+	   display_star_score();
+   });
+   $("#star5").mouseenter(function(){
+	   star_hovered = 5;
+	   display_star_score();
+   });
+   if (!stars_enabled)
+   {
+	   $("#Feedbackstars").css("display", "none");
+   }
    // Bind test datasets dialog buttons
    $("#dlgTestDatasetsBtnOK").on("click", function () {
 	  dlgFadeout();
+	  resetState(); //start a new session to make sure the only files uploaded will be the ones from the test dataset
+	  //also empty s2uluploaders to show the user that the only files used will be the ones of the test dataset:
+	  $("s2uluploaders").empty();
+	  $("#s2btnupld").prop('disabled', true);
+	  //log in php that the current dataset is a test one
+	  log_test_dataset = true;
 	  postTestDatasetInfo($("#s1TestDatasetsSelection option:selected").text());
 	  $("#s2btnb").prop('disabled', true);
 	  $("#dlgTestDatasetsBtnOK").prop('disabled', true);

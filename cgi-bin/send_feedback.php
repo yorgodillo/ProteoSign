@@ -10,7 +10,7 @@
 	$user_feedback = preg_replace("/\t/", "   ", $user_feedback);
 	$user_feedback = preg_replace("/\n/", " <br> ", $user_feedback);
 	$user_feedback = preg_replace("/\r/", "", $user_feedback);
-	$texttowrite = date("l d/m/Y H:i:s") . "\t" . $_POST["session_id"] . "\t" . $user_feedback . "\tNo\n";
+	$texttowrite = date("l d/m/Y H:i:s") . "\t" . $_POST["session_id"] . "\t" . $_POST["stars_score"] . "\t" . $user_feedback . "\tNo\n";
 	if ($ff = fopen($file_location, 'a'))
 	{
 		$canwrite = fwrite($ff, $texttowrite);
@@ -23,7 +23,7 @@
 			$server_response['success'] = true;
 		}
 	}
-	error_log("change_session.php [" . $_POST["session_id"] . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+	error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] send_feedback.php [" . $_POST["session_id"] . " ]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	//Send info back to the client
 	header('Content-type: application/json');
 	echo json_encode($server_response);

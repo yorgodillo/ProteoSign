@@ -130,7 +130,7 @@
 		}
 	}
 end:
-	error_log("upload_parameters.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
+	error_log("[client: " . $_SERVER['REMOTE_ADDR'] . "] upload_parameters.php [" . $_POST["session_id"] . "]> Success: " . ($server_response['success'] ? 'Yes' : 'No') . " | Message: " . $server_response['msg']);
 	//Send info back to the client
 	header('Content-type: application/json');
 	echo json_encode($server_response);	
