@@ -16,6 +16,8 @@ Rename_Array_file = "Rename_array.txt"
 LS_Array_file = "LS_array.txt"
 pgroups_fname<-"msdiffexp_protein.txt"
 evidence_fname<-"msdiffexp_peptide.txt"
+RMrawfilesdata_file = "RMrawfiles.txt"
+RMtagsdata_file = "RMtags.txt"
 outputFigsPrefix<-REPLACE2
 filterL_lbl<-REPLACE7
 filterL_lvl<-REPLACE6
@@ -30,3 +32,7 @@ ProteinQuantitation<-REPLACE4
 filterL<-REPLACE5
 AllowLabelRename<-REPLACE12
 AllowLS<-REPLACE13
+RMisused<-REPLACE17
+RMbrepsinrawfiles<-REPLACE18
+RMtrepsinrawfiles<-REPLACE19
+RMconditionsinrawfiles<-REPLACE20

@@ -1,0 +1,1 @@
+// // This script is used only in production to track the page using the Matomo service.

@@ -90,7 +90,7 @@
             </dt>
 			<dd><img src="images/scrshot5_help.PNG"/></dd>
 			<dt><h3>Experimental design definition page (continued): Label-free experiments</h3>
-              In the case of label-free data, the figures on the right illustrate the condition assignment procedure: the user first selects the table rows (i.e. raw files) and by right-click, selects <i>Assign Condition</i> from the popup menu, after which he is asked to either define new condition or choose one defined previously.
+              In the case of label-free data, the figures on the right illustrate the condition assignment procedure: the user first selects the table rows (i.e. raw files) and by right-click, selects <i>Assign Condition</i> from the popup menu, after which he is asked to either define new condition or choose one defined previously.<br><br><p style="font-size: 85%">Please note that condition names can not start with a number.</p>
             </dt>
 			<dd>
               <figure style="width: 800px">
@@ -102,7 +102,27 @@
                 <figcaption style="text-align: center;"></figcaption>
               </figure>
             </dd>
-            
+            <dt><h3 id="RM">Experimental design definition page (continued): Replication Multiplexing</h3>
+              Some data sets do not follow the usual experimental structure where all replicates are represented as different MS runs and the conditions as different tags/labels. For example, in an iTRAQ 4-plex experiment, samples from one biological replicate may be tagged with 2 iTRAQ tags and samples from another one may be tagged with the rest of the tags. To use <strong>Proteosign</strong> for this kind of datasets, right click on the table in Step 2 and choose <i>Replication Multiplexing</i>. Then choose the options that best describe your experiment and complete the next two steps following the on-screen instructions. The instructions may vary slightly depending on your experimental structure.<br><br><p style="font-size: 85%">Please note that condition names can not start with a number.</p>
+            </dt>
+			<dd>
+              <figure style="width: 800px">
+                <img src="images/scrshotRM1_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+              <figure style="width: 800px; margin-top: 30px">
+                <img src="images/scrshotRM2_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+			  <figure style="width: 800px; margin-top: 30px">
+                <img src="images/scrshotRM3_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+			  <figure style="width: 800px; margin-top: 30px">
+                <img src="images/scrshotRM4_help.PNG" style="width: 100%;"/>
+                <figcaption style="text-align: center;"></figcaption>
+              </figure>
+            </dd>
             <dt><h3>Experimental parameters definition page</h3>
               Here the user can enter some meta information regarding the experiment (<i>Experiment ID</i> and <i>Experiment description</i>) but most importantly choose the set of biological conditions/treatments to compare against each other. Typically all conditions are selected here via the <i>Conditions to compare</i> list. The <i>advanced parameters</i> section comprises options for filtering-out certain kinds of measurements. More details can be found by hovering the mouse over the question mark icon (at the actual page).
               <br><br>

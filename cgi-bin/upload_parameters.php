@@ -11,6 +11,8 @@
 	$upload_LFQ_data_file = $upload_dir . "/LFQ_conditions.txt";
 	$upload_Rename_Array_file = $upload_dir . "/Rename_array.txt";
 	$upload_LS_file = $upload_dir . "/LS_array.txt";
+	$upload_RMrawfiles_file = $upload_dir . "/RMrawfiles.txt";
+	$upload_RMtags_file = $upload_dir . "/RMtags.txt";
 	$parameters_template = "parameters_template.R";
 	//WIN TODO: the next lines contain \\ and \ slashes to send paths to R change them to UNIX compatible format before uploading
 	$the_parameters["REPLACE1"] = $_POST["exppddata"];
@@ -29,6 +31,10 @@
 	$the_parameters["REPLACE14"] = $_POST["LeastBreps"];
 	$the_parameters["REPLACE15"] = $_POST["LeastPeps"];
 	$the_parameters["REPLACE16"] = $_POST["PThreshold"];
+	$the_parameters["REPLACE17"] = $_POST["RMisused"];
+	$the_parameters["REPLACE18"] = $_POST["RMbrepsRepInRawFiles"];
+	$the_parameters["REPLACE19"] = $_POST["RMtrepsRepInRawFiles"];
+	$the_parameters["REPLACE20"] = $_POST["RMconditionsRepInRawFiles"];
 	if($_POST["explbl00"] == "T" && isset($_POST["explbl0"]) && strlen($_POST["explbl0"]) > 0){
 		$the_parameters["APPEND0"] = "addLabel(\"" . $_POST["explbl0"] . "\",c(\"\"))";
 	}
@@ -94,7 +100,7 @@
 			}
 		}else{
 			$server_response['msg'] = "The file $upload_LFQ_data_file could not be opened ('fopen' returned FALSE)";
-		}
+		}	
 		if ($_POST["AllowMergeLabels"] == "T")
 		{
 			if($ff = fopen($upload_Rename_Array_file, 'w')){
@@ -110,7 +116,6 @@
 			}else{
 				$server_response['msg'] = "The file $upload_Rename_Array_file could not be opened ('fopen' returned FALSE)";
 			}	
-			
 		}
 		if ($_POST["AllowLS"] == "T")
 		{
@@ -127,6 +132,35 @@
 			}else{
 				$server_response['msg'] = "The file $upload_LS_file could not be opened ('fopen' returned FALSE)";
 			}	
+		}
+		if ($_POST["RMisused"] == 'T')
+		{
+			if($ff = fopen($upload_RMrawfiles_file, 'w')){
+				$canwrite = fwrite($ff, $_POST["RMRawFiles"]);
+				if(!$canwrite){
+					$server_response['msg'] = "The file $upload_RMrawfiles_file could not be written ('fwrite' returned FALSE)";
+				}
+				if($canwrite && !fclose($ff)){
+					$server_response['msg'] = "The file $upload_RMrawfiles_file could not be closed ('fclose' returned FALSE)";
+				}else{
+					$server_response['success'] = true;
+				}
+			}else{
+				$server_response['msg'] = "The file $upload_RMrawfiles_file could not be opened ('fopen' returned FALSE)";
+			}
+			if($ff = fopen($upload_RMtags_file, 'w')){
+				$canwrite = fwrite($ff, $_POST["RMTags"]);
+				if(!$canwrite){
+					$server_response['msg'] = "The file $upload_RMtags_file could not be written ('fwrite' returned FALSE)";
+				}
+				if($canwrite && !fclose($ff)){
+					$server_response['msg'] = "The file $upload_RMtags_file could not be closed ('fclose' returned FALSE)";
+				}else{
+					$server_response['success'] = true;
+				}
+			}else{
+				$server_response['msg'] = "The file $upload_RMtags_file could not be opened ('fopen' returned FALSE)";
+			}
 		}
 	}
 end:
