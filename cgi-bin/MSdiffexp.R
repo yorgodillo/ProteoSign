@@ -832,7 +832,18 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   levellog("Reading data file ...");
   evidence<-read.table(evidence_fname, header = T, sep = "\t",quote="",stringsAsFactors=F,comment.char = "")
 
-  if(PDdata){ pgroups_colname<-'Protein.Group.Accessions' }else{ pgroups_colname<-'^Proteins$' }
+  if(PDdata) {
+    if ('Protein.Group.Accessions' %in% colnames(evidence)) {
+      pgroups_colname<-'Protein.Group.Accessions'
+    }
+    else if ('Protein.Accessions' %in% colnames(evidence)) {
+      pgroups_colname<-'Protein.Accessions'
+    } else {
+      levellog("Error User: The dataset does not contain the columns 'Protein Group Accessions' or 'Protein Accessions'")
+    }
+  } else {
+    pgroups_colname<-'^Proteins$'
+  }
   colnames(evidence)[grepl(pgroups_colname,colnames(evidence))]<-'Protein.IDs'
   if(!PDdata){
     ## For MaxQuant correct protein groups in the evidence file using the protein groups file.
@@ -854,6 +865,10 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     if (length(mi)>0)
     {
       pgroups <- pgroups[-mi,]
+    }
+    if (!'Protein.IDs' %in% colnames(pgroups) & 'Peptide.IDs' %in% colnames(pgroups))
+    {
+      colnames(pgroups)[colnames(pgroups) == 'Peptide.IDs'] <- 'Protein.IDs'
     }
     tmp.table.1<-data.table(do.call(rbind, apply(pgroups[,c('Protein.IDs','Protein.Names','Evidence.IDs')], 1, function(x){return(cbind(x['Protein.IDs'], x['Protein.Names'], unlist(strsplit(x['Evidence.IDs'], ';'))))})))
     setnames(tmp.table.1, colnames(tmp.table.1), c('Protein.IDs', 'Protein.Names', 'id'))
@@ -886,33 +901,42 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       conditions.labels<<-sub("^X", "Reporter.intensity.", conditions.labels)
       if (AllowLabelRename == T)
       {
-        Rename_Array$old_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$old_label)
-        Rename_Array$new_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1", Rename_Array$new_label)
+        Rename_Array$old_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1", Rename_Array$old_label)
+        Rename_Array$new_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1", Rename_Array$new_label)
       }
       if (AllowLS == T)
       {
-        Ls_array$first_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  Ls_array$first_label)
-        Ls_array$second_label <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  Ls_array$second_label)
+        Ls_array$first_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1",  Ls_array$first_label)
+        Ls_array$second_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1",  Ls_array$second_label)
       }
       LabelFree<-T;
-      filterL_lbl <- sub("^([[:digit:]]*)$", "Reporter.intensity.\\1",  filterL_lbl)
+      filterL_lbl <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1",  filterL_lbl)
+      if(RMisused){
+        RMtagsdata$name <- sub("^([[:digit:]]*[[:alpha:]]?)$", "Reporter.intensity.\\1",  RMtagsdata$name)
+      }
     }
     else{
       evidence$Intensity <- NULL
-      varcolnames <- grep("^X[[:digit:]]*$", colnames(evidence), value = TRUE)
+      if (any(grepl("^Abundance..", colnames(evidence)))){
+        colnames(evidence) <- sub("^Abundance..", "X", colnames(evidence))
+      }
+      varcolnames <- grep("^X[[:digit:]]*[[:alpha:]]?$", colnames(evidence), value = TRUE)
       evidence <- reshape(evidence, varying = varcolnames, v.names = "Intensity", timevar = "Modifications", times = varcolnames, direction = "long", new.row.names=sequence(prod(length(varcolnames), nrow(evidence))))
       LabelFree<-T;
       if (AllowLabelRename == T)
       {
-        Rename_Array$old_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$old_label)
-        Rename_Array$new_label <- sub("^([[:digit:]]*)$", "X\\1", Rename_Array$new_label)
+        Rename_Array$old_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", Rename_Array$old_label)
+        Rename_Array$new_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", Rename_Array$new_label)
       }
       if (AllowLS == T)
       {
-        Ls_array$first_label <- sub("^([[:digit:]]*)$", "X\\1", Ls_array$first_label)
-        Ls_array$second_label <- sub("^([[:digit:]]*)$", "X\\1", Ls_array$second_label)
+        Ls_array$first_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", Ls_array$first_label)
+        Ls_array$second_label <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", Ls_array$second_label)
       }
-      filterL_lbl <- sub("^([[:digit:]]*)$", "X\\1", filterL_lbl)
+      filterL_lbl <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", filterL_lbl)
+      if(RMisused){
+        RMtagsdata$name <- sub("^([[:digit:]]*[[:alpha:]]?)$", "X\\1", RMtagsdata$name)
+      }
     }
   }
   # #Erase all rows in rename_array that try to rename a label to an already existing
@@ -926,7 +950,12 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   evidence<-evidence[nchar(evidence$Protein.IDs) > 0,]
   levellog(paste0("read.pgroups_v3: Discarded PSM records due to unassigned protein group: ",(n1-nrow(evidence))))
   ## Make Protein.IDs human-readable
-  if(PDdata){ pgroups_colname<-'Protein.Descriptions' }else{ pgroups_colname<-'Protein.Names' }
+  if(PDdata){
+    pgroups_colname<-'Protein.Descriptions'
+    if (!'Protein.Descriptions' %in% colnames(evidence)) {
+      evidence[, c('Protein.Descriptions')] <- ""
+    }
+  }else{ pgroups_colname<-'Protein.Names' }
   tmp.table<-data.table(cbind(evidence[, c('Protein.IDs', pgroups_colname)], i=1:nrow(evidence)))
   setkey(tmp.table, Protein.IDs)
   # Generate data.table with unique Protein.IDs
@@ -937,8 +966,6 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   # set the Protein.IDs in the original data frame
   evidence$Protein.IDs<-tmp.table2[tmp.table][order(i),pdesc]
   ## Assign defined labels (conditions), one for each PSM record
-  levellog("read.pgroups_v3: Assigning labels ...")
-  levellog("",change=1)
   if(PDdata){ rawfile_col<-'Spectrum.File' }else{
     if(length(grep("Raw.File", colnames(evidence))) > 0)
     {
@@ -949,6 +976,8 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
       rawfile_col<-'Raw.file'
     }
   }
+  
+  
   if(LabelFree){
     cond_spec_col<-rawfile_col
     if(IsobaricLabel){
@@ -957,6 +986,101 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }else{
     if(PDdata){ cond_spec_col<-'Modifications' }else{ cond_spec_col<-'Labeling.State' }
   }
+  
+  if(RMisused){
+    levellog("read.pgroups_v3: Transforming data for Replication Multiplexing ...")
+    #when RM is chosen, in this line evidence has two main columns, one called Labeling.State or Modifications
+    #that tells us what tag it was tagged and one called 
+    #Spectrum File or Raw File that says from which raw file did the psm come from
+    #in case of RM breps treps and conditions may come from either raw files or tags but in this data format creating
+    #two new columns describing the structure correctly is not difficult
+    #first create the column for conditions
+    RMrawfilesdata <- RMrawfilesdata[!RMrawfilesdata$used == 'false',]
+    RMtagsdata <- RMtagsdata[!RMtagsdata$used == 'false',]
+    if(RMconditionsinrawfiles)
+    {
+      evidence <- merge(evidence, RMrawfilesdata[, c('name', 'cond')], by.x = rawfile_col, by.y = 'name')
+    } else {
+      evidence <- merge(evidence, RMtagsdata[, c('name', 'cond')], by.x = cond_spec_col, by.y = 'name')
+    }
+    #the conditions.labels array is already set from the front end
+    #Now we will initialize the new_raw_file column that will contain pseudo-raw files describing our bioreps, techreps and fracs
+    colnames(RMrawfilesdata)[3:5] <- c('new_brep', 'new_trep', 'new_frac')
+    colnames(RMtagsdata)[3:5] <- c('new_brep', 'new_trep', 'new_frac')
+    if(RMbrepsinrawfiles)
+    {
+      evidence <- merge(evidence, RMrawfilesdata[, c('name', 'new_brep')], by.x = rawfile_col, by.y = 'name')
+    } else {
+      evidence <- merge(evidence, RMtagsdata[, c('name', 'new_brep')], by.x = cond_spec_col, by.y = 'name')
+    }
+    #do the same thing for treps
+    if(RMtrepsinrawfiles)
+    {
+      evidence <- merge(evidence, RMrawfilesdata[, c('name', 'new_trep')], by.x = rawfile_col, by.y = 'name')
+    } else {
+      evidence <- merge(evidence, RMtagsdata[, c('name', 'new_trep')], by.x = cond_spec_col, by.y = 'name')
+    }
+    if(RMbrepsinrawfiles | RMtrepsinrawfiles) {
+      #do the same thing for fracs
+      evidence <- merge(evidence, RMrawfilesdata[, c('name', 'new_frac')], by.x = rawfile_col, by.y = 'name')
+    }
+    if(!RMbrepsinrawfiles & !RMtrepsinrawfiles) {
+      evidence$new_raw_file <- paste0('b', evidence$new_brep, 't', evidence$new_trep)
+    } else {
+      evidence$new_raw_file <- paste0('b', evidence$new_brep, 't', evidence$new_trep, 'f', evidence$new_frac)
+    }
+    #Now lets refresh the rep_structure array the pseudo raw files we created are descriptive and contain the the breps treps and fracs
+    pseudo_raw_files <- unique(evidence$new_raw_file)
+    new_rep_structure <- rep_structure
+    new_rep_structure <- new_rep_structure[0,]
+    for (i in 1:length(pseudo_raw_files)) {
+      levels(new_rep_structure$raw_file) <- c(levels(new_rep_structure$raw_file), pseudo_raw_files[i])
+      new_rep_structure[i,] <- c(as.character(pseudo_raw_files[i]), NA, NA, NA, NA)
+    }
+    colnames(new_rep_structure) <- c('raw_file','biorep','techrep','fraction', 'rep_desc')
+      if(RMbrepsinrawfiles | RMtrepsinrawfiles) {
+        for(i in 1:nrow(new_rep_structure))
+        {
+          new_rep_structure[i, c('raw_file', 'biorep','techrep','fraction')] <- str_match_all(new_rep_structure$raw_file[i], "b(.*?)t(.*?)f(.*)")[[1]][1,]
+        }
+      } else{
+        for(i in 1:nrow(new_rep_structure))
+        {
+          new_rep_structure[i, c('raw_file', 'biorep','techrep')] <- str_match_all(new_rep_structure$raw_file[i], "b(.*?)t(.*)")[[1]][1,]
+        }
+        new_rep_structure[, 'fraction'] <- "1"
+      }
+    
+    if(length(unique(new_rep_structure$techrep)) > 1){
+      if(length(unique(new_rep_structure$fraction)) > 1){
+        # we have techreps and fractions
+        new_rep_structure$rep_desc<-paste(paste(paste('b',new_rep_structure$biorep,sep=''),'t',new_rep_structure$techrep,sep=''),'f',new_rep_structure$fraction,sep='')
+      }else{
+        #we have bioreps and techreps
+        new_rep_structure$rep_desc<-paste(paste('b',new_rep_structure$biorep,sep=''),'t',new_rep_structure$techrep,sep='')
+      }
+    }else{
+      if(length(unique(new_rep_structure$fraction)) > 1){
+        # we have fractions but not techreps
+        new_rep_structure$rep_desc<-paste(paste(paste('b',new_rep_structure$biorep,sep=''),'t',new_rep_structure$techrep,sep=''),'f',new_rep_structure$fraction,sep='')
+      }else{
+        # we just have bioreps
+        new_rep_structure$rep_desc<-paste(paste('b',new_rep_structure$biorep,sep=''),'t',new_rep_structure$techrep,sep='')
+      }
+    }
+    .GlobalEnv[["rep_structure"]]<-new_rep_structure
+    #now erase the old columns for raw files and conditions and replace with the new ones
+    evidence[, c(rawfile_col, cond_spec_col)] <- list(NULL)
+    colnames(evidence)[colnames(evidence) == "new_raw_file"] <- rawfile_col
+    colnames(evidence)[colnames(evidence) == "cond"] <- cond_spec_col
+    if(length(unique(rep_structure$biorep)) == 1){
+      levellog("Error User: Cannot accept dataset with just one biological replicate. Aborting ...")
+      return(F)
+    }
+  }
+  
+  levellog("read.pgroups_v3: Assigning labels ...")
+  levellog("",change=1)
   evidence$label_<-NA
   background_species_lbl<-NA
   
@@ -1160,6 +1284,12 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     # }
     
   }
+  if (!'Unique.Sequence.ID' %in% colnames(evidence)){
+    if ('Annotated.Sequence' %in% colnames(evidence)){
+      colnames(evidence)[colnames(evidence) == 'Annotated.Sequence'] <- 'Unique.Sequence.ID'
+      evidence$Unique.Sequence.ID <- sub(".*?\\.(.*?)\\..*", "\\1", evidence$Unique.Sequence.ID)
+    }
+  }
   if(LabelFree){
     if(PDdata){
       # Precursor Area is unfortunately buggy (sometimes 0/NA), so we are left with Intensity to work with
@@ -1174,7 +1304,10 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
     suppressWarnings(evidence.dt<-evidence.dt[, .(maxI=max(get(intensityCol), na.rm = T)), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID, label_)][maxI != -Inf])
   }else{
     if(PDdata){
-      evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
+      if (!'Quan.Usage' %in% colnames(evidence) & 'Peptide.Quan.Usage' %in% colnames(evidence)){
+        colnames(evidence)[colnames(evidence) == 'Peptide.Quan.Usage'] <- 'Quan.Usage'
+      }
+        evidence.dt<-data.table(evidence[, c('Quan.Usage','Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
     }else{
       evidence.dt<-data.table(evidence[, c('Protein.IDs', 'Unique.Sequence.ID', conditions.labels,'rep_desc', 'label_')])
     }
@@ -1200,9 +1333,9 @@ read.pgroups_v3<-function(fname,evidence_fname,time.point,keepEvidenceIDs=F){
   }else{
     if(PDdata){
       # 1. Take the (Quan.Usage == 'Used') records and for each peptide keep only the PSM record with the highest intensity
-      evidence.dt<-evidence.dt[Quan.Usage == 'Used', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
+      evidence.dt<-evidence.dt[Quan.Usage == 'Used' | Quan.Usage == 'Use', lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
     }else{
-      # 1. Take the records with Intensity != NA across labels/conditions and for each peptide keep only the PSM record with the highest intensity
+      # 2. Take the records with Intensity != NA across labels/conditions and for each peptide keep only the PSM record with the highest intensity
       evidence.dt[, sumI := rowSums(.SD, na.rm = T), .SDcols=conditions.labels]
       evidence.dt<-evidence.dt[sumI > 0, lapply(.SD, max), by=.(rep_desc, Protein.IDs, Unique.Sequence.ID), .SDcols=conditions.labels]    
       evidence.dt[, sumI := NULL]
@@ -1486,7 +1619,7 @@ source("MSdiffexp_definitions.R")
 perform_analysis<-function(){
   levellog("",change=1)
   setwd(working_directory)
-  rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'))
+  rep_structure<-read.table(experimental_structure_file,col.names=c('raw_file','biorep','techrep','fraction'), sep="\t")
   rep_structure<-rep_structure[order(rep_structure[,2],rep_structure[,3],rep_structure[,4]),]
   LFQ_conds<-c()
   if(LabelFree)
@@ -1501,6 +1634,14 @@ perform_analysis<-function(){
   if (AllowLS == T)
   {
     Ls_array <<- read.table(LS_Array_file, col.names=c('selected_raw_file', 'first_label', 'second_label'), stringsAsFactors = F)
+  }
+  if (RMisused == T)
+  {
+    RMrawfilesdata <<- read.table(RMrawfilesdata_file, col.names=c('id', 'name', 'brep', 'trep', 'frac', 'cond', 'used', 'selected'), stringsAsFactors = F)
+  }
+  if (RMisused == T)
+  {
+    RMtagsdata <<- read.table(RMtagsdata_file, col.names=c('id', 'name', 'brep', 'trep', 'frac', 'cond', 'used', 'selected'), stringsAsFactors = F)
   }
   #Because a condition can not be named "N" in ProteoSign, rename it to condN
   mi <- which(LFQ_conds$condition == "N")
@@ -1541,12 +1682,17 @@ perform_analysis<-function(){
     }
   }
   original_rep_structure$rep_desc<-paste(paste(paste('b',original_rep_structure$biorep,sep=''),'t',original_rep_structure$techrep,sep=''))
-  
-  if(length(unique(rep_structure$biorep)) == 1){
-    levellog("Error: Cannot accept dataset with just one biological replicate. Aborting ...")
-    return(F)
+  if (!RMisused)
+  {
+    if(length(unique(rep_structure$biorep)) == 1){
+      levellog("Error User: Cannot accept dataset with just one biological replicate. Aborting ...")
+      return(F)
+      # single_brep_file <<- T
+      # nRequiredLeastBioreps <<- 1
+    # } else {
+      # single_brep_file <<- F
+    }
   }
-  
   if(length(unique(rep_structure$techrep)) > 1){
     if(length(unique(rep_structure$fraction)) > 1){
       # we have techreps and fractions
@@ -1607,22 +1753,28 @@ perform_analysis<-function(){
     protein_groups<<-read.pgroups_v3(pgroups_fname,evidence_fname,time.point,keepEvidenceIDs=T)
   }
   #Restore the original rep descriptions to add to the graph
-  newcolumns <- names(protein_groups)
-  oldcolumns = newcolumns
-  for(my_column in newcolumns){
-    for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
-      if (grepl(my_repdesc, my_column)){
-        temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
-        newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
+  if (!RMisused)
+  {
+    newcolumns <- names(protein_groups)
+    oldcolumns = newcolumns
+    for(my_column in newcolumns){
+      for(my_repdesc in .GlobalEnv[["rep_structure"]]$rep_desc){
+        if (grepl(my_repdesc, my_column)){
+          temp_name <- .GlobalEnv[["original_rep_structure"]]$rep_desc[match(my_repdesc, .GlobalEnv[["rep_structure"]]$rep_desc)]
+          newcolumns[match(my_column, newcolumns)] <- sub(my_repdesc, temp_name, my_column)
+        }
       }
     }
+    colnames(protein_groups) <- newcolumns
   }
-  colnames(protein_groups) <- newcolumns
   setwd(limma_output)
   temp_pgroups <- protein_groups
   write.table(temp_pgroups[, -which(names(temp_pgroups) %in% c("N.x","N.y"))],file=paste(outputFigsPrefix,"_proteinGroupsDF.txt",sep=""),row.names=F,sep="\t")
   setwd("..")
-  colnames(protein_groups) <- oldcolumns
+  if (!RMisused)
+  {
+    colnames(protein_groups) <- oldcolumns
+  }
   #Create the expdesign table:
   expdesign<-c()
   #Rename conditions labels from condN back to N
@@ -1653,14 +1805,17 @@ perform_analysis<-function(){
   }
   
   colnames(expdesign)<-c("Sample","Category")
-  #temp vector has only the information of the replication (e.g. b1t1 or b1t1f1 if we have fractionation)
-  temp_vector <- sub("(.*)\\.","", expdesign[,1])
-  temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
-  #Make sure that expdesign (column Sample) contains data in te right format by merging expdesign and tmp_vector:
-  tmp_counter <- 0
-  for (expdesign_i in expdesign[,1]){
-    expdesign[tmp_counter + 1,1] <- sub("(.*)\\..*",paste0("\\1.", temp_vector[tmp_counter + 1]), expdesign_i)
-    tmp_counter <- tmp_counter + 1
+  if(!RMisused){
+    #the following lines also deal with restoring the original breps and treps numbers
+    #temp vector has only the information of the replication (e.g. b1t1 or b1t1f1 if we have fractionation)
+    temp_vector <- sub("(.*)\\.","", expdesign[,1])
+    temp_vector <- original_rep_structure$rep_desc[match(temp_vector, sub("f.*", "", rep_structure$rep_desc))]
+    #Make sure that expdesign (column Sample) contains data in te right format by merging expdesign and tmp_vector:
+    tmp_counter <- 0
+    for (expdesign_i in expdesign[,1]){
+      expdesign[tmp_counter + 1,1] <- sub("(.*)\\..*",paste0("\\1.", temp_vector[tmp_counter + 1]), expdesign_i)
+      tmp_counter <- tmp_counter + 1
+    }
   }
   #Remove the fractionation information: (if any)
   expdesign[,1] <- sub("(.*\\..*)f.*", "\\1", expdesign[,1], perl = TRUE)

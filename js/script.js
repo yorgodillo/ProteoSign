@@ -47,6 +47,17 @@ var star_chosen = 1;
 var stars_enabled = true;
 //the following line is for logging purposes
 var log_test_dataset = false;
+//The following vars are used for replication multiplexing
+var RM_RMstep = 1;
+var RMrawfilesdata = []; //RMrawfilesdata contains all the information for the rawfiles in case Replication Multiplexing is chosen, RMrawfilesdata is an array of 2 dimensions, each raw is a record that contains: an id, the name of the raw file, the brep the trep the frac and the condition assigned, if it is used or not and if it is currently selected or not
+var RMtagsdata = []; // RMtagsdata contains all the information for the tags in case Replication Multiplexing is chosen, in the same way as RMrawfilesdata does for the raw files, notice that the fractions column is unnecessary and kept only for compatibility and simplicity reasons...
+var RMbrepsRepInRawFiles = true;
+var RMtrepsRepInRawFiles = true;
+var RMconditionsRepInRawFiles = true;
+var RMtags = []; //the tags of the experiment
+var RMisused = false; //this will tell R if Replication Multiplexing will be used
+var stepRM2initialized = false;
+var stepRM3initialized = false;
 
 // from: http://www.shamasis.net/2009/09/fast-algorithm-to-find-unique-items-in-javascript-array/
 Array.prototype.unique = function () {
@@ -104,6 +115,7 @@ File.prototype.toString = function getFileName() {
 }
 
 var rawfiles_tbl_allfiles_DT;
+var RMrawfilesDT;
 var main_context_menu;
 
 var onChooseFromTestDatasets = function(){
@@ -645,6 +657,27 @@ var ons4btnfclick = function()
 		feedbackAnimated = true;
 	}
 }
+var onRMDialogCancel_click = function ()
+{
+	if (RMisused && is_RM_ready() == false)
+	{
+		questionbox("The data provided for <i>Replication Multiplexing</i> are not enough. Do you want to discard <i>Replication Multiplexing</i>?", function()
+		{
+			//the postyes
+			set_RMisused(false, false);
+			dlgFadeoutRepMult();
+		},
+		function()
+		{
+			//postNo
+			
+		});
+	}
+	else
+	{
+		dlgFadeoutRepMult();
+	}
+}
 var onFeedbackclick = function()
 {
 	$(".expparamsDlgFeedback").css({"left": ($("body").width() / 2) - ($("#s4FeedbackPanel").width() / 2)});
@@ -655,7 +688,6 @@ var onFeedbackclick = function()
 	$("#FeedbackPanelSend").on("click", function () {
 		
 		//ADD SEND RESULT HERE
-
 	});
 	$("#FeedbackPanelCancel").unbind();
 	$("#FeedbackPanelCancel").on("click", function () {
@@ -797,6 +829,41 @@ var msgbox = function(displaytext)
 	$("#InfoDiv").append("<span>" + displaytext + "</span>");
 }
 
+var questionbox = function(caption, postYes, postNo)
+{
+	
+	$(".expparamsDlgInfo").css({"left": ($("body").width() / 2) - ($("#VariousInfoDialog").width() / 2)});
+	$('body').append('<div id="maskInfo"></div>');
+	$("#QuestionBoxDialog").fadeIn(300);
+	$('#maskInfo').fadeIn(300);
+	$("#CaptionDiv").empty();
+	$("#CaptionDiv").append("<span>" + caption + "</span>");
+	//in a question box, some functions should be executed after clicking on yes and no, these are sent as parameters to question box:
+	//to assign them first remove any handlers from QBYes and QBNo and reassign the sent functions
+	//also make sure that the dialog closes after hitting yes or no$("#QBYes").off("click");
+	$("#QBYes").off("click");
+	$("#QBYes").on("click", postYes);
+	$("#QBYes").on("click", function(){
+		dlgFadeoutInfo();
+	});
+	
+	$("#QBNo").off("click");
+	$("#QBNo").on("click", postNo);
+	$("#QBNo").on("click", function() {
+		dlgFadeoutInfo();
+	});
+}
+
+var showRepMultDialog = function()
+{
+	RM_RMstep = 1;
+	showstepRMDialog();
+	$(".RepMultDlg").css({"left": ($("body").width() / 2) - ($("#ReplicationMultiplexingDialog").width() / 2)});
+	$(".RepMultDlg").css({"top": ($("body").height() / 2) - ($("#ReplicationMultiplexingDialog").height() / 2)});
+	$('body').append('<div id="maskRepMult"></div>');
+	$("#ReplicationMultiplexingDialog").fadeIn(300);
+	$('#maskRepMult').fadeIn(300);
+}
 //Here we implement the downloading and uploading of the parameters
 //The parameters are stored in a txt file with the following rules: each line starting with # is a comment line, Each line that contains a valid variable name is followed by a line with the variables value
 //In case a variable is an array the lines of the array are separated by double tabs and the rows by tabs
@@ -858,6 +925,17 @@ var CreateParamsFile = function()
 	mytext += "rawfiles_structure\n";
 	var myval = "";
 	var mytemp = "";
+	   if (RMisused)
+	   {
+		   var temp_rf_structure = [];
+		   var all_items = $('#rawfiles_tbl_allfiles').find('tr');
+			for (var i = 1; i < all_items.length; i++) {
+				var items_tds = $(all_items[i]).find('td');
+				temp_rf_structure.push({rawfile: $(items_tds[0]).text(), biorep: "-", techrep: "-", fraction: "-", used: true});
+		}
+   }
+   if (!RMisused)
+   {
 	$.each(rawfiles_structure, function(idx, my_rawfile)
 	{
 		if (my_rawfile.used == true)
@@ -870,6 +948,22 @@ var CreateParamsFile = function()
 		}
 		myval += my_rawfile.rawfile + "\t" + my_rawfile.biorep + "\t" + my_rawfile.techrep + "\t" + my_rawfile.fraction + "\t" + mytemp + "\t\t";
 	});
+   }
+   else
+   {
+	$.each(temp_rf_structure, function(idx, my_rawfile)
+	{
+		if (my_rawfile.used == true)
+		{
+			mytemp = "1";
+		}
+		else
+		{
+			mytemp = "0";
+		}
+		myval += my_rawfile.rawfile + "\t" + my_rawfile.biorep + "\t" + my_rawfile.techrep + "\t" + my_rawfile.fraction + "\t" + mytemp + "\t\t";
+	});
+   }
 	mytext += myval + "\n";
 	mytext += "expid\n";
 	mytext += $('input[name="expid"]').val() + "\n";
@@ -955,6 +1049,18 @@ var CreateParamsFile = function()
 		}
 	});
 	mytext += myval + "\n";
+	mytext += "!RMrawfilesdata\n";
+	mytext += array_to_string(RMrawfilesdata) + "\n";
+	mytext += "!RMtagsdata\n";
+	mytext += array_to_string(RMtagsdata) + "\n";
+	mytext += "!RMbrepsRepInRawFiles\n";
+	mytext += RMbrepsRepInRawFiles + "\n";
+	mytext += "!RMtrepsRepInRawFiles\n";
+	mytext += RMtrepsRepInRawFiles + "\n";
+	mytext += "!RMconditionsRepInRawFiles\n";
+	mytext += RMconditionsRepInRawFiles + "\n";
+	mytext += "!RMisused\n";
+	mytext += RMisused + "\n";
 	return mytext;
 }
 
@@ -991,7 +1097,7 @@ var LoadParams = function(myparametersstring)
 			}
 			if (setvar == "")
 			{//in this case we expect to read a var name
-				if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add" || myparamline == "!Select_Labels")
+				if (myparamline == "isLabelFree" || myparamline == "isIsobaricLabel" || myparamline == "procprogram" || myparamline == "rawfiles_structure" || myparamline == "expid" || myparamline == "exptpoint" || myparamline == "conditions_to_compare" || myparamline == "quantitation_filtering" || myparamline == "filtering_label" || myparamline == "peptide_level_filtering" || myparamline == "LeastBRep" || myparamline == "LeastPep" || myparamline == "Pthreshold" || myparamline == "LFQconditions" || myparamline == "!Rename" || myparamline == "!LS_Array" || myparamline == "!LS_c_p_Add" || myparamline == "!Select_Labels" || myparamline == "!RMrawfilesdata" || myparamline == "!RMtagsdata" || myparamline == "!RMbrepsRepInRawFiles" || myparamline == "!RMtrepsRepInRawFiles" || myparamline == "!RMconditionsRepInRawFiles" || myparamline == "!RMisused")
 				{
 					setvar = myparamline;
 				}
@@ -1196,6 +1302,44 @@ var LoadParams = function(myparametersstring)
 					my_lbls_toselect = myparamline.split("|");
 					select_labels_according_to_test_dataset();
 					my_lbls_toselect = [];
+				}
+				else if (setvar == "!RMrawfilesdata")
+				{
+					RMrawfilesdata = string_to_array(myparamline);
+				}
+				else if (setvar == "!RMtagsdata")
+				{
+					RMtagsdata = string_to_array(myparamline);
+				}
+				else if (setvar == "!RMbrepsRepInRawFiles")
+				{
+					RMbrepsRepInRawFiles = (myparamline == 'true');
+				}
+				else if (setvar == "!RMtrepsRepInRawFiles")
+				{
+					RMtrepsRepInRawFiles = (myparamline == 'true');
+				}
+				else if (setvar == "!RMconditionsRepInRawFiles")
+				{
+					RMconditionsRepInRawFiles = (myparamline == 'true');
+				}
+				else if (setvar == "!RMconditionsRepInRawFiles")
+				{
+					RMconditionsRepInRawFiles = (myparamline == 'true');
+				}
+				else if (setvar == "!RMisused")
+				{
+					RMisused = (myparamline == 'true');
+					if (RMisused)
+					{
+						set_RMisused(true);
+						RM_init_RMsteps_from_load_data();
+						reset_reps();
+					}
+					else
+					{
+						set_RMisused(false, false);
+					}
 				}
 				setvar = "";
 			}
@@ -1703,13 +1847,31 @@ var postParameters = function (params) {
    thedata.append("labelfree", ((peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) ? 'T' : 'F'));
    thedata.append("AllowMergeLabels", AllowMergeLabels ? "T" : "F");
    thedata.append("AllowLS", AllowLS ? "T" : "F");
+   if (RMisused)
+   {
+	   var temp_rf_structure = rawfiles_structure.slice();
+	   rawfiles_structure.push({rawfile: "RM_exmpl1", biorep: "1", techrep: "1", fraction: "1", used: "1"});
+	   rawfiles_structure.push({rawfile: "RM_exmpl2", biorep: "2", techrep: "1", fraction: "1", used: "1"});
+   }
    thedata.append("exp_struct", gen_expdesign(rawfiles_structure));
+   if (RMisused)
+   {
+	   rawfiles_structure = temp_rf_structure.slice();
+   }
    thedata.append("LFQ_conds", gen_lfqdesign(RawFileConditions));
    thedata.append("LeastBreps", LeastBRep);
    thedata.append("LeastPeps", LeastPep);
    thedata.append("PThreshold", Pthreshold);
    if(AllowMergeLabels) thedata.append("Rename_Array", gen_RenameFile(RenameArray));
    if(AllowLS) thedata.append("LabelSwapArray", gen_LSArray(LabelSwapArray));
+   //Deal with the RM vars:
+   thedata.append("RMRawFiles", generate_tab_file(RMrawfilesdata));
+   thedata.append("RMTags", generate_tab_file(RMtagsdata));
+   thedata.append("RMbrepsRepInRawFiles", RMbrepsRepInRawFiles ? "T" : "F");
+   thedata.append("RMtrepsRepInRawFiles", RMtrepsRepInRawFiles ? "T" : "F");
+   thedata.append("RMconditionsRepInRawFiles", RMconditionsRepInRawFiles ? "T" : "F");
+   thedata.append("RMisused", RMisused ? "T" : "F");
+   //end: RM vars
    thedata.append("IsIsobaricLabel", isIsobaricLabel ? "T" : "F");
    thedata.append("All_MQ_Labels", my_all_mq_labels);
    $.ajax({
@@ -1892,17 +2054,37 @@ var resetState = function (uploading_new_file) {
 	if(uploading_new_file == false)
 	{
 		// Reset items that contained information from previous data input files (e.g. label information)
+		$("#step2ToolsWrapper").css({"display": "inline-flex"});
+		$("#step2RMuseinfo").css({"display": "none"});
+		$("#step2InfoHeader").css({"display": "block"});
+		$("#step2desc").css({"display": "block"});
 		$("#s3expparamsDlgLabelsSelection").empty();
 		$("#s3div h2").html("Step 3 ");
 		$("#explbl1name_").empty();
 		$("#explbl0name_").empty();
 		$("#s3advparams select[name='expquantfiltlbl']").empty();
 		$("#quantsoftdetectedspan").empty();
+		$("#s22btnf").prop('disabled', true);
+		$("#s3showdivLabelSwapRow").show();
+		$("#s3QuantitationFiltering").show();
 		rawfiles = undefined;
+		AllowMergeLabels = true;
+		AllowLS = true;
+		$('#conds_list_container').contextmenu("option", "autoTrigger", AllowMergeLabels);
 		procProgram = "";
 		peptideLabelsFromFile = [];
 		peptideLabelsFromFileCombs = [];
 		peptideLabelsNamesFromFile = [];
+		RM_RMstep = 1;
+		RMrawfilesdata = [];
+		RMtagsdata = [];
+		RMbrepsRepInRawFiles = true;
+		RMtrepsRepInRawFiles = true;
+		RMconditionsRepInRawFiles = true;
+		RMtags = [];
+		RMisused = false;
+		stepRM2initialized = false;
+		stepRM3initialized = false;
 		$("#s2uluploaders > table").empty();
 		sessionid = new Date().getTime();
 		uploaded_files = 0;
@@ -2035,31 +2217,34 @@ var postFile = function (idx, file, serverSide, postSuccess) {
          for (var i = 0; i < data.raw_filesnames.length; i++) {
             tmp_rawfiles.push(data.raw_filesnames[i]);
          }
-// If we have info regarding rawdata files names, save it					
+		 // If we have info regarding rawdata files names, save it					
          if (tmp_rawfiles.length > 0) {
             rawfiles = tmp_rawfiles;
             reset_reps();
          }
-// If we have info regarding peptide labels and such info has not been available in previous upload
+		 // If we have info regarding peptide labels and such info has not been available in previous upload
          if (peptideLabelsNamesFromFile.length == 0 && (data.peptide_labels_names.length > 0 || data.peptide_labels.length > 0)) {
             peptideLabelsFromFile = data.peptide_labels.sort();
             peptideLabelsNamesFromFile = data.peptide_labels_names.sort();
             // some doc items that depend on whether the experiment is label-free or not
-            // 1. Non-labelled "background" species present?
+            // 1. Non-labelled "background" species present? (obsolete)
             var item1 = $("#s3advparams input[name='explbl00']").closest("tr").children().first();
             // 2. Quantitation filtering?
             var item2 = $("#s3advparams input[name='expquantfilt']").closest("tr").children().first();
-            // 3. Species label #1
+            // 3. Species label #1 (obsolete)
             var item3 = $("#explbl1name_").closest("tr").children().first();
-            // 4. Species label #1 select item td
+            // 4. Species label #1 select item td (obsolete)
             var item4 = $("#explbl1name_").closest("td");
-            // 5. Label tooltip
+            // 5. Label tooltip (obsolete)
             var item5 = $("#quantsoftdetectedspan").closest("td").children().first();
-            // 6. Species label #1 definition
+            // 6. Species label #1 definition (obsolete)
             var item6 = $("#explbl1definition");
-            // if not label-free data
+            //Experiment type detection:
+			//the following lines detect the experiment type of the dataset: upload_files.php returns one array called peptide_labels_names, which is full of data only if the dataset is a labelled one (precursor ion or isobaric label) and empty if it is label-free. In case of labelled data, the array peptide_labels is full only in PD data and empty in MQ data
+			//Another script called get_labels_to_js will be executed afterwards to distinguish the two labeled types.
             if (peptideLabelsNamesFromFile.length > 0) {
-// Set states of parameters relevant to labelled experiments accordingly
+			   //Labeled case:
+			   // Set states of parameters relevant to labelled experiments accordingly (all items but item2 are obsolete)
                $(item1).prop('disabled', false);
                $(item2).prop('disabled', false);
                $(item3).html('&#8212 Species label #1');
@@ -2069,29 +2254,35 @@ var postFile = function (idx, file, serverSide, postSuccess) {
                $("#s3expparams input[name='exppddata']").prop('checked', peptideLabelsFromFile.length > 0);
 			   
                //<img class="callout" src="../images/callout_black.gif" /><strong>Warning!</strong><br><u>The order of labels defined here matters</u>. Define your labels in the same order they were defined in <a id="quantsoftdetectedspan"></a>. If there exist unlabeled species, please define them in the <em>advanced parameters</em> section below.
-               $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant");
+			   
+			   $("#quantsoftdetectedspan").text(peptideLabelsFromFile.length > 0 ? "Proteome Discoverer" : "MaxQuant"); //this item is obsolete
+			   //Refresh the quantitation_prog_lbl that informs the user of the dataset's quantitation program (MQ or PD), this functionality is done in a slightly different way for Label Free data when the user presses the Next button in step 2.
                $("#quantitation_prog_lbl").text(peptideLabelsFromFile.length > 0 ? "\u2014 Raw data were quantified with Proteome Discoverer\u2122" : "\u2014 Raw data were quantified with MaxQuant");
                $(item5).removeClass('hidden');
                $(item6).attr('placeholder', 'Definition');
+			   //hide the right click option "assign condition" in raw files table (step 2) and the extra info in step's 2 Caption, also hide the "Condition" column in step 2 and refresh the isLabelFree variable
 			   $(document).contextmenu("showEntry", "assign_condition", false);
 			   $("#ExtraInfoForLFQ").hide();
-			   //Add here more functionality in case of Labeled data
 			   rawfiles_tbl_allfiles_DT.column("4").visible(false);
 			   isLabelFree = false;
+			   //Add here more functionality in case of Labeled data:
 			   
             } else {
-//label-free case (disable non-applicable parameters and rename others accordingly)
-			   isLabelFree = true;
+			   //Label-free case (disable non-applicable parameters and rename others accordingly)
+			   //Note: some Isobaric Labelled datasets are considered mistakenly Label-Free. We will correct this in get_labels_to_js execution.
+			   //all following items except item2 are obsolete:
                $(item1).prop('disabled', true);
                $(item2).prop('disabled', true);
                $(item3).html('&#8212 Biological condition #1');
                $(item4).html('<input data-required="true" id="explbl1name_" name="explbl1name" type="text" onkeypress="inputChCheck(event,\'^(?!_)[a-zA-Z0-9_]+$\',20)" placeholder="Character rules apply"></input>');
                $(item5).addClass('hidden');
                $(item6).attr('placeholder', 'Raw file');
+			   //show the right click option "assign condition" in raw files table (step 2) and the extra info in step's 2 Caption, also show the "Condition" column in step 2 and refresh the isLabelFree variable
 			   $("#ExtraInfoForLFQ").show();
 			   $(document).contextmenu("showEntry", "assign_condition", true);
 			   rawfiles_tbl_allfiles_DT.column("4").visible(true);
-			   //Add here more functionality in case of LFQ data
+			   isLabelFree = true;
+			   //Add here more functionality in case of LFQ data:
 			   
             }
 
@@ -2099,6 +2290,8 @@ var postFile = function (idx, file, serverSide, postSuccess) {
 			   // $("#conditions_list").append("<option value='" + lbl_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lbl_i + "</option>");
                // $("#s3expparamsDlgLabelsSelection").append("<option value='" + lbl_i + "'>" + lbl_i + "</option>");
             // });
+			//AddedLabels is false when beggining uploading a new dataset, its purpose is to make sure that the conditions list will get full of the dataset's condition only once
+			//The following lines apply only in labelled datasets, LabelFree datasets' conditions are defined by the user and added in the conditions list when he/she presses the button Next in Step 2
 			if (AddedLabels == false)
 			{
 				if (AppendNewLabels == false)
@@ -2115,14 +2308,17 @@ var postFile = function (idx, file, serverSide, postSuccess) {
 				   // // $("#explbl0name_").append("<option value='" + lblname_i + "'>" + lblname_i + "</option>");
 				   $("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
                });
+			   //addFormLabel will execute get_labels_to_js:
 				addFormLabel();
 			   AddedLabels = true;
 			}
 
             if (peptideLabelsFromFile.length > 0) {
+				//obsolete:
                $("#explbl1definition").removeClass("hidden");
             }
             while (nFormLabels > 1) {
+			   //obsolete:
                removeFormLabel();
             }
          }
@@ -2346,6 +2542,7 @@ var display_star_score = function()
 
 var addFormLabel = function()
 {
+	//This function executes get_labels_to_js which makes sure that the labels are in the correct order (necessary for MQ data) and checks if the dataset is IsobaricLabel
 	nFormLabels++;
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
@@ -2359,6 +2556,8 @@ var addFormLabel = function()
       cache: false,
       contentType: false
    }).done(function (data) {
+	   
+	   //Rearrange the dataset's labels (necessary for MQ datasets):
 		if (data.success && data.labels.length > 0) {
 			// console.log(data.labels[0]);
 			var methods_mismatch = false;
@@ -2372,9 +2571,14 @@ var addFormLabel = function()
 			{
 				// console.log("Methods mismatch in rearranging maxquant labels!!");
 			}
+			//The data from get_labels_to_js have the labels in correct order:
 			peptideLabelsNamesFromFile = data.labels;
 		}
+		
+		
 		if (peptideLabelsNamesFromFile.length > 0) {
+			//Labeled case
+			//Refresh the conditions list:
 			if(!AllowMergeLabels)
 			{
 				$.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
@@ -2396,8 +2600,10 @@ var addFormLabel = function()
 		  if(data.isIsobaricLabel) isIsobaricLabel = true;
 		  $("#s3QuantitationFiltering").show();
 	   } else {
-	//label-free case
+		//label-free case
 		  if (peptideLabelsFromFile.length > 0) {
+			  //The following lines fill up the conditions_list with the raw files of the label free dataset, the list will be refreshed with the user-defined conditions when he/she presses the Next button in Step 2
+			  //So, the following lines are obsolete (up to </obsolete>):
 				if(!AllowMergeLabels)
 				{
 				  $.each(peptideLabelsFromFile, function (idx, lblname_i) {
@@ -2414,13 +2620,74 @@ var addFormLabel = function()
 						InitializeRename();
 					}
 				}
-				select_labels_according_to_test_dataset();
+			  select_labels_according_to_test_dataset();
 			  create_my_all_mq_labels();
+			  //</obsolete>
+			  
 			  //hide the advanced parameters (Quantitation filtering) in case we have label-free data
-			  $("#s3QuantitationFiltering").hide();
+			  $("#s3QuantitationFiltering").hide();			  
+			  //The following lines are executed only in the infrequent situation when an Isobaric Labelled dataset is mistakenly considered as Label-Free.
+			  if(data.isIsobaricLabel)
+			  {
+					//Here an Isobaric Labelled dataset was mistakenly considered a Label Free one:
+					//Correct the wrong actions that took place:
+					isIsobaricLabel = true;
+					isLabelFree = false;
+					$("#s3QuantitationFiltering").show();
+					var item2 = $("#s3advparams input[name='expquantfilt']").closest("tr").children().first();
+					$(item2).prop('disabled', false);// For quantitation filtering
+					$("#ExtraInfoForLFQ").hide();
+					$(document).contextmenu("showEntry", "assign_condition", false);
+					rawfiles_tbl_allfiles_DT.column("4").visible(false);
+					//in this case, refresh the conditions_list with the special list of conditions called "special_IL_labels" (IL: Isobaric Label) coming from get_labels_to_js:
+					peptideLabelsNamesFromFile = data.special_IL_labels;
+					peptideLabelsFromFile = [];
+					//Refresh the conditions list:
+					$("#conditions_list").empty();
+					$("#s3advparams select[name='expquantfiltlbl']").empty();
+					if(!AllowMergeLabels)
+					{
+						$.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+							if (StringisNumber(lblname_i))
+							{
+								peptideLabelsNamesFromFile[idx] = parseInt(lblname_i);
+								lblname_i = parseInt(lblname_i);
+							}
+							$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+							$("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
+						});
+					}
+					else
+					{
+						if (!RenameFromTestData)
+						{
+							$.each(peptideLabelsNamesFromFile, function (idx, lblname_i) {
+								if (StringisNumber(lblname_i))
+								{
+									peptideLabelsNamesFromFile[idx] = parseInt(lblname_i);
+									lblname_i = parseInt(lblname_i);
+								}
+								$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+								$("#s3advparams select[name='expquantfiltlbl']").append("<option oncontextmenu='return false;' value='" + lblname_i + "'>" + lblname_i + "</option>");
+							});
+							InitializeRename();
+						}
+					}
+				select_labels_according_to_test_dataset();
+				create_my_all_mq_labels(); 
+			  }
 		  }
 	   }
-	   // label-free case
+	   	//This is a crucial point in the code, here we know if the dataset is labelfree, labelled or isobarically tagged
+		if (isIsobaricLabel)
+		{
+			$(document).contextmenu("showEntry", "rep_mult", true);
+		}
+		else
+		{
+			$(document).contextmenu("showEntry", "rep_mult", false);
+		}
+	   // label-free case (obsolete):
 	   if (peptideLabelsNamesFromFile.length == 0 && peptideLabelsFromFile.length > 0) {
 		  $("#btnAddLabel").prop("disabled", nFormLabels > ($("#s3advparams input[name='explbl00']").prop('checked') ? (peptideLabelsFromFile.length - 2) : peptideLabelsFromFile.length - 1));
 	   } else {
@@ -2473,7 +2740,7 @@ function refresh_fractions(){
 							my_raw_fileJ.fraction = my_cur_fraction++;
 						}
 					});
-			});	
+			});
 		}
 		else
 		{//Label free cases:
@@ -2789,6 +3056,66 @@ var postTestDatasetsInfo = function () {
    });
 }
 
+//the following recursive function transforms an array to a single-line string notice that both this and the following function require that their inputs do not contain the | and the ~ characters
+var array_to_string = function(my_array, curdimension)
+{
+	var retstring = "";
+	var curdelimiter = "|";
+	if (typeof(curdimension) === 'undefined') curdimension = 1;
+	if (curdimension > 15) return;
+	curdelimiter = curdelimiter.repeat(curdimension);
+	for (var i = 0 ; i <= my_array.length - 1; i++)
+	{
+		if (my_array[i].constructor === Array)
+		{
+			retstring += array_to_string(my_array[i], curdimension + 1) + curdelimiter;
+		}
+		else
+		{
+			retstring += my_array[i] + curdelimiter;
+		}
+	}
+	retstring = retstring.substring(0, retstring.length - curdelimiter.length);
+	return retstring;
+}
+
+//the following recursive function turns a string created by array_to_string back to an array
+var string_to_array = function(my_string, curdimension)
+{
+	var curdelimiter = "~";
+	var olddelimiter = "|";
+	if (typeof(curdimension) === 'undefined')
+	{
+		curdimension = 1;
+		var mycounter = 1;
+		for (var i = 15; i > 0; i--)
+		{
+			var repeated_delimiter = olddelimiter.repeat(i);
+			if (my_string.includes(repeated_delimiter))
+			{
+				var temp_regex = new RegExp(("\\" + olddelimiter).repeat(i), "g");
+				my_string = my_string.replace(temp_regex, curdelimiter.repeat(mycounter++));
+			}
+		}
+		mycounter--;
+		curdimension = mycounter;
+	}
+	var retarray = [];
+	var temp_array = my_string.split(curdelimiter.repeat(curdimension));
+	for (var i = 0 ; i <= temp_array.length - 1; i++)
+	{
+		if (curdimension != 1 && temp_array[i].includes(curdelimiter.repeat(curdimension - 1)))
+		{
+			retarray.push(string_to_array(temp_array[i], curdimension - 1));
+		}
+		else
+		{
+			retarray.push(temp_array[i]);
+		}
+	}
+	return retarray;
+}
+
 var bioreps;
 var techreps;
 var fractions;
@@ -2796,6 +3123,7 @@ var rawfiles;
 var rawfiles_structure;
 var rep_counts;
 var lastclicked_rawfiles_tbl_tr = null;
+var lastclicked_RMrawfiles_tbl_tr = null;
 
 function add_raw_file_structure(tab_sep_string, check_validity)
 {
@@ -3170,6 +3498,23 @@ var gen_RenameFile = function (struct) {
    return ret;
 }
 
+var generate_tab_file = function(my_array)
+{
+	//this function gets a 2 dimensional array and transforms it into a tabular file
+	var ret = "";
+	for(var i = 0; i <= my_array.length - 1; i++)
+	{
+		for (var j = 0; j <= my_array[i].length - 1; j++)
+		{
+			ret += my_array[i][j] + "\t";
+		}
+		ret = ret.substr(0, ret.length - 1);
+		ret += "\n";
+	}
+	ret = ret.substr(0, ret.length - 1);
+	return ret;
+}
+
 var rss_i;
 var renderRSSData = function (data, renderelem) {
    var prev_html = "<notset>";
@@ -3270,6 +3615,7 @@ var ons2LFQConditionsOK_click = function()
 	//Also refresh the fractions:
 	refresh_fractions();
 }
+
 var getRSS = function (rssurl, renderelem) {
    var thedata = new FormData();
    thedata.append('session_id', sessionid);
@@ -3322,6 +3668,11 @@ var dlgFadeout = function () {
 var dlgFadeoutInfo = function () {
    $(".expparamsDlgInfo").fadeOut(300, function () {
       $('#maskInfo').remove();
+   });
+}
+var dlgFadeoutRepMult = function () {
+   $(".RepMultDlg").fadeOut(300, function () {
+      $('#maskRepMult').remove();
    });
 }
 var dlgFadeoutFeedback = function () {
@@ -3377,6 +3728,731 @@ var onCarefulBackNoclick = function()
 
 var label_context_menu;
 
+//The following routines are for Replication Multiplexing
+var onRMDialogNext_click = function()
+{
+	//if the user already uses Replication Multiplexing and he has not changed his options in step RM1 then the tables in RM2 and RM3 should be loaded normally displaying his experimental structure
+	//if the user chose RM for the first time initialization will be executed automatically
+	//but if the user already uses RM and he changed his options in RM1 prompt him and ask him if he wants to set a new structure
+	if ((stepRM2initialized || stepRM3initialized) && RM_RMstep == 1)
+	{
+		//find his new stepRM1 options:
+		var newRMbrepsRepInRawFiles = $('input[name=RMbreprepres]:checked').val() == "rawfiles";
+		var newRMtrepsRepInRawFiles = $('input[name=RMtreprepres]:checked').val() == "rawfiles";
+		var newRMconditionsRepInRawFiles = $('input[name=RMconditionrepres]:checked').val() == "rawfiles";
+		if (newRMbrepsRepInRawFiles != RMbrepsRepInRawFiles || newRMtrepsRepInRawFiles != RMtrepsRepInRawFiles || newRMconditionsRepInRawFiles != RMconditionsRepInRawFiles)
+		{
+			if ($('input[name=RMbreprepres]:checked').val() == "rawfiles" && $('input[name=RMtreprepres]:checked').val() == "rawfiles" && $('input[name=RMconditionrepres]:checked').val() == "rawfiles")
+			{
+				msgbox("Something must be represented in your experiment's tags");
+				RM_RMstep = 1;
+				return;
+			}
+			questionbox("<p>You changed your options in this step. <strong>ProteoSign</strong> will clear any data pertaining to your experimental structure to setup new forms for you<br>Do you want to proceed?</p>", function(){
+				//postyes function
+				stepRM2initialized = false;
+				stepRM3initialized = false;
+				RM_RMstep++;
+				showstepRMDialog();
+			}, function(){
+				//postno function
+				if (RMbrepsRepInRawFiles)
+				{
+					$('input[name=RMbreprepres][value=rawfiles]').prop('checked', 'checked');
+				}
+				else
+				{
+					$('input[name=RMbreprepres][value=tags]').prop('checked', 'checked');
+				}
+				if (RMtrepsRepInRawFiles)
+				{
+					$('input[name=RMtreprepres][value=rawfiles]').prop('checked', 'checked');
+				}
+				else
+				{
+					$('input[name=RMtreprepres][value=tags]').prop('checked', 'checked');
+				}
+				if (RMconditionsRepInRawFiles)
+				{
+					$('input[name=RMconditionrepres][value=rawfiles]').prop('checked', 'checked');
+				}
+				else
+				{
+					$('input[name=RMconditionrepres][value=tags]').prop('checked', 'checked');
+				}
+			});
+			return;
+		}
+	}
+	RM_RMstep++;
+	showstepRMDialog();
+}
+
+var onRMDialogBack_click = function()
+{
+	if (RM_RMstep != 1) RM_RMstep--;
+	showstepRMDialog();
+}
+
+var showstepRMDialog = function()
+{
+	switch(RM_RMstep)
+	{
+		case 1:
+			$("#RM1").removeClass("hidden");
+			$("#RM2").addClass("hidden");
+			$("#RMDialogBack").attr("disabled", true);
+			$("#RMDialogNext").attr("disabled", false);
+			break;
+		case 2:
+			if ($('input[name=RMbreprepres]:checked').val() == "rawfiles" && $('input[name=RMtreprepres]:checked').val() == "rawfiles" && $('input[name=RMconditionrepres]:checked').val() == "rawfiles")
+			{
+				msgbox("Something must be represented in your experiment's tags");
+				RM_RMstep = 1;
+				return;
+			}
+			$("#RMDialogBack").attr("disabled", false);
+			$("#RMDialogNext").attr("disabled", true);
+			$("#stepRM2txtbrep").val("");
+			$("#stepRM2txttrep").val("");
+			$("#stepRM2txtcondition").val("");
+			RMbrepsRepInRawFiles = $('input[name=RMbreprepres]:checked').val() == "rawfiles";
+			RMtrepsRepInRawFiles = $('input[name=RMtreprepres]:checked').val() == "rawfiles";
+			RMconditionsRepInRawFiles = $('input[name=RMconditionrepres]:checked').val() == "rawfiles";
+			//make the info in RM2 step nice:
+			var infotodisplay = "";
+			if (!RMbrepsRepInRawFiles && !RMtrepsRepInRawFiles && !RMconditionsRepInRawFiles)
+			{
+				infotodisplay = "<strong>ProteoSign</strong> considered all your raw files as fractions of the same MS/MS run, please click the Next button.";
+			}
+			else
+			{
+				infotodisplay = "Please select one or more files, define ";
+				if(RMbrepsRepInRawFiles) infotodisplay += "their <i>biological replicates</i>, ";
+				if(RMtrepsRepInRawFiles) infotodisplay += 'their <i>technical replicates</i> (if you do not have technical replication assign "1" to all), ';
+				if(RMconditionsRepInRawFiles) infotodisplay += "their <i>conditions</i>, ";
+				infotodisplay += "using the text boxes below and click <strong>Assign</strong>. The <i>fractions</i> will be assigned automatically.<br><strong>Right click</strong> on the table for extended functionality.";
+			}
+			//hide the tools on the bottom of the screen if nothing is represented as rawfiles
+			if (!RMbrepsRepInRawFiles && !RMtrepsRepInRawFiles && !RMconditionsRepInRawFiles)
+			{
+				$("#stepRM2AssignmentTools").css({"display": "none"});
+			}
+			else
+			{
+				$("#stepRM2AssignmentTools").css({"display": "block"});
+			}
+			$("#stepRM2Info").empty();
+			$("#stepRM2Info").append(infotodisplay);
+			if (!RMconditionsRepInRawFiles)
+			{
+				RMrawfilesDT.column("4").visible(false);
+				$("#stepRM2txtcondition").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("4").visible(true);
+				$("#stepRM2txtcondition").css({"display": "block"});
+			}
+			if (!RMtrepsRepInRawFiles)
+			{
+				RMrawfilesDT.column("2").visible(false);
+				$("#stepRM2txttrep").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("2").visible(true);
+				$("#stepRM2txttrep").css({"display": "block"});
+			}
+			if (!RMbrepsRepInRawFiles)
+			{
+				RMrawfilesDT.column("1").visible(false);
+				$("#stepRM2txtbrep").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("1").visible(true);
+				$("#stepRM2txtbrep").css({"display": "block"});
+			}
+			RMrawfilesDT.column("3").visible(true); // fractions column
+			RMrawfilesDT.clear();
+			$($("#RMrawfiles").DataTable().column(0).header()).text("Raw File");
+			if (!stepRM2initialized) RMrawfilesdata = [];
+			var mycounter = 1;
+			$.each(rawfiles, function (idx, filename_i) {
+				RMrawfilesDT.row.add(
+						 {
+							 'fname': filename_i,
+							 'brep': '-',
+							 'trep': '-',
+							 'frac': '-',
+							 'cond': '-',
+							 'DT_RowClass': "rawfiles_tbl_td_not_selected", //Notice: all rows are given the rawfiles_tbl_td_not_selected as a class whether they are selected or not, the row is selected if it has the rawfiles_tbl_td_selected class and not if it does not have it
+							 'DT_RowId': 'RMtr_' + filename_i //DT_RowID is the id of the corresponding row and it is the most appendable element of the row, so in case we want to refer to the row e.g. the user has selected we will use this ID
+						 }
+				 );
+				 //structure of RMrawfilesdata: id, name, brep, trep, frac, cond, used, selected
+				 if (!stepRM2initialized) RMrawfilesdata.push([mycounter++, filename_i, '-', '-', '-', '-', 'true', false]);
+			});
+			$("#RM1").addClass("hidden");
+			$("#RM2").removeClass("hidden");
+			RMrawfilesDT.columns.adjust().draw();
+			RMrawfilesDT.draw();
+			//handle RMrawfiles clicks
+			//the following routine is written that way so that always in RMrawfiles, the 7th element of a row (the selected one) is true if the row is selected
+			lastclicked_RMrawfiles_tbl_tr = null;
+			$('#RMrawfiles tbody tr').click(function (event) {
+			   // console.log("			" + this);
+			  if (event.shiftKey) {
+				 if (lastclicked_RMrawfiles_tbl_tr !== null) {
+					var i1 = $('#RMrawfiles tbody tr').index(lastclicked_RMrawfiles_tbl_tr);
+					var i2 = $('#RMrawfiles tbody tr').index(this);
+					var trs = $('#RMrawfiles tbody tr');
+					if (i2 > i1) {
+					   for (var i = (i1 + 1); i <= i2; i++) {
+						  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+						  RM_set_row($(trs[i]).attr("id").substr(5));
+					   }
+					} else {
+					   for (var i = (i1 - 1); i >= i2; i--) {
+						  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+  						  RM_set_row($(trs[i]).attr("id").substr(5));
+
+					   }
+					}
+				 }
+			  } else {
+				 $(this).toggleClass('rawfiles_tbl_td_selected');
+				 RM_set_row($(this).attr("id").substr(5));
+			  }
+			  lastclicked_RMrawfiles_tbl_tr = this;
+		   });
+		   RM_refresh_fractions();
+		   RM_redraw_table();
+		   RM_check_next_enable();
+		   stepRM2initialized = true;
+		   break;
+	    case 3:
+			//in fact step RM3 has the same controls as step RM2 but has different rows in RMrawfiles table, notice that even though the table still has the name RMrawfiles, it now contains the tags of the experiment to assign the breps trep and conditions that remain
+			//forst disable next button and empty the text boxes
+			$("#RMDialogNext").attr("disabled", true);
+			$("#stepRM2txtbrep").val("");
+			$("#stepRM2txttrep").val("");
+			$("#stepRM2txtcondition").val("");
+			//make the info in RM3 step nice:
+			var infotodisplay = "";
+			infotodisplay = "Please select one or more tags, define ";
+			if(!RMbrepsRepInRawFiles) infotodisplay += "their <i>biological replicates</i>, ";
+			if(!RMtrepsRepInRawFiles) infotodisplay += 'their <i>technical replicates</i>, ';
+			if(!RMconditionsRepInRawFiles) infotodisplay += "their <i>conditions</i>, ";
+			infotodisplay += "using the text boxes below and click <strong>Assign</strong>.<br><strong>Right click</strong> on the table for extended functionality. When ready, click <strong>Next</strong> to submit your experimental structure.";
+			$("#stepRM2Info").empty();
+			$("#stepRM2Info").append(infotodisplay);
+			//make sure the tools in the bottom of the screen are visible
+			$("#stepRM2AssignmentTools").css({"display": "block"});
+			//now make sure that the only visible elements to assign to the tags are the ones that are necessary e.g. if RMbrepsRepInRawFiles == true then the breps are represented as different raw files so we must hide the corresponding column from the user now that he assigns the breps etc. to his tags
+			if (RMconditionsRepInRawFiles)
+			{
+				RMrawfilesDT.column("4").visible(false); // conditions column
+				$("#stepRM2txtcondition").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("4").visible(true); // conditions column
+				$("#stepRM2txtcondition").css({"display": "block"});
+			}
+			if (RMtrepsRepInRawFiles)
+			{
+				RMrawfilesDT.column("2").visible(false); // treps column
+				$("#stepRM2txttrep").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("2").visible(true); // treps column
+				$("#stepRM2txttrep").css({"display": "block"});
+			}
+			if (RMbrepsRepInRawFiles)
+			{
+				RMrawfilesDT.column("1").visible(false); // breps column
+				$("#stepRM2txtbrep").css({"display": "none"});
+			}
+			else
+			{
+				RMrawfilesDT.column("1").visible(true); // breps column
+				$("#stepRM2txtbrep").css({"display": "block"});
+			}
+			//also the fractions are not used here so hide their column
+			RMrawfilesDT.column("3").visible(false); // fractions column
+			$($("#RMrawfiles").DataTable().column(0).header()).text("Tag");
+			RMrawfilesDT.clear();
+			if (!stepRM3initialized) RMtagsdata = [];
+			RMtags = peptideLabelsNamesFromFile; // get a copy of the tags of the user's dataset
+			var mycounter = 1;
+			$.each(RMtags, function (idx, tagname_i) {
+				RMrawfilesDT.row.add(
+						 {
+							 'fname': tagname_i,
+							 'brep': '-',
+							 'trep': '-',
+							 'frac': '-',
+							 'cond': '-',
+							 'DT_RowClass': "rawfiles_tbl_td_not_selected", //Notice: all rows are given the rawfiles_tbl_td_not_selected as a class whether they are selected or not, the row is selected if it has the rawfiles_tbl_td_selected class and not if it does not have it
+							 'DT_RowId': 'RMtr_' + tagname_i //DT_RowID is the id of the corresponding row and it is the most appendable element of the row, so in case we want to refer to the row e.g. the user has selected we will use this ID
+						 }
+				 );
+				 //structure of RMtagsdata: id, name, brep, trep, frac, cond, used, selected
+				 if (!stepRM3initialized) RMtagsdata.push([mycounter++, tagname_i, '-', '-', '-', '-', 'true', false]);
+			});
+			RMrawfilesDT.columns.adjust().draw();
+			RMrawfilesDT.draw();
+			//redefine the click handler:
+			lastclicked_RMrawfiles_tbl_tr = null;
+			$('#RMrawfiles tbody tr').click(function (event) {
+			   // console.log("			" + this);
+			  if (event.shiftKey) {
+				 if (lastclicked_RMrawfiles_tbl_tr !== null) {
+					var i1 = $('#RMrawfiles tbody tr').index(lastclicked_RMrawfiles_tbl_tr);
+					var i2 = $('#RMrawfiles tbody tr').index(this);
+					var trs = $('#RMrawfiles tbody tr');
+					if (i2 > i1) {
+					   for (var i = (i1 + 1); i <= i2; i++) {
+						  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+						  RM_set_row($(trs[i]).attr("id").substr(5));
+					   }
+					} else {
+					   for (var i = (i1 - 1); i >= i2; i--) {
+						  $(trs[i]).toggleClass('rawfiles_tbl_td_selected');
+  						  RM_set_row($(trs[i]).attr("id").substr(5));
+
+					   }
+					}
+				 }
+			  } else {
+				 $(this).toggleClass('rawfiles_tbl_td_selected');
+				 RM_set_row($(this).attr("id").substr(5));
+			  }
+			  lastclicked_RMrawfiles_tbl_tr = this;
+		   });
+			//notice that now RMrawfilesDT contains the tags of the dataset
+		    RM_redraw_table();
+		    RM_check_next_enable();
+			stepRM3initialized = true;
+			break;
+		case 4:
+			dlgFadeoutRepMult();
+			set_RMisused(true);
+	}
+	$(".RepMultDlg").css({"top": ($("body").height() / 2) - ($("#ReplicationMultiplexingDialog").height() / 2)});
+}
+
+var RM_set_row = function(name, state, valueidx)
+{
+	//taking the name of the raw file, this function finds the RMrawfilesdata record and changes the value with the index valueidx
+	////structure of RMrawfilesdata: id, name, brep, trep, frac, cond, used, selected
+	//e.g. to change the state of "selected" to true of raw file "WTb12" write RM_set_row("WTb12", true, 7)
+	//if state is undefined then we toogle the selected value
+	if (typeof(valueidx) === 'undefined') valueidx = 7;
+	if (RM_RMstep == 2)
+	{
+		for (var i = 0 ; i <= RMrawfilesdata.length - 1; i++)
+		{
+			if (RMrawfilesdata[i][1] == name)
+			{
+				if (typeof(state) === 'undefined')
+				{
+					RMrawfilesdata[i][valueidx] = !RMrawfilesdata[i][valueidx];
+				}
+				else
+				{
+					RMrawfilesdata[i][valueidx] = state;
+				}
+			}
+		}
+	}
+	else if (RM_RMstep == 3)
+	{
+		for (var i = 0 ; i <= RMtagsdata.length - 1; i++)
+		{
+			if (RMtagsdata[i][1] == name)
+			{
+				if (typeof(state) === 'undefined')
+				{
+					RMtagsdata[i][valueidx] = !RMtagsdata[i][valueidx];
+				}
+				else
+				{
+					RMtagsdata[i][valueidx] = state;
+				}
+			}
+		}
+	}
+}
+
+var RM_get_row = function(name, valueidx)
+{
+	//returns the value of the row in RMrawfilesdata of valueidx with the name name
+	if (RM_RMstep == 2)
+	{
+		for (var i = 0 ; i <= RMrawfilesdata.length - 1; i++)
+		{
+			if (RMrawfilesdata[i][1] == name)
+			{
+				return RMrawfilesdata[i][valueidx];
+			}
+		}
+	}
+	else if (RM_RMstep == 3)
+	{
+		for (var i = 0 ; i <= RMtagsdata.length - 1; i++)
+		{
+			if (RMtagsdata[i][1] == name)
+			{
+				return RMtagsdata[i][valueidx];
+			}
+		}
+	}
+}
+var stepRM2Assign_click = function()
+{
+	// the assign button in step RM2 
+	// set the correct values in RMrawfilesdata table
+	var items = $('#RMrawfiles').find('.rawfiles_tbl_td_selected'); //get all the selected rows
+	 for (var i = 0; i < items.length; i++)
+	 {
+		 var items_tds = $(items[i]).find('td');
+		 var items_name = items_tds[0];
+		 if ($("#stepRM2txtbrep").val() != "") RM_set_row($(items_name).text(), $("#stepRM2txtbrep").val(), 2);
+		 if ($("#stepRM2txttrep").val() != "") RM_set_row($(items_name).text(), $("#stepRM2txttrep").val(), 3);
+		 if ($("#stepRM2txtcondition").val() != "") RM_set_row($(items_name).text(), $("#stepRM2txtcondition").val(), 5);
+		 RM_set_row($(items_name).text(), 'true', 6);
+	 }
+	 if (RM_RMstep == 2) RM_refresh_fractions();
+	 RM_redraw_table();
+	 //now deselect all the rows
+	 $('#RMrawfiles tbody tr').removeClass('rawfiles_tbl_td_selected');
+	 if (RM_RMstep == 2)
+	 {
+		 for (var i = 0 ; i <= RMrawfilesdata.length - 1; i++)
+		{
+			RMrawfilesdata[i][7] = false;
+		}
+	 }
+	 else if (RM_RMstep == 3)
+	 {
+		 for (var i = 0 ; i <= RMtagsdata.length - 1; i++)
+		{
+			RMtagsdata[i][7] = false;
+		}
+	 }
+	//and clean the input text boxes
+	$("#stepRM2txtbrep").val("");
+	$("#stepRM2txttrep").val("");
+	$("#stepRM2txtcondition").val("");
+	RM_check_next_enable();
+}
+
+var RM_refresh_fractions = function()
+{
+	//this function autocompletes tha fractions of RMrawfiles
+	$.each(RMrawfilesdata, function (idx, my_row)
+	{
+		if (my_row[6] == false)//if not used
+		{
+			return;
+		}
+		var my_brep = my_row[2];
+		var my_trep = my_row[3];
+		var my_assigned_condition = my_row[5];
+		var my_cur_fraction = 1;
+		if (my_brep == "-" && RMbrepsRepInRawFiles) return;
+		if (my_trep == "-" && RMtrepsRepInRawFiles) return;
+		if (my_assigned_condition == "-" && RMconditionsRepInRawFiles) return;
+		$.each(RMrawfilesdata, function (idxJ, my_rowJ)
+		{
+			if (my_rowJ[6] == false) return;
+			if ((my_rowJ[2] == my_brep || !RMbrepsRepInRawFiles) && (my_rowJ[3] == my_trep || !RMtrepsRepInRawFiles) && (my_rowJ[5] == my_assigned_condition || !RMconditionsRepInRawFiles))
+			{
+				my_rowJ[4] = my_cur_fraction++;
+			}
+		});
+	});
+}
+
+var RM_redraw_table = function()
+{
+	//visualize the RMrawfilesdata array back to the user
+	var items = $('#RMrawfiles').find('.rawfiles_tbl_td_not_selected,.rawfiles_tbl_td_selected'); // get all the rows
+	//unfortunately the index of brep trep etc in a roware not stable and depend on step RM1
+	var brepindex = 1;
+	var trepindex = 2;
+	var fracindex = 3;
+	var condindex = 4;
+	if (RM_RMstep == 3) condindex--; // if we are in RM# step the fractions column is not visible
+	var lastelement;
+	//in step RM3 we assign breps etc in tags so if RMbrepsRepInRawFiles == true we consider it as being false so alter these values and get them back at the end of the routine
+	if (RM_RMstep == 3)
+	{
+		RMbrepsRepInRawFiles = !RMbrepsRepInRawFiles;
+		RMtrepsRepInRawFiles = !RMtrepsRepInRawFiles;
+		RMconditionsRepInRawFiles = !RMconditionsRepInRawFiles;
+	}
+	if (!RMbrepsRepInRawFiles)
+	{
+		trepindex--;
+		fracindex--;
+		condindex--;
+	}
+	if (!RMtrepsRepInRawFiles)
+	{
+		fracindex--;
+		condindex--;
+	}
+	lastelement = condindex;
+	if (!RMconditionsRepInRawFiles)
+	{
+		lastelement--;
+	}
+	 for (var i = 0; i < items.length; i++)
+	 {
+		 var items_tds = $(items[i]).find('td');
+		 var items_name = items_tds[0];
+		 var items_biorep = items_tds[brepindex];
+         var items_techrep = items_tds[trepindex];
+         var items_frac = items_tds[fracindex]; //will not be used in step RM3
+         var items_condition = items_tds[condindex];
+		 if (RMbrepsRepInRawFiles) $(items_biorep).text(RM_get_row($(items_name).text(), 2));
+		 if (RMtrepsRepInRawFiles) $(items_techrep).text(RM_get_row($(items_name).text(), 3));
+		 if (RM_RMstep == 2) $(items_frac).text(RM_get_row($(items_name).text(), 4));
+		 if (RMconditionsRepInRawFiles) $(items_condition).text(RM_get_row($(items_name).text(), 5));
+		 if (!(RM_get_row($(items_name).text(), 6) == 'true'))//if not used
+		 {
+			 for (var j = 0; j <= lastelement; j++)
+			 {
+				 $(items_tds[j]).css("text-decoration", "line-through");
+			 }
+		 }
+		 else
+		 {
+			 for (var j = 0; j <= lastelement; j++)
+			 {
+				 $(items_tds[j]).css("text-decoration", "none");
+			 }
+		 }
+	 }
+	if (RM_RMstep == 3)
+	{
+		RMbrepsRepInRawFiles = !RMbrepsRepInRawFiles;
+		RMtrepsRepInRawFiles = !RMtrepsRepInRawFiles;
+		RMconditionsRepInRawFiles = !RMconditionsRepInRawFiles;
+	}
+}
+
+var RM_deselect_all = function()
+{
+	var my_table = $('#RMrawfiles').dataTable();
+	var my_rows = my_table._('tr', {"filter":"applied"});
+	$.each(my_rows, function (idx, cur_row) {
+		// console.log(cur_row);
+		var my_tmp = cur_row["DT_RowId"];
+		$(document.getElementById(my_tmp.toString())).removeClass('rawfiles_tbl_td_selected');
+		RM_set_row(my_tmp.toString().substr(5), false, 7);
+	});
+}
+
+var RM_check_next_enable = function()
+{
+	var next_should_be_enabled = true;
+	if (RM_RMstep == 2)
+	{
+		next_should_be_enabled = is_RM_ready(2);
+	}
+	else if (RM_RMstep == 3)
+	{
+		next_should_be_enabled = is_RM_ready(3);
+	}
+	$("#RMDialogNext").attr('disabled', !next_should_be_enabled);
+}
+
+var is_RM_ready = function(step)
+{
+	// this function returns false if the RM data given by the user are not enough otherwise true
+	//if step is defined it only checks the corresponding RMstep otherwise both 2 and 3
+	var isready = true;
+	if (typeof(step) === 'undefined' || step == 2)
+	{
+		for (var i = 0; i <= RMrawfilesdata.length - 1; i++)
+		{
+			if (!(RMrawfilesdata[i][6] == 'true')) continue; //if the raw file is not used continue
+			if (RMbrepsRepInRawFiles && RMrawfilesdata[i][2] == "-")
+			{
+				isready = false;
+				break;
+			}
+			if (RMtrepsRepInRawFiles && RMrawfilesdata[i][3] == "-")
+			{
+				isready = false;
+				break;
+			}
+			if (RMconditionsRepInRawFiles && RMrawfilesdata[i][5] == "-")
+			{
+				isready = false;
+				break;
+			}
+		}
+	}
+	if (typeof(step) === 'undefined' || step == 3)
+	{
+		for (var i = 0; i <= RMtagsdata.length - 1; i++)
+		{
+			if (!(RMtagsdata[i][6] == 'true')) continue; //if the raw file is not used continue
+			if (!RMbrepsRepInRawFiles && RMtagsdata[i][2] == "-")
+			{
+				isready = false;
+				break;
+			}
+			if (!RMtrepsRepInRawFiles && RMtagsdata[i][3] == "-")
+			{
+				isready = false;
+				break;
+			}
+			if (!RMconditionsRepInRawFiles && RMtagsdata[i][5] == "-")
+			{
+				isready = false;
+				break;
+			}
+		}
+	}
+	return isready;
+}
+var set_RMisused = function(isused, showmessage)
+{
+	if (typeof(showmessage) === 'undefined') showmessage = true;
+	if (!isIsobaricLabel) return;
+	//this function makes the appropriate changes in the interface in case Replication Multiplexing is decided to be used or not:
+	if (isused)
+	{
+		//if we decided to use Rep Mult hide the main data table and display an interactive text in its place
+		$("#step2ToolsWrapper").css({"display": "none"});
+		$("#step2RMuseinfo").css({"display": "inline-flex"});
+		$("#step2InfoHeader").css({"display": "none"});
+		$("#step2desc").css({"display": "none"});
+		$("#s22btnf").prop('disabled', false);
+		AllowLS = false;
+		AllowMergeLabels = false;
+		RefreshConditionsList(RM_getRMconditions());
+		$("#s3QuantitationFiltering").hide();
+		$("#expquantfilt").prop("checked", false);
+	}
+	else
+	{
+		$("#step2ToolsWrapper").css({"display": "inline-flex"});
+		$("#step2RMuseinfo").css({"display": "none"});
+		$("#step2InfoHeader").css({"display": "block"});
+		$("#step2desc").css({"display": "block"});
+		$("#s3QuantitationFiltering").show();
+		$("#expquantfilt").prop("checked", false);
+		RM_RMstep = 1;
+		RMrawfilesdata = [];
+		RMtagsdata = [];
+		RMbrepsRepInRawFiles = true;
+		RMtrepsRepInRawFiles = true;
+		RMconditionsRepInRawFiles = true;
+		RMtags = [];
+		RMisused = false;
+		stepRM2initialized = false;
+		stepRM3initialized = false;
+		rawfiles_tbl_allfiles_DT.columns.adjust().draw();
+		if (showmessage) msgbox("Replication Multiplexing was discarded, please define the experimental coordinates of your raw files");
+		set_s22btnf();
+		AllowLS = true;
+		AllowMergeLabels = true;
+		RefreshConditionsList(peptideLabelsNamesFromFile);
+	}
+	if(!AllowLS)
+	{
+		$("#s3showdivLabelSwapRow").hide();
+	}
+	else
+	{
+		$("#s3showdivLabelSwapRow").show();
+	}
+	$('#conds_list_container').contextmenu("option", "autoTrigger", AllowMergeLabels);
+	RMisused = isused;
+}
+
+var onRMUndo_click = function()
+{
+	set_RMisused(false);
+}
+
+var onRMreview_click = function()
+{
+	showRepMultDialog();
+}
+
+var RM_init_RMsteps_from_load_data = function()
+{
+	//when RM is loaded from test data, the tables in RMsteps are in fact initialized
+	stepRM2initialized = true;
+	stepRM3initialized = true;
+	if (RMbrepsRepInRawFiles)
+	{
+		$('input[name=RMbreprepres][value=rawfiles]').prop('checked', 'checked');
+	}
+	else
+	{
+		$('input[name=RMbreprepres][value=tags]').prop('checked', 'checked');
+	}
+	if (RMtrepsRepInRawFiles)
+	{
+		$('input[name=RMtreprepres][value=rawfiles]').prop('checked', 'checked');
+	}
+	else
+	{
+		$('input[name=RMtreprepres][value=tags]').prop('checked', 'checked');
+	}
+	if (RMconditionsRepInRawFiles)
+	{
+		$('input[name=RMconditionrepres][value=rawfiles]').prop('checked', 'checked');
+	}
+	else
+	{
+		$('input[name=RMconditionrepres][value=tags]').prop('checked', 'checked');
+	}
+}
+
+var RM_getRMconditions = function()
+{
+	//this routine gets the copnditions set in Replication Multiplexing
+	if (RMconditionsRepInRawFiles)
+	{
+		var temp_array = [];
+		for(var i = 0; i<= RMrawfilesdata.length - 1; i++)
+		{
+			if (RMrawfilesdata[i][6] == 'true') temp_array.push(RMrawfilesdata[i][5]);
+		}
+		temp_array = ArrNoDupe(temp_array);
+	}
+	else
+	{
+		var temp_array = [];
+		for(var i = 0; i<= RMtagsdata.length - 1; i++)
+		{
+			if (RMtagsdata[i][6] == 'true') temp_array.push(RMtagsdata[i][5]);
+		}
+		temp_array = ArrNoDupe(temp_array);
+	}
+	return temp_array;
+}
+
+//the following routine inserts conditions in conditions_list
+var RefreshConditionsList = function(my_conditions)
+{
+	$("#conditions_list").empty();
+	$.each(my_conditions, function (idx, lblname_i) {
+		$("#conditions_list").append("<option value='" + lblname_i + "' style='padding: 2px; font-size: 125%;' selected='true'>" + lblname_i + "</option>");
+    });
+}
 $(document).ready(function () {
 	
 	// 	document.getElementById("s2LFQConditionsNew").onkeydown = inputChCheck(event,'^(?!_)[a-zA-Z0-9_]+$',20);
@@ -3580,7 +4656,6 @@ $(document).ready(function () {
 		InitializeLS();
    }); 
     $("#s3showdivAdvancedOptions").on("click", function () {
-	    if(!AllowLS) return;
 	   	$(".expparamsDlg").css({"left" : ($("body").width()/2) - ($("#divAdvancedOptions").width()/2)});
 		$('body').append('<div id="mask"></div>');
 		$("#divAdvancedOptions").fadeIn(300);
@@ -3891,9 +4966,61 @@ $(document).ready(function () {
 		 {"mData": "cond"}
       ]
    });
+   // Initialize the rawfiles table in the Replication Multiplexing dialog (step RM2)
+   RMrawfilesDT = $("#RMrawfiles").DataTable({
+	   paging: false,
+      bInfo: false,
+	  select: true,
+	  "pageLength": 308,
+	  scrollY: "200px",
+	  scrollCollapse: true,
+	     "columnDefs": [
+         {
+            targets: [1, 2, 3, 4],
+            width: '4%',
+            className: "dt-center"
+         },
+         {
+            targets: 0,
+            width: '100%',
+            className: "dt-left",
+			title: "Raw File"
+         },
+		 {
+			 targets: 1,
+			title: "#B",
+		 },
+		 {
+			 targets: 2,
+			title: "#T",
+		 },
+		 {
+			 targets: 3,
+			title: "#F",
+		 },
+		 {
+			 targets: 4,
+			 title: "Condition",
+			 width: '18%',
+			 className: "dt-center"
+		 }
+      ],
+      "dom": '<"top ibvspace"f>rtT',
+		"sDom": 'lfrtip',
+		"oLanguage": {
+         "sSearch": "Filter: "
+      },
+      "aoColumns": [
+         {"mData": "fname"},
+         {"mData": "brep"},
+         {"mData": "trep"},
+         {"mData": "frac"},
+		 {"mData": "cond"}
+      ]
+   });
    // Initialize the context menu 
      main_context_menu = $(document).contextmenu({
-		delegate: ".dataTable td",
+		delegate: ".rawfiles_tbl td",
 		menu: [
 		  {title: "Select All", cmd: "slc_all"},
 		  {title: "Deselect All", cmd: "dslc_all"},
@@ -3903,7 +5030,8 @@ $(document).ready(function () {
 		  {title: "Clear filter", cmd: "clr_fltr"},
 		  {title: "Reset", cmd: "reset"},
 		  {title: "Select unassigned", cmd: "slc_unassigned"},
-		  {title: "Assign Condition", cmd: "assign_condition", visible: false}
+		  {title: "Assign Condition", cmd: "assign_condition", visible: false},
+		  {title: "Replication Multiplexing", cmd: "rep_mult", visible: false}
 		],
 		select: function(event, ui) {
 			switch(ui.cmd){
@@ -4075,6 +5203,9 @@ $(document).ready(function () {
 				case "assign_condition":
 					onAssignCondition();
 					break;
+				case "rep_mult":
+					showRepMultDialog();
+					break;
 				}
 			},
 		beforeOpen: function(event, ui) {
@@ -4147,11 +5278,141 @@ $(document).ready(function () {
 			}
 		 });
 		}
+		//the following code handles the context menu in Replication Multiplexing
+		RMcontext_menu = $("#RMtablecontainer").contextmenu({
+			delegate: ".RMrawfilestbl td",
+			menu: [
+			  {title: "Select All", cmd: "slc_all"},
+			  {title: "Deselect All", cmd: "dslc_all"},
+			  {title: "Invert Selection", cmd: "inv_slc"},
+			  {title: "Exclude Selected", cmd: "rmv_slc"},
+			  {title: "Include Selected", cmd: "add_slc"},
+			  {title: "Clear filter", cmd: "clr_fltr"},
+			  {title: "Reset", cmd: "reset"},
+			  {title: "Select unassigned", cmd: "slc_unassigned"}
+			],
+			select: function(event, ui) {
+				switch(ui.cmd){
+					case "slc_all":
+						var my_table = $('#RMrawfiles').dataTable();
+						var my_rows = my_table._('tr', {"filter":"applied"});
+						$.each(my_rows, function (idx, cur_row) {
+							// console.log(cur_row);
+							var my_tmp = cur_row["DT_RowId"];
+							$(document.getElementById(my_tmp.toString())).addClass('rawfiles_tbl_td_selected');
+							RM_set_row(my_tmp.toString().substr(5), true, 7);
+							});
+						break;
+					case "reset":
+						if (RM_RMstep == 2)
+						{
+							RMrawfilesdata = [];
+							var mycounter = 1;
+							$.each(rawfiles, function (idx, filename_i) {
+								RMrawfilesdata.push([mycounter++, filename_i, '-', '-', '-', '-', true, false]);
+							});
+							RM_refresh_fractions();
+						}
+						else if (RM_RMstep == 3)
+						{
+							RMtagsdata = [];
+							RMtags = peptideLabelsNamesFromFile;
+							var mycounter = 1;
+							$.each(RMtags, function (idx, tag_i) {
+								RMtagsdata.push([mycounter++, tag_i, '-', '-', '-', '-', true, false]);
+							});
+						}
+						RM_redraw_table();
+						//notice the absence of break, reseting the state also deselects all
+					case "dslc_all":
+						RM_deselect_all();
+						break;
+					case "inv_slc":
+						var my_table = $('#RMrawfiles').dataTable();
+						var my_rows = my_table._('tr', {"filter":"applied"});
+						$.each(my_rows, function (idx, cur_row) {
+							// console.log(cur_row);
+							var my_tmp = cur_row["DT_RowId"];
+							$(document.getElementById(my_tmp.toString())).toggleClass('rawfiles_tbl_td_selected');
+							RM_set_row(my_tmp.toString().substr(5));
+							});	
+						break;
+					case "clr_fltr":
+						RMrawfilesDT.search('');
+						RMrawfilesDT.columns().search('');
+						RMrawfilesDT.draw();
+						break;
+					case "rmv_slc":
+						var my_table = $('#RMrawfiles').dataTable();
+						var items = $('#RMrawfiles').find('.rawfiles_tbl_td_selected');
+						for (var i = 0; i < items.length; i++) {
+							var items_tds = $(items[i]).find('td');
+							RM_set_row($(items_tds[0]).text(), 'false', 6);//set the row to unused
+						}
+						if (RM_RMstep == 2) RM_refresh_fractions();
+						RM_redraw_table();
+						RM_deselect_all();
+						break;
+					case "add_slc":
+						var my_table = $('#RMrawfiles').dataTable();
+						var items = $('#RMrawfiles').find('.rawfiles_tbl_td_selected');
+						for (var i = 0; i < items.length; i++) {
+							var items_tds = $(items[i]).find('td');
+							RM_set_row($(items_tds[0]).text(), 'true', 6);//set the row to unused
+						}
+						if (RM_RMstep == 2) RM_refresh_fractions();
+						RM_redraw_table();
+						RM_deselect_all();
+						break;
+					case "slc_unassigned":
+						var my_table = $('#RMrawfiles').dataTable();
+						var my_rows = my_table._('tr', {"filter":"applied"});
+						$.each(my_rows, function (idx, cur_row) {
+							var mustbeselected = false;
+							if (RM_RMstep == 3)
+							{
+								RMbrepsRepInRawFiles = !RMbrepsRepInRawFiles;
+								RMtrepsRepInRawFiles = !RMtrepsRepInRawFiles;
+								RMconditionsRepInRawFiles = !RMconditionsRepInRawFiles;
+							}
+							if (RMbrepsRepInRawFiles && RM_get_row(cur_row["DT_RowId"].toString().substr(5), 2) == "-") mustbeselected = true;
+							if (RMtrepsRepInRawFiles && RM_get_row(cur_row["DT_RowId"].toString().substr(5), 3) == "-") mustbeselected = true;
+							if (RMconditionsRepInRawFiles && RM_get_row(cur_row["DT_RowId"].toString().substr(5), 5) == "-") mustbeselected = true;
+							if (RM_RMstep == 3)
+							{
+								RMbrepsRepInRawFiles = !RMbrepsRepInRawFiles;
+								RMtrepsRepInRawFiles = !RMtrepsRepInRawFiles;
+								RMconditionsRepInRawFiles = !RMconditionsRepInRawFiles;
+							}
+							if (RM_get_row(cur_row["DT_RowId"].toString().substr(5), 6) == 'false') mustbeselected = false;
+							if (mustbeselected)
+							{
+								$(document.getElementById(cur_row["DT_RowId"].toString())).addClass('rawfiles_tbl_td_selected');
+								RM_set_row(cur_row["DT_RowId"].toString().substr(5), true, 7);
+							}
+							else
+							{
+								$(document.getElementById(cur_row["DT_RowId"].toString())).removeClass('rawfiles_tbl_td_selected');
+								RM_set_row(cur_row["DT_RowId"].toString().substr(5), false, 7);
+							}
+						});
+						break;
+				}
+			RM_check_next_enable(); //check if the next button in RM Dialog must be enabled
+			},
+			beforeOpen: function(event, ui) {
+			var $menu = ui.menu,
+				$target = ui.target,
+				extraData = ui.extraData;
+			ui.menu.zIndex(99999);
+			}
+		});
    $('#rawfiles_tbl_allfiles').css({border: 'none'});
    $('#rawfiles_tbl_allfiles').css({margin: '0px'});
    $('#rawfiles_tbl_allfiles thead th').css({border: 'none'});
    $('#rawfiles_tbl_allfiles').css({'border-bottom': 'none'});
    $('#rawfiles_tbl_allfiles').css({'border-bottom': 'none'});
+   //obsolete:
    $('#btnRawfilesTblSelectAll').on("click", function () {
       $('#rawfiles_tbl_allfiles tbody tr').addClass('rawfiles_tbl_td_selected');
    });
@@ -4187,6 +5448,8 @@ $(document).ready(function () {
       $("#s22btnf").prop('disabled', !(rawfiles.length > 0 && rawfiles_structure.length == rawfiles.length));
       $("#btnResetExpStructCoord").prop('disabled', rawfiles_structure.length == 0);
    });
+   //end obsolete
+   
 	//from http://stackoverflow.com/questions/8641729/how-to-avoid-the-need-for-ctrl-click-in-a-multi-select-box-using-javascript
 	$("#conditions_list").mousedown(function(e){
 		e.preventDefault();
@@ -4208,6 +5471,7 @@ $(document).ready(function () {
 		onuserFeedbackchange();
 	});
 
+	
    // TEST DATA INIT
    postTestDatasetsInfo();
    //

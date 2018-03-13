@@ -8,6 +8,8 @@
 		<meta name="keywords" content="ProteoSign, mass spectrometry, proteomics, data, statistics, statistical analysis, bioinformatics, limma, comparative proteomics, silac, labeling, differential expression">
 		<meta charset="UTF-8">
 		<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+		<script src="js/Matomo_script.js"></script>
+		<noscript><p><img src="https://genomics-lab.fleming.gr/piwik/piwik.php?idsite=18&rec=1" style="border:0;" alt="" /></p></noscript>
 	</head>
 	<body>
 		<div class="main_div">
@@ -62,12 +64,12 @@
 			
 			<div class="main_div main_section hidden" id="s22div">
 				<h2>Step 2</h2>
-				<p style="color: #000000">Please define the experimental design by assigning the appropriate structure coordinate to each file. 
+				<p style="color: #000000" id="step2InfoHeader">Please define the experimental design by assigning the appropriate structure coordinate to each file. 
 					<p id = "step2desc" style="font-size: 14px;">A coordinate specifies the biological replicate, technical replicate and fraction a raw file belongs to. Select one or more files from the table on the left, type the biological and technical replicate numbers they belong to in the boxes on the right, and click the <strong>Assign</strong> button. If multiple files are fractions of the same replicate, simply assign the same biological and technical replicate number to them, the order of the fractions does not matter. Use <strong>Shift</strong> to select a range of items. <strong>Right click</strong> on the table for extended functionality.</p>
 					<p style="font-size: 14px;" id="ExtraInfoForLFQ">Please use the <strong>"Assign Condition"</strong> option in the right click menu to tell ProteoSign which Raw Files correspond to which condition.</p>
 				</p>
 				<hr class="style-one">
-            <div style="text-align: center; height: 45%; width: 100%; display: -webkit-flex; display: inline-flex;">
+            <div style="text-align: center; height: 45%; width: 100%; display: -webkit-flex; display: inline-flex;" id="step2ToolsWrapper">
 			<div class="expstructcoord_tbl" style="margin: 10px; height: 100%; overflow: auto; max-height: 100%; width: 70%;">
                   <!-- <div style="margin-top: 1em;"> -->
 						<div style="overflow:auto; height: 200px; margin-top: 1em;">
@@ -94,7 +96,12 @@
                      <button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px;" id="btnResetExpStructCoord" disabled="">Reset</button>
                   </div>
                </div>
-				</div>
+			</div>
+			<div class="expstructcoord_tbl" id="step2RMuseinfo" style="display: none;">
+				<p style="color: #000000;">
+					You have chosen to use <i>Replication Multiplexing</i>. You can <strong><u class="astyle" id="RMundo" onclick="onRMUndo_click();">Undo</u></strong> this or <strong><u class="astyle" id="RMreview" onclick="onRMreview_click();">Review</u></strong> your Replication Multiplexing options.
+				</p>
+			</div>
 				<div class="buttonbar">
 					<button type="button" class="main" id="s22btnb">Back</button>
 					<button type="button" class="main" id="s22btnf" disabled onclick="ons22btnfclick();">Next</button>
@@ -231,7 +238,7 @@
 				<p>
 				<span id="proteosignversion" style='font-family: "Courier New"; display: block; float: left'></span>
 				<span id="githubproject" style='font-family: "Courier New"; margin: 0 18%;'><a href="https://github.com/yorgodillo/ProteoSign" target="_blank">Project hosted at GitHub <img src="images/github_icon.png" height="30" style="position: relative; vertical-align: top; margin: -0.7em 0;"></img></a></span>
-				<span style='font-family: "Courier New"; display: block; float: right'><a onclick='onFeedbackclick();'><u>Feedback</u></a>  <a id='contact' onclick='$("#contact").attr("href","mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid); return true;' target='_blank'><u>Contact</u></a></span>
+				<span style='font-family: "Courier New"; display: block; float: right'><a href='change_log.html' target='_blank'><u>Change Log</u></a>  <a onclick='onFeedbackclick();'><u>Feedback</u></a>  <a id='contact' onclick='$("#contact").attr("href","mailto:msdiffexp@gmail.com?Subject=Session%20"+sessionid); return true;' target='_blank'><u>Contact</u></a></span>
 			</div>
 		<div>
 
@@ -380,12 +387,80 @@
 			</div>			
 		</div>
 		
+		<div class="RepMultDlg" id="ReplicationMultiplexingDialog" style="width: 650px;">
+			<div style="text-align: center;">
+				<!-- content here -->
+				<h4>Replication Multiplexing</h4>
+				<div class="stepRM1" id="RM1">
+					<p style="font-size: 14px;text-align: left; margin-bottom = 0'"><strong>ProteoSign</strong> supports data sets that have biological or technical replicates represented as different tags. Please choose the options below that best describe your experiment and click Next:<br><span>If you have no technical replicates select <i>"Raw Files"</i> as the corresponding option</span></p>
+					<hr class="style-one">
+					<p style="text-align: left">
+						My <i>biological replicates</i> are represented as different
+							
+							<input type="radio" name="RMbreprepres" id="RMbreprepresrf" value = "rawfiles" checked = "true">Raw Files</input>
+							<input type="radio" name="RMbreprepres" id="RMbrepreprestag" value = "tags">Tags</input>
+					</p>
+					<p style="text-align: left">
+						My <i>technical replicates</i> are represented as different
+							
+							<input type="radio" name="RMtreprepres" id="RMtreprepresrf" value = "rawfiles" checked = "true">Raw Files</input>
+							<input type="radio" name="RMtreprepres" id="RMtrepreprestag" value = "tags">Tags</input>
+					</p>
+					<p style="text-align: left;">
+						My <i>conditions</i> are represented as different
+							
+							<input type="radio" name="RMconditionrepres" id="RMconditionrepresrf" value = "rawfiles" checked = "true">Raw Files</input>
+							<input type="radio" name="RMconditionrepres" id="RMconditionreprestag" value = "tags">Tags</input>
+					</p>
+					<hr class="style-one">
+				</div>
+				<div class="stepRM2 hidden" id="RM2" style="margin: auto; height: 100%; overflow: auto; max-height: 100%; width: 90%;">
+					<p id="stepRM2Info" style="font-size: 14px;text-align: left; margin-bottom = 0'"><strong>Please assign the corresponding elements to your Raw files the fractions will be updated automatically</p>
+					<hr class="style-one" style="margin-top: 7px; margin-bottom: 7px">
+					<div class="expstructcoord_tbl" id="RMtablecontainer" style="margin:5px">
+						<div style="overflow:auto; height: 275px; width:100%; margin-top: 1em;">
+								<table class="compact row-border RMrawfiles RMrawfilestbl" cellspacing="0" width="10%" id="RMrawfiles" style="width: 100%; margin: 0px">
+									<tbody>
+									</tbody>
+								</table>
+						</div>	
+					</div>
+					<div style="text-align:center;">
+					<div id="stepRM2AssignmentTools" class="expstructcoord_tbl" style="text-align: center; padding-top:5px; padding-left: 7px; margin: 0 auto; width:250px">
+						<input id="stepRM2txtbrep" type="text" placeholder="Bio. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)" onpaste="event.preventDefault();" style="display:block; margin: 0 auto; margin-bottom: 5px;">
+						
+						 <input id="stepRM2txttrep" type="text" placeholder="Tech. replicate #" onkeypress="inputChCheck(event, '^[0-9]+$', 2)" onpaste="event.preventDefault();" style="display:block; margin: 0 auto; margin-bottom: 5px;">
+						 
+						 <input id="stepRM2txtcondition" placeholder="Condition" style="width:148.5px; display: block; margin: 0 auto; margin-bottom: 5px;" onkeypress="inputChCheck(event,'^(?![0-9_])[a-zA-Z0-9_]+$',10);" onpaste="inputPasteCheck(event,'^(?![0-9_])[a-zA-Z0-9_]+$',10);"></input>
+						 <br>
+						 <button type="button" class="main inline" style="font-size: 80%; padding: 5px 15px 6px 15px; margin-top:5px;" id="btnAssignExpStructCoord" onclick="stepRM2Assign_click();">Assign</button>
+					</div>
+					</div>
+				</div>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="RMDialogBack" onclick="onRMDialogBack_click();" disabled>Back</button>
+			<button type="button" class="main inline" style="font-size: 80%;" id="RMDialogNext" onclick="onRMDialogNext_click();">Next</button>
+			<button type="button" class="main inline" style="font-size: 80%;" id="RMDialogCancel" onclick="onRMDialogCancel_click();">Cancel</button>
+			</div>	
+		</div>
+		
 		<div class="expparamsDlgInfo" id="VariousInfoDialog" style="width: 550px">
 			<div style="text-align: center;">
 				<div id="InfoDiv" style="font-size: 85%;"></div>
 			</div>
 			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
 			<button type="button" class="main inline" style="font-size: 80%;" id="VIDDiscard" onclick="onVIDDiscard_click();">Discard</button>
+			</div>	
+		</div>
+		
+		<div class="expparamsDlgInfo" id="QuestionBoxDialog" style="width: 550px">
+			<div style="text-align: center;">
+				<div id="CaptionDiv" style="font-size: 85%;"></div>
+			</div>
+			<div class="buttonbar" style="text-align: center; position: relative; width: auto; margin-top: 1em">
+			<button type="button" class="main inline" style="font-size: 80%;" id="QBYes">Yes</button>
+			<button type="button" class="main inline" style="font-size: 80%;" id="QBNo">No</button>
 			</div>	
 		</div>
 		
